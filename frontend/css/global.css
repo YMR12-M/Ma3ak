@@ -1,0 +1,1442 @@
+/* ============================================
+   MA3ak (معاك) - Global Styles
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, form {
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ---------- Boot / Auth screens ---------- */
+
+.boot-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background:
+    radial-gradient(circle at 12% 8%, var(--color-primary-light) 0%, transparent 40%),
+    radial-gradient(circle at 88% 92%, var(--color-primary-light) 0%, transparent 40%),
+    var(--color-bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.auth-card-header {
+  background: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-surface) 100%);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+}
+
+.auth-card-body {
+  padding: var(--space-3) var(--space-3) var(--space-4);
+}
+
+.brand {
+  text-align: center;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.brand h1 {
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-dark);
+  margin-top: var(--space-2);
+}
+
+.brand-tag {
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+  padding: 5px;
+  margin-bottom: var(--space-3);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: var(--space-1) 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tab.active {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.role-choice {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.role-btn {
+  flex: 1;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  cursor: pointer;
+  min-height: var(--tap-min);
+  font-weight: 600;
+}
+
+.role-btn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.auth-hint {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 3px solid var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.times-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.time-row input {
+  flex: 1;
+}
+
+.icon-btn {
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius);
+  border: none;
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  cursor: pointer;
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary-dark);
+  border: 2px solid var(--color-primary);
+  width: auto;
+}
+
+.btn-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  width: auto;
+}
+
+/* ---------- App shell ---------- */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-inner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* صف واحد مضغوط بيجمع البراند + سويتشر المريض + المستخدم/خروج - بدل هيدر بصفين كان ياخد مساحة كبيرة */
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px var(--space-2);
+  min-height: 48px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--color-primary-dark);
+  white-space: nowrap;
+}
+
+.header-brand-logo {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.header-brand-name {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.header-brand-ar {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.header-brand-en {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* كارت "بتتابع فلان" - أيقونة بدل كلام، وبيبقى العنصر المرن الوحيد في الصف عشان يمتص أي مساحة زيادة أو ناقصة */
+.patient-switcher {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  background: var(--color-primary-light);
+  border-radius: 999px;
+  padding-inline-start: 10px;
+}
+
+.patient-switcher-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.patient-select-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.patient-select-wrap::after {
+  content: '▾';
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 10px;
+  transform: translateY(-50%);
+  color: var(--color-primary-dark);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.patient-select {
+  width: 100%;
+  height: 36px;
+  background: transparent;
+  color: var(--color-primary-dark);
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding-inline-start: 2px;
+  padding-inline-end: 22px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-user {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 68px;
+}
+
+/* زرار خروج: أيقونة باب + كلمة "خروج" واضحة، مش أيقونة لوحدها ممكن تتلخبط مع زراير تانية */
+.header-logout {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 10px;
+  border: none;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.header-logout span:first-child {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.header-logout:active {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.app-main {
+  flex: 1;
+  padding: var(--space-3);
+  padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-3));
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* شريط تنقل عائم - كبسولة مرتفعة عن حواف الشاشة، بتاعة التاب النشط بتاخد كارت لون كامل بدل دايرة صغيرة حوالين الأيقونة بس */
+.tab-bar {
+  position: fixed;
+  bottom: var(--space-2);
+  inset-inline: var(--space-2);
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+
+.tab-bar-inner {
+  display: flex;
+  gap: 0px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 18px 38px rgba(20, 30, 28, 0.18),
+    0 3px 8px rgba(20, 30, 28, 0.1);
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  overflow: hidden; /* شبكة أمان: أي حاجة جوه العنصر تحاول تكبر عن حجمها بتتقصّ هنا بدل ما تطفح برا الكارت المدوّر */
+}
+
+.tab-bar-item {
+  flex: 1;
+  min-width: 0; /* أهم سطر هنا: من غيره الفلكس بيرفض يضغط عناصره تحت عرض النص الطبيعي، فالشريط كله بيتمدد ويطفح برا حدوده لما يبقى فيه 6 تابات */
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 1px;
+  min-height: 64px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+
+.tab-bar-item:active {
+  transform: scale(0.93);
+}
+
+.tab-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden; /* بعض إيموجيهات أندرويد (زي 🩺) بيرسمها الخط بصندوق أكبر بكتير من حجم الخط - ده بيقصّه بدل ما يطفح برا الشريط */
+}
+
+.tab-icon {
+  font-size: var(--font-size-md);
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.tab-label {
+  font-size: 13px; /* أصغر من باقي التطبيق بشكل مقصود - عشان 6 تابات بعربي تتسع في شريط واحد من غير ما تتقص أو تطفح؛ باقي نصوص التطبيق فاضلة بالمقاس الكبير المعتاد */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-weight 0.2s ease;
+}
+
+/* التاب النشط بياخد كارت ملوّن كامل (مش دايرة صغيرة على الأيقونة بس) - إحساس أكتر "فخامة" وأوضح للعين */
+.tab-bar-item.active {
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  background: color-mix(in srgb, var(--color-primary) 13%, var(--color-surface));
+}
+
+.tab-bar-item.active .tab-icon {
+  transform: scale(1.08);
+}
+
+.tab-bar-item.active .tab-label {
+  font-weight: 800;
+}
+
+@media (hover: hover) {
+  .tab-bar-item:not(.active):hover {
+    color: var(--color-text);
+    background: var(--color-surface-alt);
+  }
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  inset-inline-end: -7px;
+  background: var(--color-danger);
+  color: #fff;
+  border-radius: 999px;
+  min-width: 19px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 4px;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar-item,
+  .tab-icon {
+    transition: none;
+  }
+}
+
+/* ---------- Views ---------- */
+
+.view-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-2);
+}
+
+.view-subtitle {
+  font-size: var(--font-size-md);
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.view-header .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+/* ---------- Card ---------- */
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+/* ---------- Dose list ---------- */
+
+.dose-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dose-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.dose-card .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.dose-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dose-time {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+  color: var(--color-primary-dark);
+  min-width: 76px;
+}
+
+.dose-name {
+  font-weight: 700;
+}
+
+.dose-dosage {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dose-card.done {
+  opacity: 0.85;
+}
+
+.status-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.status-pill.taken {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-pill.missed {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* ---------- Medications ---------- */
+
+.med-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.med-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.med-name {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.med-dosage {
+  color: var(--color-text-muted);
+}
+
+.med-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-1);
+}
+
+.med-notes {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.med-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.chip {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- Appointments ---------- */
+
+.appt-card {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.appt-title {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.appt-meta {
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.appt-datetime {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  margin-top: var(--space-1);
+}
+
+/* ---------- Vitals ---------- */
+
+.vital-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.vital-type-btn {
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  cursor: pointer;
+  min-height: var(--tap-min);
+  font-weight: 600;
+  text-align: center;
+}
+
+.vital-type-btn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.vital-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.vital-row:last-child {
+  border-bottom: none;
+}
+
+.vital-value {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.vital-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.value-inputs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.value-inputs input {
+  flex: 1;
+}
+
+/* ---------- Notifications ---------- */
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.notif-item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2);
+  cursor: pointer;
+}
+
+.notif-item.unread {
+  border-inline-start: 5px solid var(--color-accent);
+  background: var(--color-warning-light);
+}
+
+.notif-icon {
+  font-size: var(--font-size-md);
+}
+
+.notif-message {
+  font-weight: 600;
+}
+
+.notif-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: 4px;
+}
+
+/* ---------- Link code ---------- */
+
+.link-code-box {
+  margin-top: var(--space-2);
+  text-align: center;
+}
+
+.link-code {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  letter-spacing: 6px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.share-link-text {
+  display: block;
+  font-size: var(--font-size-sm);
+  word-break: break-all;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  margin: var(--space-2) 0;
+  direction: ltr;
+  text-align: center;
+  text-decoration: underline;
+}
+
+.copy-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-1);
+}
+
+.link-like {
+  border: none;
+  background: transparent;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+  min-height: var(--tap-min);
+}
+
+/* ---------- Misc ---------- */
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-5) var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-1);
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.banner-error {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.banner-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.banner-close {
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  color: inherit;
+  line-height: 1;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 5px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  margin: var(--space-4) auto;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 25, 24, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  padding-top: 14px;
+  overflow: hidden;
+}
+
+/* مقبض بصري صغير فوق الشاشة يوحي إنها "شيت" ممكن تتسحب - زي شاشات الموبايل المألوفة */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-close {
+  border: none;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.modal-body form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* زرار الحفظ بيفضل ملتصق تحت الشاشة وانت بتسكرول في الفورم الطويل */
+.modal-body form > .btn[type='submit']:last-child {
+  position: sticky;
+  bottom: calc(var(--space-3) * -1);
+  margin: var(--space-2) calc(var(--space-3) * -1) calc(var(--space-3) * -1);
+  width: calc(100% + var(--space-3) * 2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0;
+  box-shadow: 0 -8px 16px -8px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-width: 640px) {
+  .modal-overlay {
+    align-items: center;
+    padding: var(--space-2);
+  }
+
+  .modal {
+    border-radius: var(--radius-lg);
+    max-height: 85vh;
+    padding-top: 0;
+  }
+
+  .modal::before {
+    display: none;
+  }
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 480px) {
+  :root {
+    --font-size-base: 18px;
+    --font-size-md: 20px;
+    --font-size-lg: 23px;
+    --font-size-xl: 28px;
+  }
+
+  .app-main {
+    padding: var(--space-2);
+  }
+}
+
+/* ============================================
+   شاشة المريض - خط وأزرار أكبر بكتير، وصفحة واحدة بس من غير تابات
+   ============================================ */
+
+.patient-home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.patient-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.patient-greeting {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+.patient-logout {
+  border: 2px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.patient-main {
+  flex: 1;
+  padding: var(--space-3);
+  padding-bottom: 140px;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* بانر لطيف بيطلب صلاحية الإشعارات لو لسه مش مفعّلة - عشان المريض يقدر يفعّلها بنفسه لو الطلب التلقائي اتحظر */
+.patient-notif-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.patient-notif-banner span:first-child {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.patient-notif-text {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.patient-notif-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-warning);
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.patient-empty {
+  text-align: center;
+  padding: var(--space-5) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+}
+
+.patient-empty-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-2);
+}
+
+.patient-dose-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.patient-dose-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+}
+
+.patient-dose-icon {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.patient-dose-name {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+}
+
+.patient-dose-time {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+}
+
+.patient-dose-dosage {
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+}
+
+.patient-take-btn {
+  width: 100%;
+  min-height: 76px;
+  margin-top: var(--space-2);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.patient-take-btn:active {
+  background: var(--color-primary-dark);
+}
+
+/* بديل الزرار قبل ما يفتح - نفس مساحة الزرار عشان الكارت ما "يرقصش" لما يتفتح فعلًا */
+.patient-take-locked {
+  width: 100%;
+  min-height: 76px;
+  margin-top: var(--space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 0 var(--space-2);
+}
+
+.patient-take-locked span:first-child {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.patient-dose-done {
+  opacity: 0.7;
+  box-shadow: none;
+  border: 1px solid var(--color-border);
+}
+
+.patient-dose-done .patient-dose-icon {
+  font-size: 40px;
+}
+
+/* زرار "حصلت مشكلة؟" - ثابت تحت الشاشة، واضح، سهل يوصله الإصبع */
+.patient-issue-btn {
+  position: fixed;
+  bottom: var(--space-2);
+  inset-inline: var(--space-2);
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 76px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+}
+
+.patient-issue-btn:active {
+  filter: brightness(0.92);
+}
+
+/* ---------- صفحة "حصل إيه؟" ---------- */
+
+.issue-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 25, 24, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+}
+
+.issue-sheet {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3);
+}
+
+.issue-title {
+  font-size: var(--font-size-lg);
+  text-align: center;
+  margin-bottom: var(--space-2);
+}
+
+.issue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.issue-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 110px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+.issue-option:active:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.issue-option:disabled {
+  opacity: 0.6;
+}
+
+.issue-option-icon {
+  font-size: 40px;
+}
+
+.issue-back,
+.issue-close {
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.issue-sent {
+  text-align: center;
+  padding: var(--space-4) var(--space-2);
+}
+
+.issue-sent-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-2);
+}
+
+.issue-sent p {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+@media (max-width: 420px) {
+  .patient-dose-icon {
+    font-size: 48px;
+  }
+  .patient-dose-name {
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* ============================================
+   بانر مشاكل المريض - بيظهر فوق أي تاب لحد ما المتابع يتعامل معاه
+   ============================================ */
+
+.issue-alert-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.issue-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  animation: issue-pop 0.25s ease;
+}
+
+@keyframes issue-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.issue-alert-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: var(--font-size-md);
+}
+
+.issue-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.issue-alert-message {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.issue-alert-time {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: 2px;
+}
+
+.issue-alert-dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: var(--color-danger);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
+  <meta name="theme-color" content="#2f7d6e" />
+  <title>معاك | MA3ak</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/global.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React (بدون أي build tool - CDN مباشرة) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone: بيترجم JSX جوه المتصفح مباشرة -->
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+  <!-- كل مسارات السكريبتات لازم تبقى مطلقة (تبدأ بـ /) عشان تشتغل صح لما الصفحة
+       تتفتح من مسار تاني غير الجذر، زي /access/<token> بتاع لينك دخول المريض -->
+
+  <!-- JS عادي (مش JSX) -->
+  <script src="/js/api.js"></script>
+
+  <!-- مكونات React (ملفات .jsx فعلية، بيترجمها Babel live جوه المتصفح) -->
+  <script type="text/babel" data-presets="react" src="/js/components/Common.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Auth.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Layout.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Dashboard.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Medications.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Appointments.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Vitals.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Notifications.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/Patients.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/components/PatientHome.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/js/app.jsx"></script>
+</body>
+</html>

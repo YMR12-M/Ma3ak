@@ -1,0 +1,95 @@
+/* ============================================
+   MA3ak (معاك) - Design Tokens
+   تصميم مناسب لكبار السن: خط كبير، تباين عالي، مساحات لمس واسعة
+   ============================================ */
+
+:root {
+  /* الألوان الأساسية */
+  --color-primary: #2f7d6e;
+  --color-primary-dark: #235c51;
+  --color-primary-light: #e4f2ef;
+  --color-accent: #d98c3f;
+  --color-danger: #c1443c;
+  --color-danger-light: #fbe9e7;
+  --color-success: #2f7d6e;
+  --color-success-light: #e4f2ef;
+  --color-warning: #b8860b;
+  --color-warning-light: #fdf3dc;
+
+  --color-bg: #faf8f4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f2efe8;
+  --color-text: #22282a;
+  --color-text-muted: #5b6669;
+  --color-border: #e1ddd3;
+
+  /* الخطوط */
+  --font-family: 'Cairo', 'Tahoma', 'Segoe UI', sans-serif;
+  --font-size-sm: 17px;
+  --font-size-base: 20px;
+  --font-size-md: 22px;
+  --font-size-lg: 26px;
+  --font-size-xl: 34px;
+  --line-height: 1.65;
+
+  /* المسافات */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+
+  /* الحواف والظلال */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 22px;
+  --shadow: 0 4px 16px rgba(20, 30, 28, 0.08);
+  --shadow-lg: 0 12px 32px rgba(20, 30, 28, 0.14);
+
+  /* مساحة لمس دنيا (مناسبة لكبار السن) */
+  --tap-min: 56px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary-light: #1d3330;
+    --color-danger-light: #3a2320;
+    --color-success-light: #1d3330;
+    --color-warning-light: #3a3220;
+
+    --color-bg: #171b1a;
+    --color-surface: #212625;
+    --color-surface-alt: #262b29;
+    --color-text: #f2efe9;
+    --color-text-muted: #b7bfbd;
+    --color-border: #333a38;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-primary-light: #1d3330;
+  --color-danger-light: #3a2320;
+  --color-success-light: #1d3330;
+  --color-warning-light: #3a3220;
+
+  --color-bg: #171b1a;
+  --color-surface: #212625;
+  --color-surface-alt: #262b29;
+  --color-text: #f2efe9;
+  --color-text-muted: #b7bfbd;
+  --color-border: #333a38;
+}
+
+:root[data-theme='light'] {
+  --color-primary-light: #e4f2ef;
+  --color-danger-light: #fbe9e7;
+  --color-success-light: #e4f2ef;
+  --color-warning-light: #fdf3dc;
+
+  --color-bg: #faf8f4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f2efe8;
+  --color-text: #22282a;
+  --color-text-muted: #5b6669;
+  --color-border: #e1ddd3;
+}
