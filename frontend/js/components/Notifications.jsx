@@ -55,8 +55,17 @@ function NotificationsView({ notifications, onRefresh }) {
               key={n.id}
               className={n.is_read ? 'notif-item' : 'notif-item unread'}
               onClick={() => handleClick(n)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleClick(n);
+                }
+              }}
+              aria-label={`${n.is_read ? '' : 'غير مقروء: '}${n.message}، ${formatDateTime(n.created_at)}`}
             >
-              <span className="notif-icon">{NOTIF_ICONS[n.type] || '🔔'}</span>
+              <span className="notif-icon" aria-hidden="true">{NOTIF_ICONS[n.type] || '🔔'}</span>
               <div>
                 <div className="notif-message">{n.message}</div>
                 <div className="notif-date">{formatDateTime(n.created_at)}</div>

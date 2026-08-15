@@ -59,7 +59,12 @@ function TodayView({ patientId }) {
                   {d.dosage && <div className="dose-dosage">{d.dosage}</div>}
                 </div>
               </div>
-              <Button onClick={() => handleTake(d.id)}>✅ اتاخد</Button>
+              <Button
+                onClick={() => handleTake(d.id)}
+                aria-label={`تسجيل جرعة ${d.name} الساعة ${formatTime(d.scheduled_at)} كمتناولة`}
+              >
+                ✅ اتاخد
+              </Button>
             </Card>
           ))}
         </div>

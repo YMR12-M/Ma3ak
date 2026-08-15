@@ -36,10 +36,13 @@ function EmptyState({ icon = '📭', text }) {
   );
 }
 
+// role="alert" بيخلي قارئ الشاشة يعلن الرسالة فورًا لحظة ما تظهر، من غير ما المستخدم
+// يحتاج يدور عليها بنفسه - مهم جدًا هنا لأن الـ Banner ده بيستخدم لكل رسائل الخطأ
+// في كل شاشات التطبيق (المريض والمتابع).
 function Banner({ type = 'error', children, onClose }) {
   if (!children) return null;
   return (
-    <div className={`banner banner-${type}`}>
+    <div className={`banner banner-${type}`} role="alert" aria-live={type === 'error' ? 'assertive' : 'polite'}>
       <span>{children}</span>
       {onClose && (
         <button className="banner-close" onClick={onClose} aria-label="إغلاق">
@@ -50,13 +53,31 @@ function Banner({ type = 'error', children, onClose }) {
   );
 }
 
+let modalTitleSeq = 0;
+
+// role="dialog" + aria-modal بيقولوا لقارئ الشاشة إن الصفحة اللي وراه معطّلة مؤقتًا،
+// وaria-labelledby بيربط النافذة بعنوانها عشان تتقري لحظة ما تفتح. التركيز بيروح
+// لزرار الإغلاق أول ما النافذة تفتح عشان مستخدم الكيبورد ميضيعش جوه الصفحة اللي وراها.
 function Modal({ title, onClose, children }) {
+  const titleId = React.useRef(`modal-title-${modalTitleSeq++}`).current;
+  const closeRef = React.useRef(null);
+
+  React.useEffect(() => {
+    closeRef.current && closeRef.current.focus();
+  }, []);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h3>{title}</h3>
-          <button className="modal-close" onClick={onClose} aria-label="إغلاق">
+          <h3 id={titleId}>{title}</h3>
+          <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="إغلاق">
             ×
           </button>
         </div>

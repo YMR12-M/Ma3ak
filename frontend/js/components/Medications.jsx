@@ -81,6 +81,7 @@ function MedicationsView({ patientId }) {
                 <div className="med-actions">
                   <Button
                     variant="ghost"
+                    aria-label={`تعديل دواء ${m.name}`}
                     onClick={() => {
                       setEditing(m);
                       setShowForm(true);
@@ -88,7 +89,7 @@ function MedicationsView({ patientId }) {
                   >
                     تعديل
                   </Button>
-                  <Button variant="danger" onClick={() => handleDelete(m.id)}>
+                  <Button variant="danger" aria-label={`إيقاف دواء ${m.name}`} onClick={() => handleDelete(m.id)}>
                     إيقاف
                   </Button>
                 </div>
@@ -175,9 +176,19 @@ function MedicationForm({ patientId, medication, onClose, onSaved }) {
           <div className="times-list">
             {times.map((t, i) => (
               <div key={i} className="time-row">
-                <input type="time" value={t} onChange={(e) => updateTime(i, e.target.value)} />
+                <input
+                  type="time"
+                  aria-label={`ميعاد الجرعة رقم ${i + 1}`}
+                  value={t}
+                  onChange={(e) => updateTime(i, e.target.value)}
+                />
                 {times.length > 1 && (
-                  <button type="button" className="icon-btn" onClick={() => removeTime(i)}>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`حذف ميعاد الجرعة رقم ${i + 1}`}
+                    onClick={() => removeTime(i)}
+                  >
                     🗑
                   </button>
                 )}

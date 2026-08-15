@@ -95,10 +95,15 @@ function PatientCard({ patient, onError, onChanged }) {
         {current.link_code && <div className="med-notes">كود المشاركة: {current.link_code}</div>}
       </div>
       <div className="med-actions">
-        <Button variant="ghost" onClick={() => setShowShare(true)}>
+        <Button variant="ghost" aria-label={`عرض لينك دخول ${current.name}`} onClick={() => setShowShare(true)}>
           🔗 لينك الدخول
         </Button>
-        <Button variant="ghost" onClick={handleRegenerate} disabled={regenerating}>
+        <Button
+          variant="ghost"
+          aria-label={`توليد لينك دخول جديد لـ ${current.name}`}
+          onClick={handleRegenerate}
+          disabled={regenerating}
+        >
           {regenerating ? '...' : '🔄 لينك جديد'}
         </Button>
       </div>

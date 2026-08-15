@@ -19,6 +19,8 @@ function SettingsSheet({
   showPatientOptions,
   onClose,
 }) {
+  const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
+
   return (
     <Modal title="الإعدادات" onClose={onClose}>
       <div className="settings-group-label">المظهر</div>
@@ -87,7 +89,7 @@ function SettingsSheet({
             </button>
           </div>
 
-          <div className="settings-row">
+          <div className="settings-row settings-row-wrap">
             <div>
               <div className="settings-row-title">إشعارات المتصفح</div>
               <div className="settings-row-desc">تنبيه فوري بمواعيد الدوا</div>
@@ -96,10 +98,23 @@ function SettingsSheet({
               <span className="settings-notif-ok">✅ مفعّل</span>
             ) : notifPermission === 'unsupported' ? (
               <span className="settings-notif-ok muted">مش متاح</span>
+            ) : notifPermission === 'denied' ? (
+              <button
+                className="settings-notif-btn settings-notif-btn-muted"
+                onClick={() => setNotifHelpOpen((v) => !v)}
+              >
+                موقوفة - إزاي أفعلها؟
+              </button>
             ) : (
               <button className="settings-notif-btn" onClick={onRequestNotifPermission}>
                 تفعيل
               </button>
+            )}
+            {notifPermission === 'denied' && notifHelpOpen && (
+              <div className="settings-notif-help">
+                افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل "الإشعارات"
+                من هناك، بعدين ارجع للتطبيق.
+              </div>
             )}
           </div>
         </React.Fragment>

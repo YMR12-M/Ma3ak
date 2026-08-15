@@ -29,6 +29,7 @@ function AppLayout({
   }
 
   const hasPatientSwitcher = user.role === 'caregiver' && patients.length > 0;
+  const userInitial = (user.name || '').trim()[0] || '؟';
 
   return (
     <div className="app-shell">
@@ -36,7 +37,9 @@ function AppLayout({
         <div className="header-inner">
           <div className="header-row">
             <div className="header-brand">
-              <span className="header-brand-logo">🤝</span>
+              <span className="header-brand-logo" aria-hidden="true">
+                🤝
+              </span>
               <span className="header-brand-name">
                 <span className="header-brand-ar">معاك</span>
                 <span className="header-brand-en">Ma3ak</span>
@@ -66,19 +69,27 @@ function AppLayout({
             )}
 
             <div className="header-actions">
-              <span className="header-user">{user.name}</span>
-              <button
-                className="header-settings-btn"
-                onClick={onOpenSettings}
-                aria-label="الإعدادات"
-                title="الإعدادات"
-              >
-                ⚙️
-              </button>
-              <button className="header-logout" onClick={onLogout} aria-label="تسجيل الخروج" title="تسجيل الخروج">
-                <span aria-hidden="true">🚪</span>
-                <span className="header-logout-label">خروج</span>
-              </button>
+              <div className="header-user-chip" title={user.name}>
+                <span className="header-user-avatar" aria-hidden="true">
+                  {userInitial}
+                </span>
+                <span className="header-user">{user.name}</span>
+              </div>
+              <div className="header-icon-group">
+                <button
+                  className="header-icon-btn"
+                  onClick={onOpenSettings}
+                  aria-label="الإعدادات"
+                  title="الإعدادات"
+                >
+                  ⚙️
+                </button>
+                {/* أيقونة + كلمة "خروج" واضحة عمدًا - أيقونة لوحدها ممكن تتلخبط مع زرار الإعدادات جنبها */}
+                <button className="header-logout" onClick={onLogout} aria-label="تسجيل الخروج" title="تسجيل الخروج">
+                  <span aria-hidden="true">🚪</span>
+                  <span className="header-logout-label">خروج</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

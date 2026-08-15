@@ -1,0 +1,54 @@
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: ma3ak
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: تثبيت حزم الباك إند
+        run: npm install
+        working-directory: backend
+
+      - name: بناء قاعدة البيانات
+        run: mysql -h 127.0.0.1 -u root < backend/sql/schema.sql
+
+      - name: إعداد .env للتيست (JWT_SECRET وبيانات اتصال قاعدة البيانات فقط - بدون أي أسرار حقيقية)
+        run: |
+          cat > backend/.env <<EOF
+          PORT=3000
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_USER=root
+          DB_PASSWORD=
+          DB_NAME=ma3ak
+          JWT_SECRET=ci-test-secret-not-used-anywhere-real-1234567890
+          EOF
+
+      - name: تشغيل كل الاختبارات (باك إند + فرونت إند)
+        run: npm run test:all
+        working-directory: backend
