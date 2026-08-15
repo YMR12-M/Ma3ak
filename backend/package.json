@@ -6,7 +6,9 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js",
+    "test:all": "node --test test/*.test.js ../frontend/test/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
