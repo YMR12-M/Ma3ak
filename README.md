@@ -15,3 +15,7 @@ https://ma3ak-kappa.vercel.app
 - Node.js
 - Express
 - MySQL
+
+## التوثيق
+
+تفاصيل البنية المعمارية، الـ API، قاعدة البيانات، وطريقة التشغيل محليًا في [docs/](docs/).

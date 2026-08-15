@@ -43,8 +43,15 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🤝 MA3ak server running on http://localhost:${PORT}`);
-  startScheduler();
-});
+// بيتصدّر عشان التيستات تقدر تشغّله على بورت عشوائي (http.createServer(app).listen(0))
+// من غير ما تستدعي app.listen ولا الـ scheduler فعليًا. لما الملف يتشغّل مباشرة (node server.js)
+// require.main بيبقى هو نفسه، فالسيرفر بيشتغل عادي زي أي وقت.
+module.exports = app;
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🤝 MA3ak server running on http://localhost:${PORT}`);
+    startScheduler();
+  });
+}
