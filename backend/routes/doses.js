@@ -2,11 +2,11 @@ const express = require('express');
 const pool = require('../db');
 const { authRequired } = require('../middleware/auth');
 const { canAccessPatient } = require('../utils/access');
+// نفس ملف الـ 15 دقيقة المستخدم في شاشة المريض (frontend/js/doseLogic.js) - مصدر واحد للحقيقة
+// بدل رقم مكرر في مكانين ممكن ينحرفوا عن بعض. الملف بلا JSX عمدًا فبيتطلّب هنا زي أي ملف Node عادي.
+const { getDoseAvailability } = require('../../frontend/js/doseLogic');
 
 const router = express.Router();
-
-// نفس الـ 15 دقيقة المسموحة قبل الميعاد في الفرونت إند (PatientHome.js) - لازم الاتنين متطابقين
-const DOSE_EARLY_MINUTES = 15;
 
 router.post('/:id/take', authRequired, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM doses WHERE id = ?', [req.params.id]);
@@ -18,8 +18,7 @@ router.post('/:id/take', authRequired, async (req, res) => {
   if (dose.status !== 'pending') {
     return res.status(409).json({ error: 'الجرعة دي مسجّلة قبل كده' });
   }
-  const availableFrom = new Date(new Date(dose.scheduled_at).getTime() - DOSE_EARLY_MINUTES * 60000);
-  if (new Date() < availableFrom) {
+  if (getDoseAvailability(dose.scheduled_at, new Date()).isEarly) {
     return res.status(403).json({ error: 'لسه بدري، الجرعة دي مش وصلت ميعادها' });
   }
   await pool.query("UPDATE doses SET status = 'taken', taken_at = NOW() WHERE id = ?", [req.params.id]);

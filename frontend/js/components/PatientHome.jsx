@@ -5,15 +5,13 @@
    من غير تابات، من غير قوائم، من غير خطوات.
    ============================================ */
 
-// الزرار "خدت الدوا" مقفول لحد ما يفضل على ميعاد الجرعة ربع ساعة (مش قبل كده بكتير)،
-// عشان المريض ما يأكدش جرعة قبل وقتها بساعات. بعد ما ميعادها يعدي، الباك إند بيحوّلها "فايتة"
-// تلقائيًا (scheduler.js) فمفيش داعي نقفلها من بعد الميعاد كمان.
-const DOSE_EARLY_MINUTES = 15;
+// getDoseAvailability و DOSE_EARLY_MINUTES منقولين لملف js/doseLogic.js (منطق بحت، من غير JSX) -
+// عشان يبقى قابل للاختبار بـ node:test من غير ما يحتاج متصفح. شوف frontend/test/doseLogic.test.js.
 
-function getDoseAvailability(scheduledAt, now) {
-  const scheduled = new Date(scheduledAt);
-  const availableFrom = new Date(scheduled.getTime() - DOSE_EARLY_MINUTES * 60000);
-  return { availableFrom, isEarly: now < availableFrom };
+// availableFrom جسم Date حقيقي (مش سترينج زي اللي جاي من الـ API)، فبنعرضه بدالة لوحده
+// بدل formatTime اللي بتفترض سترينج "YYYY-MM-DD HH:MM:SS".
+function formatTimeObj(dateObj) {
+  return dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
 }
 
 // بيرن التليفون لحظة ما ميعاد جرعة ييجي: صوت (Web Audio - مش محتاج ملف صوت ولا نت)
@@ -53,11 +51,24 @@ const ISSUE_OPTIONS = [
   { key: 'other', icon: '⚠️', label: 'حاجة تانية' },
 ];
 
-function PatientHome({ user, onLogout }) {
+function PatientHome({
+  user,
+  onLogout,
+  darkMode,
+  onSetDarkMode,
+  fontLarge,
+  onSetFontLarge,
+  autoNightScale,
+  onToggleAutoNightScale,
+  alarmEnabled,
+  onToggleAlarmEnabled,
+}) {
   const [doses, setDoses] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const [showIssue, setShowIssue] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
+  const [caregivers, setCaregivers] = React.useState([]);
   const [now, setNow] = React.useState(() => new Date());
   const [notifPermission, setNotifPermission] = React.useState(
     'Notification' in window ? Notification.permission : 'unsupported'
@@ -86,6 +97,16 @@ function PatientHome({ user, onLogout }) {
     const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, [load]);
+
+  // "متابعك": مين المتابع (المتابعين) اللي بيشوفوا جرعات المريض ده - بيبان في كارت بسيط أعلى الشاشة
+  React.useEffect(() => {
+    api
+      .getCaregivers(user.id)
+      .then((data) => setCaregivers(data.caregivers || []))
+      .catch(() => {
+        /* صامت - الكارت ببساطة مش هيبان لو معرفناش نجيب المتابعين */
+      });
+  }, [user.id]);
 
   // بيحدّث "الوقت الحالي" بشكل مستقل عن تحميل البيانات، عشان زرار الجرعة يتفتح لوحده
   // بالثانية اللي يوصلها ميعادها من غير ما المريض يحتاج يقفل ويفتح التطبيق تاني
@@ -116,9 +137,9 @@ function PatientHome({ user, onLogout }) {
           vibrate: [400, 200, 400, 200, 400],
         });
       }
-      ringDoseAlarm();
+      if (alarmEnabled) ringDoseAlarm();
     });
-  }, [doses, now]);
+  }, [doses, now, alarmEnabled]);
 
   async function handleTake(doseId) {
     try {
@@ -129,22 +150,126 @@ function PatientHome({ user, onLogout }) {
     }
   }
 
-  const pending = doses.filter((d) => d.status === 'pending');
+  // نطق صوتي لموقف الدوا دلوقتي - مفيد لضعاف النظر أو لما القراءة تبقى متعبة
+  function speak(text) {
+    try {
+      if (!('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ar-SA';
+      u.rate = 0.95;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      /* الجهاز مش بيدعم النطق الصوتي */
+    }
+  }
+
+  // تكبير الخط تلقائيًا بعد الساعة 7 مساءً ولحد الساعة 6 صباحًا - لتحسين الرؤية بالليل
+  const isNightBoost = autoNightScale && (now.getHours() >= 19 || now.getHours() < 6);
+
   const done = doses.filter((d) => d.status !== 'pending');
   const medicationNames = [...new Set(doses.map((d) => d.name))];
   const firstName = (user.name || '').trim().split(' ')[0] || user.name;
 
+  // بنحسب لكل جرعة معلّقة لسه، هي "مفتوحة" (قابلة للتأكيد دلوقتي) ولا "مقفولة" (لسه بدري)،
+  // عشان نبني منها الجرعة الرئيسية اللي واخدة الشاشة، والباقي كصف تاني تحتها.
+  const dosesWithAvailability = doses.map((d) => {
+    if (d.status !== 'pending') return { ...d, isOpen: false, isLocked: false };
+    const { isEarly, availableFrom } = getDoseAvailability(d.scheduled_at, now);
+    return { ...d, isOpen: !isEarly, isLocked: isEarly, availableFrom };
+  });
+  const openDoses = dosesWithAvailability.filter((d) => d.isOpen);
+  const lockedDoses = dosesWithAvailability.filter((d) => d.isLocked);
+
+  // الجرعة الرئيسية: أول جرعة مفتوحة قابلة للتأكيد. لو معندناش، بنوري الجرعة الجاية المقفولة
+  // كـ"جرعة منتظرة". لو معندناش أي حاجة معلّقة لكن فيه جرعات النهارده، يبقى خلصوا كلهم.
+  const heroDose = openDoses[0] || null;
+  const waitingDose = !heroDose ? lockedDoses[0] || null : null;
+  const heroKind = heroDose ? 'open' : waitingDose ? 'waiting' : doses.length > 0 ? 'allDone' : 'empty';
+  const heroId = heroDose ? heroDose.id : waitingDose ? waitingDose.id : null;
+  const secondaryDoses = dosesWithAvailability.filter((d) => d.id !== heroId);
+
+  function speakDoseInfo() {
+    let text;
+    if (heroKind === 'open') {
+      text =
+        'معاد ' +
+        heroDose.name +
+        ' دلوقتي' +
+        (heroDose.dosage ? '، الجرعة ' + heroDose.dosage : '') +
+        '. دوس على زرار خدت الدوا بعد ما تاخده.';
+    } else if (heroKind === 'waiting') {
+      text = 'الجرعة الجاية ' + waitingDose.name + ' الساعة ' + formatTimeObj(waitingDose.availableFrom) + '.';
+    } else {
+      text = 'خلصت كل جرعات النهارده، مفيش حاجة عليك دلوقتي.';
+    }
+    speak(text);
+  }
+
+  function doseDotStatus(d) {
+    if (d.status === 'taken') return 'taken';
+    if (d.status === 'missed') return 'missed';
+    if (d.isOpen) return 'open';
+    return 'locked';
+  }
+  function secondaryIcon(d) {
+    if (d.status === 'taken') return '✅';
+    if (d.status === 'missed') return '⚠️';
+    if (d.isLocked) return '🕒';
+    return '💊';
+  }
+  function secondaryMeta(d) {
+    if (d.status === 'taken') return `اتاخدت - ${formatTime(d.scheduled_at)}`;
+    if (d.status === 'missed') return `فاتت - ${formatTime(d.scheduled_at)}`;
+    if (d.isLocked) return `هتفتح الساعة ${formatTimeObj(d.availableFrom)}`;
+    return `الساعة ${formatTime(d.scheduled_at)}`;
+  }
+
+  const rootClassName = `patient-home${fontLarge ? ' font-large' : ''}${isNightBoost ? ' font-night' : ''}`;
+
   return (
-    <div className="patient-home">
+    <div className={rootClassName}>
       <header className="patient-header">
         <span className="patient-greeting">أهلاً {firstName} 👋</span>
-        <button className="patient-logout" onClick={onLogout}>
-          خروج
-        </button>
+        <div className="patient-header-actions">
+          <button
+            className="patient-settings-btn"
+            onClick={() => setShowSettings(true)}
+            aria-label="الإعدادات"
+            title="الإعدادات"
+          >
+            ⚙️
+          </button>
+          <button className="patient-logout" onClick={onLogout}>
+            خروج
+          </button>
+        </div>
       </header>
 
       <main className="patient-main">
         <Banner onClose={() => setError('')}>{error}</Banner>
+
+        {caregivers.length > 0 && (
+          <div className="patient-caregiver-card">
+            <div>
+              <div className="patient-caregiver-label">متابعك</div>
+              <div className="patient-caregiver-name">
+                {caregivers[0].name}
+                {caregivers.length > 1 && ` +${caregivers.length - 1} كمان`}
+              </div>
+            </div>
+            <div className="patient-caregiver-avatar" aria-hidden="true">
+              {caregivers[0].name.trim()[0] || 'م'}
+            </div>
+          </div>
+        )}
+
+        {isNightBoost && (
+          <div className="patient-night-banner">
+            <span aria-hidden="true">🌙</span>
+            <span>وضع الليل: الخط أكبر شوية عشان الرؤية بالليل</span>
+          </div>
+        )}
 
         {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
           <div className="patient-notif-banner">
@@ -162,46 +287,86 @@ function PatientHome({ user, onLogout }) {
           <Spinner />
         ) : doses.length === 0 ? (
           <div className="patient-empty">
-            <div className="patient-empty-icon">🎉</div>
+            <div className="patient-empty-icon">📭</div>
             <p>معندكش أدوية دلوقتي</p>
           </div>
         ) : (
-          <div className="patient-dose-list">
-            {pending.map((d) => {
-              const { isEarly, availableFrom } = getDoseAvailability(d.scheduled_at, now);
-              return (
-                <div key={d.id} className="patient-dose-card">
-                  <div className="patient-dose-icon">💊</div>
-                  <div className="patient-dose-info">
-                    <div className="patient-dose-name">{d.name}</div>
-                    <div className="patient-dose-time">الساعة {formatTime(d.scheduled_at)}</div>
-                    {d.dosage && <div className="patient-dose-dosage">{d.dosage}</div>}
-                  </div>
-                  {isEarly ? (
-                    <div className="patient-take-locked">
-                      <span aria-hidden="true">🔒</span>
-                      <span>الزرار يفتح الساعة {formatTime(availableFrom)}</span>
-                    </div>
-                  ) : (
-                    <button className="patient-take-btn" onClick={() => handleTake(d.id)}>
-                      ✅ خدت الدوا
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+          <div className="patient-today">
+            {/* نقط تقدّم صغيرة - جرعة لكل نقطة، عشان المريض يشوف بنظرة واحدة كام باقي */}
+            <div className="patient-progress-dots">
+              {dosesWithAvailability.map((d) => (
+                <span
+                  key={d.id}
+                  className={`progress-dot progress-dot-${doseDotStatus(d)}${
+                    d.id === heroId && heroKind === 'open' ? ' progress-dot-active' : ''
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="patient-progress-label">{done.length} من {doses.length} جرعات خلصت</div>
 
-            {done.map((d) => (
-              <div key={d.id} className="patient-dose-card patient-dose-done">
-                <div className="patient-dose-icon">{d.status === 'taken' ? '✅' : '⚠️'}</div>
-                <div className="patient-dose-info">
-                  <div className="patient-dose-name">{d.name}</div>
-                  <div className="patient-dose-time">
-                    {d.status === 'taken' ? 'اتاخدت' : 'فاتت'} - {formatTime(d.scheduled_at)}
-                  </div>
+            {/* الجرعة الرئيسية: حاجة واحدة بس واضحة على الشاشة كل مرة */}
+            {heroKind === 'open' && (
+              <div className="patient-hero-card patient-hero-open">
+                <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
+                  🔊
+                </button>
+                <div className="patient-hero-label">دلوقتي</div>
+                <div className="patient-hero-icon">💊</div>
+                <div className="patient-hero-name">{heroDose.name}</div>
+                <div className="patient-hero-meta">الساعة {formatTime(heroDose.scheduled_at)}</div>
+                {heroDose.dosage && <div className="patient-hero-meta">{heroDose.dosage}</div>}
+                <button className="patient-hero-btn" onClick={() => handleTake(heroDose.id)}>
+                  ✅ خدت الدوا
+                </button>
+              </div>
+            )}
+
+            {heroKind === 'waiting' && (
+              <div className="patient-hero-card patient-hero-waiting">
+                <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
+                  🔊
+                </button>
+                <div className="patient-hero-label muted">الجرعة الجاية</div>
+                <div className="patient-hero-icon">🕒</div>
+                <div className="patient-hero-name">{waitingDose.name}</div>
+                <div className="patient-hero-meta">
+                  هتقدر تأكدها الساعة {formatTimeObj(waitingDose.availableFrom)}
                 </div>
               </div>
-            ))}
+            )}
+
+            {heroKind === 'allDone' && (
+              <div className="patient-hero-card patient-hero-alldone">
+                <div className="patient-hero-icon">🎉</div>
+                <div className="patient-hero-name">خلصت كل جرعات النهارده</div>
+              </div>
+            )}
+
+            {/* باقي جرعات النهارده - صفوف أصغر تحت الجرعة الرئيسية */}
+            {secondaryDoses.length > 0 && (
+              <React.Fragment>
+                <div className="patient-secondary-title">باقي جرعات النهارده</div>
+                <div className="patient-secondary-list">
+                  {secondaryDoses.map((d) => (
+                    <div key={d.id} className={`patient-secondary-row status-${d.status}`}>
+                      <span className="patient-secondary-icon" aria-hidden="true">
+                        {secondaryIcon(d)}
+                      </span>
+                      <div className="patient-secondary-body">
+                        <div className="patient-secondary-name">{d.name}</div>
+                        <div className="patient-secondary-meta">{secondaryMeta(d)}</div>
+                      </div>
+                      {d.isOpen && (
+                        <button className="patient-secondary-take" onClick={() => handleTake(d.id)}>
+                          ✅ خدت
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </React.Fragment>
+            )}
           </div>
         )}
       </main>
@@ -215,6 +380,23 @@ function PatientHome({ user, onLogout }) {
           patientId={user.id}
           medications={medicationNames}
           onClose={() => setShowIssue(false)}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsSheet
+          darkMode={darkMode}
+          onSetDarkMode={onSetDarkMode}
+          fontLarge={fontLarge}
+          onSetFontLarge={onSetFontLarge}
+          autoNightScale={autoNightScale}
+          onToggleAutoNightScale={onToggleAutoNightScale}
+          alarmEnabled={alarmEnabled}
+          onToggleAlarmEnabled={onToggleAlarmEnabled}
+          notifPermission={notifPermission}
+          onRequestNotifPermission={requestNotifPermission}
+          showPatientOptions={true}
+          onClose={() => setShowSettings(false)}
         />
       )}
     </div>

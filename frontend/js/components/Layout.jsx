@@ -13,6 +13,7 @@ function AppLayout({
   unreadCount,
   issueAlerts,
   onDismissIssue,
+  onOpenSettings,
   children,
 }) {
   const tabs = [
@@ -66,6 +67,14 @@ function AppLayout({
 
             <div className="header-actions">
               <span className="header-user">{user.name}</span>
+              <button
+                className="header-settings-btn"
+                onClick={onOpenSettings}
+                aria-label="الإعدادات"
+                title="الإعدادات"
+              >
+                ⚙️
+              </button>
               <button className="header-logout" onClick={onLogout} aria-label="تسجيل الخروج" title="تسجيل الخروج">
                 <span aria-hidden="true">🚪</span>
                 <span className="header-logout-label">خروج</span>
@@ -97,6 +106,7 @@ function AppLayout({
                 )}
               </span>
               <span className="tab-label">{t.label}</span>
+              <span className="tab-dot" aria-hidden="true"></span>
             </button>
           ))}
         </div>

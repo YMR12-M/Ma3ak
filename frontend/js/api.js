@@ -55,6 +55,7 @@ const api = {
       body: { issueType, medicationName },
     }),
   getPatients: () => apiRequest('/patients'),
+  getCaregivers: (patientId) => apiRequest(`/patients/${patientId}/caregivers`),
 
   getMedications: (patientId) => apiRequest(`/medications?patientId=${patientId}`),
   getTodayDoses: (patientId) => apiRequest(`/medications/${patientId}/today`),

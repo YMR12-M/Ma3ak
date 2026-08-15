@@ -2,6 +2,16 @@
    MA3ak (معاك) - App الرئيسي
    ============================================ */
 
+// تفضيلات المظهر وإتاحة الاستخدام مخزّنة على الجهاز نفسه (مش في حساب المستخدم)،
+// عشان كل جهاز (موبايل المريض، موبايل المتابع) يحتفظ باختياره لوحده.
+function readBoolPref(key, fallback) {
+  const raw = localStorage.getItem(key);
+  return raw === null ? fallback : raw === '1';
+}
+function writeBoolPref(key, value) {
+  localStorage.setItem(key, value ? '1' : '0');
+}
+
 function App() {
   const [user, setUser] = React.useState(null);
   const [booting, setBooting] = React.useState(true);
@@ -13,6 +23,22 @@ function App() {
   const notifiedDoseIds = React.useRef(new Set());
   const notifiedIssueIds = React.useRef(new Set());
   const hasSeededIssues = React.useRef(false);
+
+  const [showSettings, setShowSettings] = React.useState(false);
+  const [darkMode, setDarkMode] = React.useState(() =>
+    readBoolPref('ma3ak_dark', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  );
+  const [fontLarge, setFontLarge] = React.useState(() => readBoolPref('ma3ak_font_large', false));
+  const [autoNightScale, setAutoNightScale] = React.useState(() => readBoolPref('ma3ak_auto_night', true));
+  const [alarmEnabled, setAlarmEnabled] = React.useState(() => readBoolPref('ma3ak_alarm', true));
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    writeBoolPref('ma3ak_dark', darkMode);
+  }, [darkMode]);
+  React.useEffect(() => writeBoolPref('ma3ak_font_large', fontLarge), [fontLarge]);
+  React.useEffect(() => writeBoolPref('ma3ak_auto_night', autoNightScale), [autoNightScale]);
+  React.useEffect(() => writeBoolPref('ma3ak_alarm', alarmEnabled), [alarmEnabled]);
 
   React.useEffect(() => {
     (async () => {
@@ -166,7 +192,20 @@ function App() {
 
   // المريض بيشوف شاشة مختلفة تمامًا: بسيطة، صفحة واحدة، من غير تابات
   if (user.role === 'patient') {
-    return <PatientHome user={user} onLogout={handleLogout} />;
+    return (
+      <PatientHome
+        user={user}
+        onLogout={handleLogout}
+        darkMode={darkMode}
+        onSetDarkMode={setDarkMode}
+        fontLarge={fontLarge}
+        onSetFontLarge={setFontLarge}
+        autoNightScale={autoNightScale}
+        onToggleAutoNightScale={() => setAutoNightScale((v) => !v)}
+        alarmEnabled={alarmEnabled}
+        onToggleAlarmEnabled={() => setAlarmEnabled((v) => !v)}
+      />
+    );
   }
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -183,20 +222,33 @@ function App() {
     content = <PatientsView patients={patients} onChanged={refreshPatients} />;
 
   return (
-    <AppLayout
-      user={user}
-      patients={patients}
-      activePatientId={activePatientId}
-      onSwitchPatient={setActivePatientId}
-      view={view}
-      onChangeView={setView}
-      onLogout={handleLogout}
-      unreadCount={unreadCount}
-      issueAlerts={issueAlerts}
-      onDismissIssue={handleDismissIssue}
-    >
-      {content}
-    </AppLayout>
+    <React.Fragment>
+      <AppLayout
+        user={user}
+        patients={patients}
+        activePatientId={activePatientId}
+        onSwitchPatient={setActivePatientId}
+        view={view}
+        onChangeView={setView}
+        onLogout={handleLogout}
+        unreadCount={unreadCount}
+        issueAlerts={issueAlerts}
+        onDismissIssue={handleDismissIssue}
+        onOpenSettings={() => setShowSettings(true)}
+      >
+        {content}
+      </AppLayout>
+      {showSettings && (
+        <SettingsSheet
+          darkMode={darkMode}
+          onSetDarkMode={setDarkMode}
+          fontLarge={fontLarge}
+          onSetFontLarge={setFontLarge}
+          showPatientOptions={false}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+    </React.Fragment>
   );
 }
 
