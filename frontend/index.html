@@ -6,6 +6,18 @@
   <meta name="theme-color" content="#2f7d6e" />
   <title>معاك | MA3ak</title>
 
+  <!-- PWA: بيسمح للمتصفح (خصوصًا أندرويد/كروم) إنه يعتبر الموقع تطبيق قابل للتثبيت -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/icon-192.png" />
+
+  <!-- iOS مالوش دعم لـ manifest.json ولا لرسالة تثبيت تلقائية - الوسوم دي بس بتظبط
+       شكل الأيقونة/الشريط لما حد يضيفه يدويًا من قايمة المشاركة (Safari → مشاركة →
+       إضافة إلى الشاشة الرئيسية). التفاصيل والقيود موثقة في js/components/Common.jsx -->
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="معاك" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -42,5 +54,15 @@
   <script type="text/babel" data-presets="react" src="/js/components/Patients.jsx"></script>
   <script type="text/babel" data-presets="react" src="/js/components/PatientHome.jsx"></script>
   <script type="text/babel" data-presets="react" src="/js/app.jsx"></script>
+
+  <!-- تسجيل الـ Service Worker - شرط أساسي عشان كروم/أندرويد يعتبروا الموقع "قابل للتثبيت".
+       لو فشل التسجيل لأي سبب (متصفح قديم، إلخ) التطبيق يفضل شغال عادي من غيره. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
