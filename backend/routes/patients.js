@@ -132,6 +132,23 @@ router.post('/:id/regenerate-link', authRequired, async (req, res) => {
   res.json({ access_token: accessToken });
 });
 
+// المتابعين اللي بيتابعوا مريض معين - بيستخدمها المريض عشان يشوف "متابعك" في شاشته
+router.get('/:id/caregivers', authRequired, async (req, res) => {
+  const patientId = req.params.id;
+  if (!(await canAccessPatient(req.user, patientId))) {
+    return res.status(403).json({ error: 'مفيش صلاحية' });
+  }
+  const [rows] = await pool.query(
+    `SELECT u.id, u.name
+     FROM users u
+     JOIN patient_caregiver pc ON pc.caregiver_id = u.id
+     WHERE pc.patient_id = ?
+     ORDER BY pc.created_at ASC`,
+    [patientId]
+  );
+  res.json({ caregivers: rows });
+});
+
 // المرضى المرتبطين بالمستخدم الحالي (المريض نفسه، أو مرضى المتابع)
 router.get('/', authRequired, async (req, res) => {
   if (req.user.role === 'patient') {
