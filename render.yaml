@@ -1,0 +1,29 @@
+# Render Blueprint - بيوصف السيرفر المطلوب لـ Render عشان ينشره بضغطة واحدة
+# (Dashboard → New → Blueprint → اختار الريبو ده). التفاصيل الكاملة في docs/DEPLOY.md.
+#
+# ملحوظة مهمة: Render مبيوفرش MySQL كخدمة مُدارة (Postgres/Redis بس) - قاعدة
+# البيانات لازم تكون خارجية (شوف docs/DEPLOY.md). عشان كده متغيرات DB_* هنا
+# sync: false - يعني Render هيسألك تدخلها بنفسك من الداشبورد بعد ما تجهّز القاعدة.
+services:
+  - type: web
+    name: ma3ak
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true # Render بيولّد قيمة عشوائية طويلة وآمنة لوحده
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
