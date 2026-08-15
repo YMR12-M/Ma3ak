@@ -24,6 +24,26 @@ function App() {
   const notifiedIssueIds = React.useRef(new Set());
   const hasSeededIssues = React.useRef(false);
 
+  // لقطة حدث "قابل للتثبيت" (Chrome/Edge بس - Safari/iOS مالوش الـ API ده خالص).
+  // لازم نلقطه ونمنع سلوكه الافتراضي فور ما يحصل، عشان نقدر نعرضه من زرارنا إحنا
+  // في InstallBanner بدل ما نستنى المتصفح يقرر لوحده امتى يوريه.
+  const [installPrompt, setInstallPrompt] = React.useState(null);
+  React.useEffect(() => {
+    function onBeforeInstallPrompt(e) {
+      e.preventDefault();
+      setInstallPrompt(e);
+    }
+    function onAppInstalled() {
+      setInstallPrompt(null);
+    }
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+
   const [showSettings, setShowSettings] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(() =>
     readBoolPref('ma3ak_dark', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -204,6 +224,8 @@ function App() {
         onToggleAutoNightScale={() => setAutoNightScale((v) => !v)}
         alarmEnabled={alarmEnabled}
         onToggleAlarmEnabled={() => setAlarmEnabled((v) => !v)}
+        installPrompt={installPrompt}
+        onInstalled={() => setInstallPrompt(null)}
       />
     );
   }
@@ -236,6 +258,7 @@ function App() {
         onDismissIssue={handleDismissIssue}
         onOpenSettings={() => setShowSettings(true)}
       >
+        <InstallBanner deferredPrompt={installPrompt} onInstalled={() => setInstallPrompt(null)} />
         {content}
       </AppLayout>
       {showSettings && (

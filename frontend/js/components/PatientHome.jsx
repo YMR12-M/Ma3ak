@@ -62,6 +62,8 @@ function PatientHome({
   onToggleAutoNightScale,
   alarmEnabled,
   onToggleAlarmEnabled,
+  installPrompt,
+  onInstalled,
 }) {
   const [doses, setDoses] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -248,6 +250,7 @@ function PatientHome({
 
       <main className="patient-main">
         <Banner onClose={() => setError('')}>{error}</Banner>
+        <InstallBanner deferredPrompt={installPrompt} onInstalled={onInstalled} />
 
         {caregivers.length > 0 && (
           <div className="patient-caregiver-card">

@@ -85,6 +85,73 @@ function toDatetimeLocalValue(dateStr) {
   )}`;
 }
 
+function isStandaloneDisplay() {
+  return (
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true // iOS القديمة بتحط العلامة دي على navigator مباشرة
+  );
+}
+
+function isIOSDevice() {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+}
+
+// بانر "ثبّت التطبيق" - ده الرسالة اللي بتظهر من الموقع نفسه إنه ممكن ينزل على الشاشة
+// الرئيسية زي أي تطبيق، من غير متجر تطبيقات. اتنين حالة مختلفين تمامًا حسب المتصفح:
+//   - أندرويد/كروم/إيدج: فيه API حقيقي (beforeinstallprompt) بيدّينا زرار "تثبيت" فعلي
+//     شغال - App.jsx بيلقط الـ event ده ويبعته هنا كـ deferredPrompt.
+//   - iOS/Safari: **مفيش API زي كده خالص** (قرار من آبل، مش قصور فينا) - أقصى حاجة نقدر
+//     نعملها إرشاد يدوي (مشاركة ← إضافة للشاشة الرئيسية). مفيش زرار "تثبيت" تلقائي ممكن.
+function InstallBanner({ deferredPrompt, onInstalled }) {
+  const [dismissed, setDismissed] = React.useState(() => {
+    const at = Number(localStorage.getItem('ma3ak_install_dismissed_at') || 0);
+    return Boolean(at) && Date.now() - at < 14 * 24 * 60 * 60 * 1000; // متتكررش قبل أسبوعين من آخر تجاهل
+  });
+
+  if (dismissed || isStandaloneDisplay()) return null;
+  const ios = isIOSDevice();
+  if (!deferredPrompt && !ios) return null; // مفيش وسيلة تثبيت متاحة في المتصفح ده أصلاً
+
+  function dismiss() {
+    localStorage.setItem('ma3ak_install_dismissed_at', String(Date.now()));
+    setDismissed(true);
+  }
+
+  async function install() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try {
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted' && onInstalled) onInstalled();
+    } catch (e) {
+      /* المستخدم قفل نافذة التثبيت - مش خطأ يستاهل اهتمام */
+    }
+    dismiss();
+  }
+
+  return (
+    <div className="install-banner">
+      <span className="install-banner-icon" aria-hidden="true">📲</span>
+      <div className="install-banner-body">
+        <div className="install-banner-title">ثبّت معاك على شاشتك الرئيسية</div>
+        <div className="install-banner-desc">
+          {ios
+            ? 'دوس على زرار المشاركة ⬆️ تحت في Safari، بعدين "إضافة إلى الشاشة الرئيسية"'
+            : 'تفتحه بضغطة واحدة زي أي تطبيق تاني، من غير ما تدور عليه في المتصفح'}
+        </div>
+      </div>
+      {!ios && (
+        <button className="install-banner-btn" onClick={install}>
+          تثبيت
+        </button>
+      )}
+      <button className="install-banner-close" onClick={dismiss} aria-label="إغلاق">
+        ×
+      </button>
+    </div>
+  );
+}
+
 // نسخ نص للحافظة. navigator.clipboard بيتمنع في أي صفحة مش https أو localhost
 // (زي فتح التطبيق من IP الشبكة المحلية على الموبايل)، فبنرجع لطريقة execCommand القديمة كـ fallback.
 async function copyText(text) {
