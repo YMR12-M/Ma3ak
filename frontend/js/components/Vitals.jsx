@@ -63,14 +63,15 @@ function VitalsView({ patientId }) {
 
       <Banner onClose={() => setError('')}>{error}</Banner>
 
-      <div className="vital-type-grid">
+      <div className="vital-type-grid" role="group" aria-label="نوع القياس المعروض">
         {VITAL_TYPES.map((t) => (
           <button
             key={t.key}
             className={activeType === t.key ? 'vital-type-btn active' : 'vital-type-btn'}
+            aria-pressed={activeType === t.key}
             onClick={() => setActiveType(t.key)}
           >
-            <div>{t.icon}</div>
+            <div aria-hidden="true">{t.icon}</div>
             <div>{t.label}</div>
           </button>
         ))}
@@ -90,7 +91,11 @@ function VitalsView({ patientId }) {
                   <div className="vital-value">{formatVitalValue(v.type, value)}</div>
                   <div className="vital-date">{formatDateTime(v.recorded_at)}</div>
                 </div>
-                <button className="icon-btn" onClick={() => handleDelete(v.id)}>
+                <button
+                  className="icon-btn"
+                  aria-label={`حذف قياس ${formatVitalValue(v.type, value)} بتاريخ ${formatDateTime(v.recorded_at)}`}
+                  onClick={() => handleDelete(v.id)}
+                >
                   🗑
                 </button>
               </div>

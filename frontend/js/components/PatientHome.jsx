@@ -42,13 +42,15 @@ function ringDoseAlarm() {
   }
 }
 
+// tone بيحدد لون دايرة الأيقونة - بنغلّفها في خلفية موحّدة المقاس واللون بدل ما نسيب
+// شكل الإيموجي الخام (اللي بيختلف كتير من نوع لنوع - بعضها ملوّن وبعضها فلات) يبان متلخبط
 const ISSUE_OPTIONS = [
-  { key: 'med_finished', icon: '💊', label: 'الدوا خلص' },
-  { key: 'forgot_dose', icon: '🕐', label: 'نسيت آخد جرعة' },
-  { key: 'side_effect', icon: '😣', label: 'حاسس بتعب بعد الدوا' },
-  { key: 'unclear_dose', icon: '❓', label: 'مش فاهم إزاي آخده' },
-  { key: 'want_call', icon: '📞', label: 'عايز حد يكلمني' },
-  { key: 'other', icon: '⚠️', label: 'حاجة تانية' },
+  { key: 'forgot_dose', icon: '🕐', label: 'نسيت آخد جرعة', tone: 'blue' },
+  { key: 'med_finished', icon: '💊', label: 'الدوا خلص', tone: 'amber' },
+  { key: 'unclear_dose', icon: '❓', label: 'مش فاهم إزاي آخده', tone: 'purple' },
+  { key: 'side_effect', icon: '😣', label: 'حاسس بتعب بعد الدوا', tone: 'rose' },
+  { key: 'other', icon: '⚠️', label: 'حاجة تانية', tone: 'gray' },
+  { key: 'want_call', icon: '📞', label: 'عايز حد يكلمني', tone: 'danger', urgent: true },
 ];
 
 function PatientHome({
@@ -75,11 +77,29 @@ function PatientHome({
   const [notifPermission, setNotifPermission] = React.useState(
     'Notification' in window ? Notification.permission : 'unsupported'
   );
+  const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
   const notifiedDoseIds = React.useRef(new Set());
 
+  // بيطلب صلاحية الإشعارات - لازم يتنادى من ضغطة مستخدم حقيقية (مش تلقائي لحظة فتح الصفحة)،
+  // عشان متصفحات كتير بترفض/تتجاهل طلب صلاحية مش جاي من تفاعل مستخدم، وده كان بيخلي
+  // زرار "تفعيل" يبان معطّل: الصلاحية بتترفض من غير ما حد يشوف نافذة الإذن أصلاً.
+  // requestPermission بتترجع Promise في المتصفحات الحديثة، لكن بندعم صيغة الكولباك القديمة
+  // كمان (Safari الأقدم) عشان الزرار يشتغل في كل الحالات.
   function requestNotifPermission() {
     if (!('Notification' in window)) return;
-    Notification.requestPermission().then(setNotifPermission);
+    // لو الصلاحية اتقفلت قبل كده، المتصفح مش هيوري نافذة تاني أصلاً - نوري إرشاد بدل زرار ميعملش حاجة
+    if (Notification.permission === 'denied') {
+      setNotifHelpOpen(true);
+      return;
+    }
+    try {
+      const result = Notification.requestPermission((perm) => setNotifPermission(perm));
+      if (result && typeof result.then === 'function') {
+        result.then(setNotifPermission).catch(() => setNotifPermission(Notification.permission));
+      }
+    } catch (e) {
+      setNotifPermission(Notification.permission);
+    }
   }
 
   const load = React.useCallback(async () => {
@@ -117,12 +137,10 @@ function PatientHome({
     return () => clearInterval(tick);
   }, []);
 
-  // أول ما الصفحة تفتح، نجرب نطلب صلاحية الإشعارات لوحدنا (لو لسه ما سألناش قبل كده)
-  React.useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(setNotifPermission);
-    }
-  }, []);
+  // ملحوظة: عمدًا مفيش طلب صلاحية تلقائي هنا لحظة فتح الصفحة. المتصفحات بترفض (أو بتتجاهل)
+  // طلبات الصلاحية اللي مش جاية من ضغطة مستخدم حقيقية، وده كان بيقفل صلاحية الإشعارات
+  // بشكل دائم من غير ما المريض يشوف نافذة الإذن أصلاً. الطلب دلوقتي بيحصل بس لما المريض
+  // يدوس على زرار "تفعيل" بنفسه - شوف requestNotifPermission فوق.
 
   // بمجرد ما جرعة توصل ميعادها، بننبّه المريض: إشعار + رنة + فايبريشن، مرة واحدة بس لكل جرعة
   React.useEffect(() => {
@@ -275,13 +293,30 @@ function PatientHome({
         )}
 
         {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
-          <div className="patient-notif-banner">
-            <span aria-hidden="true">🔔</span>
-            <span className="patient-notif-text">
-              فعّل التنبيهات عشان التطبيق يرن ويفكّرك بمواعيد دوائك
-            </span>
-            <button className="patient-notif-btn" onClick={requestNotifPermission}>
-              تفعيل
+          <div className={`patient-notif-banner${notifPermission === 'denied' ? ' patient-notif-banner-denied' : ''}`}>
+            <span aria-hidden="true">{notifPermission === 'denied' ? '🔕' : '🔔'}</span>
+            <div className="patient-notif-text">
+              {notifPermission === 'denied' ? (
+                <React.Fragment>
+                  <div>التنبيهات موقوفة من إعدادات المتصفح</div>
+                  {notifHelpOpen && (
+                    <div className="patient-notif-help">
+                      افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل
+                      "الإشعارات" من هناك، بعدين ارجع للتطبيق.
+                    </div>
+                  )}
+                </React.Fragment>
+              ) : (
+                'فعّل التنبيهات عشان التطبيق يرن ويفكّرك بمواعيد دوائك'
+              )}
+            </div>
+            <button
+              className="patient-notif-btn"
+              onClick={
+                notifPermission === 'denied' ? () => setNotifHelpOpen((v) => !v) : requestNotifPermission
+              }
+            >
+              {notifPermission === 'denied' ? (notifHelpOpen ? 'تمام' : 'إزاي؟') : 'تفعيل'}
             </button>
           </div>
         )}
@@ -435,9 +470,14 @@ function IssueSheet({ patientId, medications, onClose }) {
   return (
     <div className="issue-overlay" onClick={step === 'sent' ? undefined : onClose}>
       <div className="issue-sheet" onClick={(e) => e.stopPropagation()}>
+        {/* مقبض سحب بصري بيقول للمريض إن ده "شيت" ممكن يتقفل - تفصيلة بسيطة بتوضح طبيعة النافذة */}
+        {step !== 'sent' && <div className="issue-sheet-handle" aria-hidden="true" />}
+
         {step === 'sent' ? (
           <div className="issue-sent">
-            <div className="issue-sent-icon">✅</div>
+            <div className="issue-sent-icon">
+              <span aria-hidden="true">✅</span>
+            </div>
             <p>تمام، وصل خبر لـ اللي بيتابعك</p>
           </div>
         ) : step === 'pick-med' ? (
@@ -452,33 +492,34 @@ function IssueSheet({ patientId, medications, onClose }) {
                   disabled={sending}
                   onClick={() => send('med_finished', m)}
                 >
-                  <span className="issue-option-icon">💊</span>
+                  <span className="issue-option-icon tone-amber">💊</span>
                   <span>{m}</span>
                 </button>
               ))}
             </div>
-            <button className="issue-back" onClick={() => setStep('menu')}>
+            <button className="issue-back" onClick={() => setStep('menu')} disabled={sending}>
               رجوع
             </button>
           </React.Fragment>
         ) : (
           <React.Fragment>
             <h3 className="issue-title">حصل إيه؟</h3>
+            <p className="issue-subtitle">اختار اللي حصلك، هيوصل خبر فورًا لمتابعك</p>
             <Banner onClose={() => setError('')}>{error}</Banner>
             <div className="issue-grid">
               {ISSUE_OPTIONS.map((opt) => (
                 <button
                   key={opt.key}
-                  className="issue-option"
+                  className={`issue-option${opt.urgent ? ' issue-option-urgent' : ''}`}
                   disabled={sending}
                   onClick={() => handlePick(opt.key)}
                 >
-                  <span className="issue-option-icon">{opt.icon}</span>
+                  <span className={`issue-option-icon tone-${opt.tone}`}>{opt.icon}</span>
                   <span>{opt.label}</span>
                 </button>
               ))}
             </div>
-            <button className="issue-close" onClick={onClose}>
+            <button className="issue-close" onClick={onClose} disabled={sending}>
               إلغاء
             </button>
           </React.Fragment>

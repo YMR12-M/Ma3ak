@@ -50,14 +50,18 @@ function AuthScreen({ onAuthenticated, initialError }) {
         </div>
 
         <div className="auth-card-body">
-          <div className="tabs">
+          <div className="tabs" role="tablist" aria-label="نوع الدخول">
             <button
+              role="tab"
+              aria-selected={mode === 'login'}
               className={mode === 'login' ? 'tab active' : 'tab'}
               onClick={() => setMode('login')}
             >
               دخول
             </button>
             <button
+              role="tab"
+              aria-selected={mode === 'register'}
               className={mode === 'register' ? 'tab active' : 'tab'}
               onClick={() => setMode('register')}
             >

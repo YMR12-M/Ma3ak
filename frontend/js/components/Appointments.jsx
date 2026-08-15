@@ -134,10 +134,10 @@ function AppointmentCard({ appt, onEdit, onDelete }) {
         {appt.notes && <div className="med-notes">{appt.notes}</div>}
       </div>
       <div className="med-actions">
-        <Button variant="ghost" onClick={onEdit}>
+        <Button variant="ghost" aria-label={`تعديل موعد ${appt.title}`} onClick={onEdit}>
           تعديل
         </Button>
-        <Button variant="danger" onClick={onDelete}>
+        <Button variant="danger" aria-label={`حذف موعد ${appt.title}`} onClick={onDelete}>
           حذف
         </Button>
       </div>
