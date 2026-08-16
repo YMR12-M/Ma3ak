@@ -1,9 +1,28 @@
 const crypto = require('crypto');
 const pool = require('../db');
 
-// كود قصير (6 حروف) بيتقال بصوت عالي أو يتكتب بسهولة - لمشاركة متابع تاني
+/* حروف الكود القصير: من غير الحروف والأرقام اللي بتتلخبط مع بعض وقت القراءة
+   بصوت عالي أو الكتابة (0 و O، 1 و I و L) - الكود ده بيتقال في التليفون لحد
+   كبير في السن، فأي لبس فيه معناه محاولة فاشلة ومكالمة تانية. */
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 31 حرف
+const CODE_LENGTH = 6;
+
+// أقصى عدد محاولات لتوليد قيمة فريدة - حماية من حلقة لا نهائية لو حصل خطأ غير متوقع
+const MAX_ATTEMPTS = 20;
+
+/* كود قصير (6 حروف) بيتقال بصوت عالي أو يتكتب بسهولة - لمشاركة متابع تاني.
+   بنستخدم crypto مش Math.random لسببين: الأول إن Math.random عشوائيتها متوقعة
+   (مش مصممة للأمان)، والكود ده بيدي وصول كامل لبيانات مريض طبية. والتاني إن
+   Math.random().toString(36).slice(2, 8) القديمة كانت ممكن ترجع أقل من 6 حروف
+   لما الرقم العشوائي يطلع قصير - يعني كود أضعف من غير ما حد ياخد باله. */
 function generateShortCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  const bytes = crypto.randomBytes(CODE_LENGTH);
+  let code = '';
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    // randomInt أدق من % (بيتجنب الانحياز)، بس randomBytes + randomInt هنا كفاية
+    code += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+  }
+  return code;
 }
 
 // توكن طويل وعشوائي - بيتحط جوه "لينك الدخول" بتاع المريض، وهو بديل الباسورد بالكامل
@@ -11,24 +30,22 @@ function generateAccessToken() {
   return crypto.randomBytes(24).toString('hex');
 }
 
+// بيعيد المحاولة لو القيمة اتصادفت مع واحدة موجودة، بحد أقصى معقول
+async function generateUnique(generate, column) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const value = generate();
+    const [dup] = await pool.query(`SELECT id FROM users WHERE ${column} = ?`, [value]);
+    if (dup.length === 0) return value;
+  }
+  throw new Error(`تعذر توليد قيمة فريدة للعمود ${column} بعد ${MAX_ATTEMPTS} محاولة`);
+}
+
 async function generateUniqueLinkCode() {
-  let code, unique;
-  do {
-    code = generateShortCode();
-    const [dup] = await pool.query('SELECT id FROM users WHERE link_code = ?', [code]);
-    unique = dup.length === 0;
-  } while (!unique);
-  return code;
+  return generateUnique(generateShortCode, 'link_code');
 }
 
 async function generateUniqueAccessToken() {
-  let token, unique;
-  do {
-    token = generateAccessToken();
-    const [dup] = await pool.query('SELECT id FROM users WHERE access_token = ?', [token]);
-    unique = dup.length === 0;
-  } while (!unique);
-  return token;
+  return generateUnique(generateAccessToken, 'access_token');
 }
 
-module.exports = { generateUniqueLinkCode, generateUniqueAccessToken };
+module.exports = { generateUniqueLinkCode, generateUniqueAccessToken, CODE_ALPHABET, CODE_LENGTH };

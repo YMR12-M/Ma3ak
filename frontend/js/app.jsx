@@ -53,6 +53,7 @@ function App() {
   const [notifications, setNotifications] = React.useState([]);
   const [accessError, setAccessError] = React.useState('');
   const notifiedDoseIds = React.useRef(new Set());
+  const hasSeededDosesRef = React.useRef(false);
   const notifiedIssueIds = React.useRef(new Set());
   const hasSeededIssues = React.useRef(false);
 
@@ -88,7 +89,12 @@ function App() {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     writeBoolPref('ma3ak_dark', darkMode);
   }, [darkMode]);
-  React.useEffect(() => writeBoolPref('ma3ak_font_large', fontLarge), [fontLarge]);
+  // data-font على :root بيخلي تكبير الخط يطبّق على التطبيق كله (شاشة المتابع كمان)،
+  // مش على شاشة المريض بس زي ما كان قبل كده
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-font', fontLarge ? 'large' : 'normal');
+    writeBoolPref('ma3ak_font_large', fontLarge);
+  }, [fontLarge]);
   React.useEffect(() => writeBoolPref('ma3ak_auto_night', autoNightScale), [autoNightScale]);
   React.useEffect(() => writeBoolPref('ma3ak_alarm', alarmEnabled), [alarmEnabled]);
 
@@ -207,20 +213,31 @@ function App() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    // كل ما المتابع يبدّل لمريض تاني بنبدأ التسجيل من أول وجديد - من غير كده أول
+    // تحميل لجرعات المريض الجديد كان هيتحسب "تغيير" ويطلّع إشعارات لجرعات قديمة
+    hasSeededDosesRef.current = false;
     const check = async () => {
       try {
         const data = await api.getTodayDoses(activePatientId);
         const now = new Date();
+        // أول مرور بيتسجّل من غير إشعارات - عشان فتح التطبيق ما يفجّرش دفعة
+        // إشعارات لجرعات ميعادها عدى من ساعات (نفس أسلوب hasSeededIssues تحت)
+        const isFirstPass = !hasSeededDosesRef.current;
+
         data.doses.forEach((d) => {
           if (d.status !== 'pending') return;
-          const scheduled = new Date(d.scheduled_at.replace(' ', 'T'));
+          // بنقرا الميعاد كتوقيت مصر دايمًا، مش بتوقيت جهاز المتابع
+          const scheduled = parseCairoDatetime(d.scheduled_at);
           if (scheduled <= now && !notifiedDoseIds.current.has(d.id)) {
             notifiedDoseIds.current.add(d.id);
+            if (isFirstPass) return;
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('معاك - معاد دوا', { body: `معاد ${d.name} دلوقتي` });
             }
           }
         });
+
+        if (isFirstPass && data.doses.length) hasSeededDosesRef.current = true;
       } catch (e) {
         /* صامت */
       }

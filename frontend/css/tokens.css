@@ -93,3 +93,15 @@
   --color-text-muted: #5b6669;
   --color-border: #e1ddd3;
 }
+
+/* "حجم الخط: كبير" من الإعدادات - بيتحط على :root فبيطبّق على التطبيق كله.
+   قبل كده كان فيه .patient-home.font-large بس، يعني المتابع كان بيدوس على
+   "كبير" ومفيش أي حاجة بتحصل في شاشته. شاشة المريض ليها قيم أكبر خاصة بيها
+   في global.css وبتفضل هي المسيطرة هناك (محدد أخص). */
+:root[data-font='large'] {
+  --font-size-sm: 19px;
+  --font-size-base: 23px;
+  --font-size-md: 25px;
+  --font-size-lg: 30px;
+  --font-size-xl: 39px;
+}

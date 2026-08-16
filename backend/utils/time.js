@@ -73,4 +73,38 @@ function cairoNowPlusMinutes(minutesOffset) {
   )}:${pad(civil.getUTCMinutes())}:${pad(civil.getUTCSeconds())}`;
 }
 
-module.exports = { CAIRO_TZ, cairoNowString, cairoToday, cairoDateWithOffset, cairoNowPlusMinutes };
+/* بيحوّل "YYYY-MM-DD HH:MM:SS" لساعة بصيغة عربية مقروءة زي "8:00 م".
+   القيمة المخزّنة أصلاً بتوقيت مصر، فمفيش أي تحويل مناطق زمنية هنا - بنقرا
+   الساعة من النص زي ما هي. الرسايل دي بتتخزن في notifications.message وبيقراها
+   كبار السن، فرقم خام زي "2026-08-16 20:00:00" وسط جملة عربية مش مقبول. */
+function formatCairoClock(datetimeString) {
+  const [h, m] = String(datetimeString).slice(11, 16).split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return '';
+  const period = h < 12 ? 'ص' : 'م';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${pad(m)} ${period}`;
+}
+
+/* بيوصف وقت بالنسبة للنهاردة: "النهاردة الساعة 8:00 م" / "بكرة الساعة 10:00 ص"
+   / "يوم 2026-09-01 الساعة 10:00 ص". قبل كده كل الإشعارات كانت بتقول "غدًا"
+   حتى لو الموعد بعد ساعتين في نفس اليوم. */
+function describeCairoWhen(datetimeString) {
+  const datePart = String(datetimeString).slice(0, 10);
+  const clock = formatCairoClock(datetimeString);
+  const today = cairoToday();
+  const tomorrow = cairoDateWithOffset(1, '00:00').slice(0, 10);
+
+  if (datePart === today) return `النهاردة الساعة ${clock}`;
+  if (datePart === tomorrow) return `بكرة الساعة ${clock}`;
+  return `يوم ${datePart} الساعة ${clock}`;
+}
+
+module.exports = {
+  CAIRO_TZ,
+  cairoNowString,
+  cairoToday,
+  cairoDateWithOffset,
+  cairoNowPlusMinutes,
+  formatCairoClock,
+  describeCairoWhen,
+};

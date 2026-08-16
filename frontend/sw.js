@@ -7,15 +7,33 @@
    المريض (جرعات، مواعيد) لازم تيجي لايف من السيرفر دايمًا، مش من كاش قديم.
    ============================================ */
 
-const CACHE_NAME = 'ma3ak-shell-v1';
+/* لازم يتغيّر الرقم ده مع أي تعديل في قايمة APP_SHELL تحت - هو اللي بيخلي
+   المتصفح يرمي الكاش القديم ويحمّل النسخة الجديدة (شوف حدث activate تحت). */
+const CACHE_NAME = 'ma3ak-shell-v2';
+
+/* قشرة التطبيق كاملة. مهم: لازم تشمل كل ملفات المكوّنات كمان - قبل كده كانت
+   القايمة فيها app.jsx بس من غير الـ 11 ملف اللي بيعرّفوا كل المكوّنات، يعني
+   لو حد فتح التطبيق أول مرة وهو أوفلاين كان بيلاقي صفحة بيضا: الملفات
+   الأساسية موجودة في الكاش بس المكوّنات اللي بترسم الشاشة مش موجودة. */
 const APP_SHELL = [
   '/',
+  '/manifest.json',
   '/css/tokens.css',
   '/css/global.css',
   '/js/api.js',
   '/js/doseLogic.js',
   '/js/app.jsx',
-  '/manifest.json',
+  '/js/components/Common.jsx',
+  '/js/components/Settings.jsx',
+  '/js/components/Auth.jsx',
+  '/js/components/Layout.jsx',
+  '/js/components/Dashboard.jsx',
+  '/js/components/Medications.jsx',
+  '/js/components/Appointments.jsx',
+  '/js/components/Vitals.jsx',
+  '/js/components/Notifications.jsx',
+  '/js/components/Patients.jsx',
+  '/js/components/PatientHome.jsx',
 ];
 
 self.addEventListener('install', (event) => {
