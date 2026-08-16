@@ -270,57 +270,11 @@ function PatientHome({
         <Banner onClose={() => setError('')}>{error}</Banner>
         <InstallBanner deferredPrompt={installPrompt} onInstalled={onInstalled} />
 
-        {caregivers.length > 0 && (
-          <div className="patient-caregiver-card">
-            <div>
-              <div className="patient-caregiver-label">متابعك</div>
-              <div className="patient-caregiver-name">
-                {caregivers[0].name}
-                {caregivers.length > 1 && ` +${caregivers.length - 1} كمان`}
-              </div>
-            </div>
-            <div className="patient-caregiver-avatar" aria-hidden="true">
-              {caregivers[0].name.trim()[0] || 'م'}
-            </div>
-          </div>
-        )}
-
-        {isNightBoost && (
-          <div className="patient-night-banner">
-            <span aria-hidden="true">🌙</span>
-            <span>وضع الليل: الخط أكبر شوية عشان الرؤية بالليل</span>
-          </div>
-        )}
-
-        {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
-          <div className={`patient-notif-banner${notifPermission === 'denied' ? ' patient-notif-banner-denied' : ''}`}>
-            <span aria-hidden="true">{notifPermission === 'denied' ? '🔕' : '🔔'}</span>
-            <div className="patient-notif-text">
-              {notifPermission === 'denied' ? (
-                <React.Fragment>
-                  <div>التنبيهات موقوفة من إعدادات المتصفح</div>
-                  {notifHelpOpen && (
-                    <div className="patient-notif-help">
-                      افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل
-                      "الإشعارات" من هناك، بعدين ارجع للتطبيق.
-                    </div>
-                  )}
-                </React.Fragment>
-              ) : (
-                'فعّل التنبيهات عشان التطبيق يرن ويفكّرك بمواعيد دوائك'
-              )}
-            </div>
-            <button
-              className="patient-notif-btn"
-              onClick={
-                notifPermission === 'denied' ? () => setNotifHelpOpen((v) => !v) : requestNotifPermission
-              }
-            >
-              {notifPermission === 'denied' ? (notifHelpOpen ? 'تمام' : 'إزاي؟') : 'تفعيل'}
-            </button>
-          </div>
-        )}
-
+        {/* الجرعة الرئيسية (Spinner/فاضي/كارت الجرعة) لازم تبقى أول حاجة في المحتوى القابل
+            للسكرول - هي "الحاجة الواحدة" اللي الشاشة دي مبنية عشانها (شوف تعليق الملف فوق).
+            كارت "متابعك" وبانرات الليل/الإشعارات مهمين بس مش بنفس الدرجة، فاتنقلوا تحتها -
+            قبل كده كانوا فوق وبياخدوا مساحة كافية تدفع كارت الجرعة وزرار "خدت الدوا" تحت
+            حافة الشاشة على موبايلات كتير (خصوصًا أول مرة، لما بانر الإشعارات لسه ظاهر). */}
         {loading ? (
           <Spinner />
         ) : doses.length === 0 ? (
@@ -405,6 +359,57 @@ function PatientHome({
                 </div>
               </React.Fragment>
             )}
+          </div>
+        )}
+
+        {caregivers.length > 0 && (
+          <div className="patient-caregiver-card">
+            <div>
+              <div className="patient-caregiver-label">متابعك</div>
+              <div className="patient-caregiver-name">
+                {caregivers[0].name}
+                {caregivers.length > 1 && ` +${caregivers.length - 1} كمان`}
+              </div>
+            </div>
+            <div className="patient-caregiver-avatar" aria-hidden="true">
+              {caregivers[0].name.trim()[0] || 'م'}
+            </div>
+          </div>
+        )}
+
+        {isNightBoost && (
+          <div className="patient-night-banner">
+            <span aria-hidden="true">🌙</span>
+            <span>وضع الليل: الخط أكبر شوية عشان الرؤية بالليل</span>
+          </div>
+        )}
+
+        {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
+          <div className={`patient-notif-banner${notifPermission === 'denied' ? ' patient-notif-banner-denied' : ''}`}>
+            <span aria-hidden="true">{notifPermission === 'denied' ? '🔕' : '🔔'}</span>
+            <div className="patient-notif-text">
+              {notifPermission === 'denied' ? (
+                <React.Fragment>
+                  <div>التنبيهات موقوفة من إعدادات المتصفح</div>
+                  {notifHelpOpen && (
+                    <div className="patient-notif-help">
+                      افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل
+                      "الإشعارات" من هناك، بعدين ارجع للتطبيق.
+                    </div>
+                  )}
+                </React.Fragment>
+              ) : (
+                'فعّل التنبيهات عشان التطبيق يرن ويفكّرك بمواعيد دوائك'
+              )}
+            </div>
+            <button
+              className="patient-notif-btn"
+              onClick={
+                notifPermission === 'denied' ? () => setNotifHelpOpen((v) => !v) : requestNotifPermission
+              }
+            >
+              {notifPermission === 'denied' ? (notifHelpOpen ? 'تمام' : 'إزاي؟') : 'تفعيل'}
+            </button>
           </div>
         )}
       </main>
