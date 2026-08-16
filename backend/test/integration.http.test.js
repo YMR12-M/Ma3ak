@@ -96,10 +96,17 @@ test('تدفق كامل حقيقي: تسجيل متابع → إضافة مري�
   const patientId = patientRes.body.patient.id;
   cleanupUserIds.push(patientId);
 
-  // 4) إضافة دواء بميعاد دلوقتي بالظبط
-  const now = new Date();
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  /* 4) إضافة دواء بميعاد دلوقتي بالظبط - بتوقيت مصر تحديدًا، مش بتوقيت الجهاز
+     اللي بيشغّل التيست. السيرفر بيولّد الجرعات ويحسب "لسه بدري" بتوقيت مصر،
+     فلو بعتنا ساعة الجهاز، على جهاز بتوقيت تاني (زي CI اللي شغال UTC) الجرعة
+     بتتولد في ساعة تانية خالص وتيجي "لسه بدري" فيترفض تأكيدها بـ403. */
+  const hhmm = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Cairo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date());
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
   const medRes = await api(baseUrl, '/api/medications', {
     method: 'POST',
     token: caregiverToken,
@@ -154,4 +161,120 @@ test('تسجيل برقم موبايل موجود قبل كده - 409', async (t
     body: { name: 'تيست ٢', phone, password: 'test5678' },
   });
   assert.equal(second.status, 409);
+});
+
+/* ============================================
+   اختبارات منع تكرار (regression): كل طلب من دول كان بيوقّع السيرفر بالكامل -
+   مش بيرجع 500، لأ بيقتل العملية نفسها. السبب إن الـ routes دوال async من غير
+   try/catch، وExpress 4 مش بيمسك الـ Promise المرفوض، فNode كان بينهي البرنامج.
+   يعني أي مستخدم مسجّل (حتى المريض) كان يقدر يقفل التطبيق على كل الناس بطلب واحد.
+
+   الاختبارات دي بتتأكد من حاجتين مع بعض: إن الرد بقى 400 مفهوم، وإن السيرفر
+   لسه شغال بعده فعليًا (الطلب اللي بعده بينجح).
+   ============================================ */
+test('مدخلات بايظة بترجع 400 والسيرفر يفضل شغال (كانت بتوقّعه بالكامل)', async (t) => {
+  if (!dbAvailable) {
+    t.skip('قاعدة البيانات/الإعدادات مش متاحة في البيئة دي');
+    return;
+  }
+
+  const phone = '0102' + Date.now().toString().slice(-7);
+  const reg = await api(baseUrl, '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'تيست كراش', phone, password: 'test1234' },
+  });
+  const token = reg.body.token;
+  cleanupUserIds.push(reg.body.user.id);
+
+  const patientRes = await api(baseUrl, '/api/patients', {
+    method: 'POST',
+    token,
+    body: { name: 'مريض كراش' },
+  });
+  const patientId = patientRes.body.patient.id;
+  cleanupUserIds.push(patientId);
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+  const medRes = await api(baseUrl, '/api/medications', {
+    method: 'POST',
+    token,
+    body: { patientId, name: 'دوا كراش', times: ['08:00'], startDate: today },
+  });
+  const medId = medRes.body.id;
+
+  const badRequests = [
+    ['اسم دواء أطول من عمود قاعدة البيانات', 'POST', '/api/medications',
+      { patientId, name: 'ا'.repeat(300), times: ['08:00'], startDate: today }],
+    ['تاريخ بداية بايظ', 'POST', '/api/medications',
+      { patientId, name: 'x', times: ['08:00'], startDate: 'مش تاريخ' }],
+    ['ميعاد جرعة مستحيل', 'POST', '/api/medications',
+      { patientId, name: 'x', times: ['25:99'], startDate: today }],
+    ['مواعيد مش نصوص', 'POST', '/api/medications',
+      { patientId, name: 'x', times: [{ a: 1 }], startDate: today }],
+    ['تاريخ موعد بايظ', 'POST', '/api/appointments',
+      { patientId, title: 'x', appointmentAt: 'مش تاريخ' }],
+    ['وقت قياس بايظ', 'POST', '/api/vitals',
+      { patientId, type: 'weight', value: { value: 70 }, recordedAt: 'مش تاريخ' }],
+    ['اسم مريض أطول من عمود قاعدة البيانات', 'POST', '/api/patients',
+      { name: 'ا'.repeat(300) }],
+  ];
+
+  for (const [label, method, path, body] of badRequests) {
+    const res = await api(baseUrl, path, { method, token, body });
+    assert.equal(res.status, 400, `${label}: المفروض 400 بس رجع ${res.status}`);
+    assert.ok(res.body && res.body.error, `${label}: المفروض يرجع رسالة خطأ مفهومة`);
+  }
+
+  // نطاق تواريخ بايظ في الاستعلام كان بيوقّع السيرفر برضه
+  const badRange = await api(baseUrl, `/api/doses?patientId=${patientId}&from=${encodeURIComponent('مش-تاريخ')}`, { token });
+  assert.equal(badRange.status, 400);
+
+  // أهم تأكيد: السيرفر لسه عايش وبيرد عادي بعد كل ده
+  const stillAlive = await api(baseUrl, `/api/medications?patientId=${patientId}`, { token });
+  assert.equal(stillAlive.status, 200, 'السيرفر وقع بعد المدخلات البايظة');
+});
+
+test('تعديل دواء من غير ما تبعت times ما بيكسرش عمود الـ JSON', async (t) => {
+  if (!dbAvailable) {
+    t.skip('قاعدة البيانات/الإعدادات مش متاحة في البيئة دي');
+    return;
+  }
+
+  /* الحالة دي كانت بتوقّع السيرفر: mysql2 بيرجع أعمدة JSON كـ array جاهز،
+     ولما الكود كان بيرجّعه للاستعلام زي ما هو، mysql2 بيفرده لـ '08:00' -
+     نص مش JSON صالح فقاعدة البيانات بترفضه. */
+  const phone = '0103' + Date.now().toString().slice(-7);
+  const reg = await api(baseUrl, '/api/auth/register', {
+    method: 'POST',
+    body: { name: 'تيست تعديل', phone, password: 'test1234' },
+  });
+  const token = reg.body.token;
+  cleanupUserIds.push(reg.body.user.id);
+
+  const patientRes = await api(baseUrl, '/api/patients', { method: 'POST', token, body: { name: 'مريض تعديل' } });
+  const patientId = patientRes.body.patient.id;
+  cleanupUserIds.push(patientId);
+
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+  const medRes = await api(baseUrl, '/api/medications', {
+    method: 'POST',
+    token,
+    body: { patientId, name: 'دوا', times: ['08:00', '20:00'], startDate: today },
+  });
+  const medId = medRes.body.id;
+
+  // تعديل الاسم بس، من غير ما نبعت times خالص
+  const put = await api(baseUrl, `/api/medications/${medId}`, {
+    method: 'PUT',
+    token,
+    body: { name: 'اسم جديد' },
+  });
+  assert.equal(put.status, 200);
+
+  // المواعيد لازم تفضل زي ما هي بالظبط بعد التعديل
+  const after = await api(baseUrl, `/api/medications?patientId=${patientId}`, { token });
+  const med = after.body.medications.find((m) => m.id === medId);
+  const times = typeof med.times === 'string' ? JSON.parse(med.times) : med.times;
+  assert.deepEqual(times, ['08:00', '20:00']);
+  assert.equal(med.name, 'اسم جديد');
 });

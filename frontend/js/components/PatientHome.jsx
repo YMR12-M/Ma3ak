@@ -79,6 +79,7 @@ function PatientHome({
   );
   const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
   const notifiedDoseIds = React.useRef(new Set());
+  const hasSeededDoses = React.useRef(false);
 
   // بيطلب صلاحية الإشعارات - لازم يتنادى من ضغطة مستخدم حقيقية (مش تلقائي لحظة فتح الصفحة)،
   // عشان متصفحات كتير بترفض/تتجاهل طلب صلاحية مش جاي من تفاعل مستخدم، وده كان بيخلي
@@ -142,23 +143,39 @@ function PatientHome({
   // بشكل دائم من غير ما المريض يشوف نافذة الإذن أصلاً. الطلب دلوقتي بيحصل بس لما المريض
   // يدوس على زرار "تفعيل" بنفسه - شوف requestNotifPermission فوق.
 
-  // بمجرد ما جرعة توصل ميعادها، بننبّه المريض: إشعار + رنة + فايبريشن، مرة واحدة بس لكل جرعة
+  /* بمجرد ما جرعة توصل ميعادها، بننبّه المريض: إشعار + رنة + فايبريشن، مرة واحدة بس لكل جرعة.
+
+     أول تحميل بيتسجّل من غير أي رنة: لو المريض فتح التطبيق ولقى كذا جرعة وصل
+     ميعادها بالفعل (يحصل مثلاً لو فتحه بالليل، أو لو السيرفر كان نايم فمعلّمش
+     الجرعات القديمة كـ"فايتة")، كان بيرن لكلها مع بعض في نفس اللحظة - ضجة
+     مفزعة من غير فايدة. الجرعة اللي وصل ميعادها فعلاً باينة قدامه في الكارت
+     الكبير على الشاشة أصلاً. الرنة الحقيقية بقت بس للجرعة اللي ييجي ميعادها
+     والتطبيق مفتوح - وده الغرض منها من الأساس. (نفس أسلوب hasSeededIssues في app.jsx) */
   React.useEffect(() => {
+    const isFirstPass = !hasSeededDoses.current;
+
     doses.forEach((d) => {
       if (d.status !== 'pending') return;
-      if (new Date(d.scheduled_at) > now) return;
+      // parseCairoDatetime بيقرا الميعاد كتوقيت مصر دايمًا - زي ما getDoseAvailability
+      // بتعمل تحت بالظبط. new Date(...) العادية كانت بتقراه بتوقيت جهاز المريض،
+      // فالرنة كانت ممكن تيجي في وقت غلط تمامًا على أي جهاز مضبوط على توقيت تاني.
+      if (parseCairoDatetime(d.scheduled_at) > now) return;
       if (notifiedDoseIds.current.has(d.id)) return;
       notifiedDoseIds.current.add(d.id);
+
+      if (isFirstPass) return; // اتسجّلت كـ"شوفناها" بس من غير رنة ولا إشعار
 
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('معاك - وقت الدوا 💊', {
           body: `وقت ${d.name} دلوقتي`,
           tag: `dose-${d.id}`,
-          vibrate: [400, 200, 400, 200, 400],
         });
       }
       if (alarmEnabled) ringDoseAlarm();
     });
+
+    // مبنعلّمش "اتسجلت" غير لما تكون الجرعات وصلت فعلاً (أول تحميل بيبدأ بمصفوفة فاضية)
+    if (isFirstPass && doses.length) hasSeededDoses.current = true;
   }, [doses, now, alarmEnabled]);
 
   async function handleTake(doseId) {

@@ -1,5 +1,11 @@
 const pool = require('./db');
-const { cairoToday, cairoDateWithOffset, cairoNowPlusMinutes } = require('./utils/time');
+const {
+  cairoToday,
+  cairoDateWithOffset,
+  cairoNowPlusMinutes,
+  formatCairoClock,
+  describeCairoWhen,
+} = require('./utils/time');
 
 const GRACE_MINUTES = 30; // بعد ما ميعاد الجرعة يعدي بالوقت ده من غير تسجيل، بتتحسب "فايتة"
 const RUN_INTERVAL_MS = 5 * 60 * 1000; // كل 5 دقايق
@@ -62,7 +68,7 @@ async function markMissedAndNotify() {
   for (const dose of rows) {
     await pool.query("UPDATE doses SET status = 'missed' WHERE id = ?", [dose.id]);
 
-    const message = `فوّت جرعة "${dose.med_name}" المحددة الساعة ${dose.scheduled_at}`;
+    const message = `فوّت جرعة "${dose.med_name}" المحددة الساعة ${formatCairoClock(dose.scheduled_at)}`;
     const recipients = await getRecipients(dose.patient_id);
     for (const userId of recipients) {
       await pool.query(
@@ -88,7 +94,7 @@ async function notifyUpcomingAppointments() {
     );
     if (existing.length) continue;
 
-    const message = `تذكير: موعد "${appt.title}" غدًا الساعة ${appt.appointment_at}`;
+    const message = `تذكير: موعد "${appt.title}" ${describeCairoWhen(appt.appointment_at)}`;
     const recipients = await getRecipients(appt.patient_id);
     for (const userId of recipients) {
       await pool.query(

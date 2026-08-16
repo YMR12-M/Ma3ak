@@ -6,9 +6,15 @@ const assert = require('node:assert/strict');
 const pool = require('../db');
 const { generateDosesForMedication } = require('../scheduler');
 
+/* "النهاردة" هنا لازم تكون بتوقيت مصر، مش بتوقيت الجهاز اللي بيشغّل التيست -
+   لأن generateDosesForMedication نفسها شغالة بتوقيت مصر. لو استخدمنا تاريخ
+   الجهاز، الاختبارات دي بتنجح في مصر وتفشل على أي جهاز بتوقيت تاني (زي
+   GitHub Actions اللي شغال UTC): في الساعات اللي بين منتصف الليل في مصر
+   ومنتصف الليل في UTC، الاتنين بيبقوا في يومين مختلفين خالص. */
 function todayStr(offsetDays = 0) {
-  const d = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const cairoToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+  const [y, m, d] = cairoToday.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + offsetDays)).toISOString().slice(0, 10);
 }
 
 function captureInserts(t) {
