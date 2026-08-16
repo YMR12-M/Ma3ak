@@ -1,44 +1,27 @@
 const pool = require('./db');
+const { cairoToday, cairoDateWithOffset, cairoNowPlusMinutes } = require('./utils/time');
 
 const GRACE_MINUTES = 30; // بعد ما ميعاد الجرعة يعدي بالوقت ده من غير تسجيل، بتتحسب "فايتة"
 const RUN_INTERVAL_MS = 5 * 60 * 1000; // كل 5 دقايق
 
-function pad(n) {
-  return String(n).padStart(2, '0');
-}
-
-function toMysqlDatetime(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
-    d.getMinutes()
-  )}:00`;
-}
-
-function timeStringToDate(dayBase, hhmm) {
-  const [h, m] = hhmm.split(':').map(Number);
-  const d = new Date(dayBase);
-  d.setHours(h, m, 0, 0);
-  return d;
-}
-
-// بيولّد صفوف الجرعات المتوقعة (اليوم وبكرة) لدواء واحد بعينه
+// بيولّد صفوف الجرعات المتوقعة (اليوم وبكرة) لدواء واحد بعينه.
+// كل الحسابات هنا بتوقيت مصر (utils/time.js) - مش توقيت السيرفر اللي الكود
+// شغال عليه فعليًا (Render/Railway غالبًا UTC) - عشان "اليوم" و"الميعاد" يبقوا
+// مطابقين لساعة المستخدم الحقيقية.
 async function generateDosesForMedication(med) {
   const times = typeof med.times === 'string' ? JSON.parse(med.times) : med.times;
-  const startDate = new Date(med.start_date);
 
-  const today = new Date();
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-
-  for (const dayBase of [today, tomorrow]) {
+  for (const daysOffset of [0, 1]) {
     for (const t of times) {
-      const scheduled = timeStringToDate(dayBase, t);
-      if (scheduled < startDate) continue;
-      if (med.end_date && scheduled > new Date(`${med.end_date}T23:59:59`)) continue;
+      const scheduled = cairoDateWithOffset(daysOffset, t);
+      if (scheduled < `${med.start_date} 00:00:00`) continue;
+      if (med.end_date && scheduled > `${med.end_date} 23:59:59`) continue;
 
       try {
         await pool.query(
           `INSERT IGNORE INTO doses (medication_id, patient_id, scheduled_at, status)
            VALUES (?, ?, ?, 'pending')`,
-          [med.id, med.patient_id, toMysqlDatetime(scheduled)]
+          [med.id, med.patient_id, scheduled]
         );
       } catch (e) {
         console.error('scheduler: generateDosesForMedication insert error:', e.message);
@@ -50,7 +33,8 @@ async function generateDosesForMedication(med) {
 // بيولّد صفوف الجرعات المتوقعة (اليوم وبكرة) لكل الأدوية النشطة
 async function generateDoses() {
   const [meds] = await pool.query(
-    `SELECT * FROM medications WHERE active = 1 AND (end_date IS NULL OR end_date >= CURDATE())`
+    `SELECT * FROM medications WHERE active = 1 AND (end_date IS NULL OR end_date >= ?)`,
+    [cairoToday()]
   );
   for (const med of meds) {
     await generateDosesForMedication(med);
@@ -71,8 +55,8 @@ async function markMissedAndNotify() {
     `SELECT d.*, m.name AS med_name
      FROM doses d
      JOIN medications m ON m.id = d.medication_id
-     WHERE d.status = 'pending' AND d.scheduled_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)`,
-    [GRACE_MINUTES]
+     WHERE d.status = 'pending' AND d.scheduled_at < ?`,
+    [cairoNowPlusMinutes(-GRACE_MINUTES)]
   );
 
   for (const dose of rows) {
@@ -93,7 +77,8 @@ async function markMissedAndNotify() {
 // إشعار بالمواعيد اللي هتيجي خلال 24 ساعة (مرة واحدة بس لكل موعد)
 async function notifyUpcomingAppointments() {
   const [rows] = await pool.query(
-    `SELECT * FROM appointments WHERE appointment_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 24 HOUR)`
+    `SELECT * FROM appointments WHERE appointment_at BETWEEN ? AND ?`,
+    [cairoNowPlusMinutes(0), cairoNowPlusMinutes(24 * 60)]
   );
 
   for (const appt of rows) {

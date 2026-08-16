@@ -3,6 +3,7 @@ const pool = require('../db');
 const { authRequired } = require('../middleware/auth');
 const { canAccessPatient } = require('../utils/access');
 const { generateDosesForMedication } = require('../scheduler');
+const { cairoToday } = require('../utils/time');
 
 const router = express.Router();
 
@@ -28,9 +29,9 @@ router.get('/:patientId/today', authRequired, async (req, res) => {
     `SELECT d.id, d.scheduled_at, d.status, d.taken_at, m.name, m.dosage
      FROM doses d
      JOIN medications m ON m.id = d.medication_id
-     WHERE d.patient_id = ? AND DATE(d.scheduled_at) = CURDATE()
+     WHERE d.patient_id = ? AND DATE(d.scheduled_at) = ?
      ORDER BY d.scheduled_at ASC`,
-    [patientId]
+    [patientId, cairoToday()]
   );
   res.json({ doses: rows });
 });

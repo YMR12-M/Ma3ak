@@ -5,6 +5,7 @@ const { canAccessPatient } = require('../utils/access');
 // نفس ملف الـ 15 دقيقة المستخدم في شاشة المريض (frontend/js/doseLogic.js) - مصدر واحد للحقيقة
 // بدل رقم مكرر في مكانين ممكن ينحرفوا عن بعض. الملف بلا JSX عمدًا فبيتطلّب هنا زي أي ملف Node عادي.
 const { getDoseAvailability } = require('../../frontend/js/doseLogic');
+const { cairoNowString } = require('../utils/time');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post('/:id/take', authRequired, async (req, res) => {
   if (getDoseAvailability(dose.scheduled_at, new Date()).isEarly) {
     return res.status(403).json({ error: 'لسه بدري، الجرعة دي مش وصلت ميعادها' });
   }
-  await pool.query("UPDATE doses SET status = 'taken', taken_at = NOW() WHERE id = ?", [req.params.id]);
+  await pool.query("UPDATE doses SET status = 'taken', taken_at = ? WHERE id = ?", [cairoNowString(), req.params.id]);
   res.json({ ok: true });
 });
 
