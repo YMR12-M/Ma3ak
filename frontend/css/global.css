@@ -364,6 +364,10 @@ textarea {
 .patient-switcher {
   flex: 1;
   min-width: 64px;
+  /* من غيرها الشريط بياخد أي فراغ فاضل في الهيدر (برند + سويتشر + مستخدم) كله لوحده -
+     على موبايل ده مفيدش مساحة كتير أصلاً فمش ملحوظ، لكن على شاشة عريضة (ديسكتوب)
+     كان بيتمدد لدايرة طويلة فاضية غير مظبوطة الشكل */
+  max-width: 240px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -826,6 +830,16 @@ textarea {
 .med-actions {
   display: flex;
   gap: var(--space-1);
+}
+
+/* "🔗 لينك الدخول" و"🔄 لينك جديد" أطول من "تعديل"/"إيقاف" العادية - على موبايل
+   ضيق كانوا بيتلفوا على سطرين. حشو/خط أصغر شوية (لسه فوق حد اللمسة المريحة) كفاية
+   عشان يتسعوا سطر واحد من غير ما نغيّر شكل باقي أزرار .med-actions العادية */
+.patient-link-actions .btn {
+  padding: var(--space-1) var(--space-2);
+  gap: 4px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .chip {

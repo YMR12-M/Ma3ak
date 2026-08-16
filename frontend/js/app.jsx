@@ -2,6 +2,38 @@
    MA3ak (معاك) - App الرئيسي
    ============================================ */
 
+// رسايل تحقق الفورمات (required/type/minLength...) الافتراضية بتيجي من المتصفح نفسه
+// بلغته هو (لغة نظام التشغيل/المتصفح) - مش من صفحتنا (lang="ar") - يعني لو جهاز حد
+// شغال بالإنجليزي، هيشوف "Please fill out this field" وسط تطبيق عربي بالكامل. بنعترض
+// حدث "invalid" (بيتنادى وقت أي submit فاشل) ونحط رسالة عربية بدلها حسب سبب الرفض.
+// لازم يترسموا (setCustomValidity('')) تاني أول ما المستخدم يعدّل القيمة - المتصفح
+// بيفضل يعتبر الحقل "غير صالح" على طول الرسالة المخصصة موجودة حتى لو القيمة بقت سليمة.
+document.addEventListener(
+  'invalid',
+  (e) => {
+    const el = e.target;
+    if (typeof el.setCustomValidity !== 'function') return;
+    const v = el.validity;
+    if (v.valueMissing) el.setCustomValidity('لازم تملأ الحقل ده');
+    else if (v.typeMismatch && el.type === 'email') el.setCustomValidity('اكتب إيميل صحيح');
+    else if (v.typeMismatch) el.setCustomValidity('الصيغة دي مش صحيحة');
+    else if (v.tooShort) el.setCustomValidity(`لازم يكون ${el.minLength} حروف على الأقل`);
+    else if (v.tooLong) el.setCustomValidity(`أقصى حاجة ${el.maxLength} حرف`);
+    else if (v.rangeUnderflow) el.setCustomValidity(`القيمة لازم تكون ${el.min} على الأقل`);
+    else if (v.rangeOverflow) el.setCustomValidity(`القيمة لازم تكون ${el.max} على الأكتر`);
+    else if (v.patternMismatch) el.setCustomValidity('الصيغة دي مش صحيحة');
+    else el.setCustomValidity('القيمة دي مش صحيحة');
+  },
+  true
+);
+document.addEventListener(
+  'input',
+  (e) => {
+    if (typeof e.target.setCustomValidity === 'function') e.target.setCustomValidity('');
+  },
+  true
+);
+
 // تفضيلات المظهر وإتاحة الاستخدام مخزّنة على الجهاز نفسه (مش في حساب المستخدم)،
 // عشان كل جهاز (موبايل المريض، موبايل المتابع) يحتفظ باختياره لوحده.
 function readBoolPref(key, fallback) {

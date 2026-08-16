@@ -94,7 +94,9 @@ function PatientCard({ patient, onError, onChanged }) {
         {current.phone && <div className="med-dosage">{current.phone}</div>}
         {current.link_code && <div className="med-notes">كود المشاركة: {current.link_code}</div>}
       </div>
-      <div className="med-actions">
+      {/* كلاس تاني (patient-link-actions) بس لتصغير الحشو/الخط شوية هنا - الزرارين كانوا
+          بيتلفوا على سطرين على موبايل ضيق لأن نصهم أطول من "تعديل"/"إيقاف" العادية */}
+      <div className="med-actions patient-link-actions">
         <Button variant="ghost" aria-label={`عرض لينك دخول ${current.name}`} onClick={() => setShowShare(true)}>
           🔗 لينك الدخول
         </Button>
