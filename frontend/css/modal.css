@@ -1,0 +1,454 @@
+/* ============================================
+   MA3ak (معاك) - النافذة (Modal)
+
+   النافذة دي هي "شاشة الإضافة والتعديل" في التطبيق كله: دواء جديد، موعد جديد،
+   قياس جديد، مريض جديد، لينك الدخول، الإعدادات. عشان كده ليها ملف لوحدها -
+   مش عنصر من ضمن عناصر components.css، دي شاشة كاملة بهيدر وجسم وفوتر
+   وحالات سكرول وحركة دخول وخروج.
+
+   الشكل بيتغيّر جذريًا حسب المقاس:
+   - موبايل: شيت بيطلع من تحت وملزوق في حرف الشاشة السفلي، وبيتقفل بالسحب لتحت.
+   - شاشة كبيرة (640px+): نافذة كاملة في نص الشاشة، بتدخل بحركة "بتقرب من العين".
+
+   القاعدة اللي حاكمة كل قيمة هنا زي باقي التطبيق: الجمهور كبار السن -
+   عناوين كبيرة، تباين عالي، أي حاجة بتتداس مساحتها 56px، والحركة بتقول معنى
+   ("النافذة دي فتحت"، "دي بتتقفل") مش زينة.
+   ============================================ */
+
+:root {
+  /* مدة حركة الخروج. لازم تساوي MODAL_EXIT_MS في js/components/Common.jsx -
+     الجافاسكريبت بيستنى المدة دي قبل ما يشيل النافذة من الشاشة، فلو الاتنين
+     اختلفوا النافذة إما هتتشال والحركة لسه شغالة، أو هتفضل واقفة بعد ما تخلص. */
+  --modal-exit: 240ms;
+  /* الحرف اللي بيبان مدوّر في وضع الشيت - قيمة واحدة عشان المقبض والشريط
+     المتدرّج والحواف كلهم يقروا نفس الدايرة */
+  --modal-radius: var(--radius-xl);
+}
+
+/* ============================================
+   الخلفية (الطبقة اللي بتعطّل الشاشة اللي ورا)
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--color-overlay);
+  /* تشويش قوي للخلفية: العين بتفقد التركيز على الشاشة اللي ورا تمامًا، فبيبقى
+     واضح إنها "معطّلة مؤقتًا" - أوضح بكتير من مجرد طبقة سودا شفافة */
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  /* --drag-fade بيتحط من الجافاسكريبت وانت بتسحب الشيت لتحت بصباعك */
+  opacity: var(--drag-fade, 1);
+  animation: fade-in var(--dur-2) var(--ease-out) backwards;
+}
+
+/* ---------- الخروج ---------- */
+
+.modal-overlay.is-closing {
+  animation: fade-out var(--modal-exit) var(--ease-in-out) forwards;
+  pointer-events: none; /* منع أي دوسة تانية والنافذة بتختفي */
+}
+
+.modal-overlay.is-closing .modal {
+  animation: sheet-down var(--modal-exit) cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+/* لما النافذة تتقفل بالسحب، الشيت بيبقى واقف عند نقطة صباع المستخدم - فالحركة
+   بتكمّل من مكانه ده بـ transform inline من الجافاسكريبت، والـ keyframe لازم
+   يتوقف عشان ميلغيش الـ transform ده ويرجّع الشيت لفوق قبل ما ينزل. */
+.modal-overlay[data-drag='out'] .modal {
+  animation: none;
+}
+
+/* ============================================
+   جسم النافذة
+   ============================================ */
+
+.modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow: hidden;
+  background: var(--color-surface);
+  border-radius: var(--modal-radius) var(--modal-radius) 0 0;
+  box-shadow: var(--shadow-xl), var(--shadow-inset-top);
+  /* الانتقال ده بيشتغل في حالة واحدة بس: لما المستخدم يسحب الشيت لتحت شوية
+     ويسيبه من غير ما يوصل لحد القفل - بيرجع مكانه بنبضة زنبركية خفيفة */
+  transition: transform var(--dur-3) var(--ease-spring);
+  animation: sheet-up var(--dur-4) var(--ease-emphasized) backwards;
+}
+
+/* النافذة بتاخد التركيز برمجيًا أول ما تفتح (عشان قارئ الشاشة يقرا عنوانها)،
+   وده مش تركيز المستخدم اختاره بنفسه - فمش المفروض يرسم حلقة حواليها */
+.modal:focus {
+  outline: none;
+}
+
+/* هالة لونية خفيفة جاية من ركن الأيقونة. الغرض منها إن السطح ميبقاش أبيض
+   مسطّح: فيه مصدر ضوء ملوّن في ركن واحد، زي باقي أسطح التطبيق.
+   الركن ده اليمين لأن التطبيق RTL - هو ركن "بداية" القراية اللي فيه الأيقونة. */
+.modal::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 190px;
+  background: radial-gradient(
+    88% 130% at 100% 0%,
+    color-mix(in srgb, var(--color-primary) 14%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* شريط تدرّج الهوية على الحرف العلوي - نفس تدرّج الخط اللي في الهيدر وشاشة
+   الدخول. أرفع حاجة في النافذة وأول حاجة العين بتشوفها. */
+.modal-accent {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: var(--grad-brand-line);
+  z-index: 2;
+}
+
+/* ============================================
+   منطقة المسك: المقبض + الهيدر
+   ============================================ */
+
+/* السحب بيشتغل من هنا بس، مش من جسم الفورم - عشان محدش يقفل النافذة بالغلط
+   وهو بيحاول يسكرول الحقول اللي جواها.
+   touch-action: none بيقول للمتصفح "أنا هتصرف في اللمسة دي بنفسي" - من غيرها
+   المتصفح بيحاول يسكرول الصفحة ويبلع حدث الحركة قبل ما يوصلنا. */
+.modal-grab {
+  position: relative;
+  flex-shrink: 0;
+  touch-action: none;
+  border-bottom: 1px solid var(--color-border);
+  transition: box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* أول ما المستخدم يسكرول جوه النافذة، بيظهر ظل تحت الهيدر - إشارة إن فيه
+   محتوى ماشي تحته دلوقتي. ساكن تمامًا طالما الفورم واقف من أوله. */
+.modal[data-at-top='false'] .modal-grab {
+  box-shadow: 0 10px 18px -14px rgba(20, 30, 28, 0.55);
+}
+
+/* مقبض بصري بيقول "الشيت ده ممكن يتسحب" - شكل مألوف من تطبيقات الموبايل،
+   وهو فعلًا شغال هنا (السحب لتحت بيقفل) مش مجرد رسمة */
+.modal-grip {
+  display: block;
+  width: 46px;
+  height: 5px;
+  margin: 10px auto 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+
+.modal-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* شريحة الأيقونة: هي اللي بتدّي كل نافذة هويتها - دوا، موعد، قياس، مريض.
+   نبرتها اللونية (tone-*) بتيجي من الشاشة اللي فتحت النافذة.
+   المقاس هنا أكبر من icon-chip-sm الافتراضي: العنوان جنبها حجمه --font-size-md
+   وسُمكه 800، وشريحة 38px كانت بتبان تايهة جنبه بدل ما توازنه. */
+.modal-icon.icon-chip-sm {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-xs), var(--shadow-inset-top);
+}
+
+.modal-heading {
+  flex: 1;
+  min-width: 0; /* من غيرها عنوان طويل بيوسّع الفليكس ويزق زرار الإغلاق برّه */
+}
+
+.modal-title {
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+}
+
+/* السطر اللي بيقول النافذة بتعمل إيه. مربوط بـ aria-describedby فقارئ الشاشة
+   بيقراه مع العنوان أول ما النافذة تفتح. */
+.modal-subtitle {
+  margin-top: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.modal-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.modal-close:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.modal-close:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) {
+  .modal-close:hover {
+    background: var(--color-danger-light);
+    border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+    color: var(--color-danger);
+  }
+}
+
+/* ============================================
+   الجسم والفوتر
+   ============================================ */
+
+/* الغلاف ده بيبقى <form> لما النافذة تكون فيها فورم، و<div> لما تكون عرض بس.
+   وجوده مهم: زرار الحفظ قاعد في الفوتر برّه منطقة السكرول، ولازم يفضل جوه
+   نفس الـ form عشان Enter من أي حقل يشتغل والتحقق التلقائي يلاقيه. */
+.modal-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* بيسمح للجسم إنه يقلّ عن حجم محتواه فيسكرول بدل ما يتمدد */
+  overflow: hidden;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  /* بيمنع السكرول إنه "يعدّي" للصفحة اللي ورا النافذة لما يوصل لآخر الفورم */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-3);
+}
+
+.modal-body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* فقرة شرح جوه النافذة (لينك الدخول، الانضمام بكود) - بتقعد في كارت خفيف
+   بدل ما تبقى نص سايب فوق الحقول */
+.modal-body > p {
+  margin-bottom: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.modal-body > p strong {
+  color: var(--color-text);
+}
+
+/* شريط الإجراءات: ثابت تحت، مش بيسكرول مع الفورم. في فورم طويل (دواء بأربع
+   جرعات) المستخدم مبيبقاش محتاج يوصل لآخر الشاشة عشان يلاقي "حفظ". */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  /* المسافة الزيادة دي بتاعة شريط الإيماءات في الآيفون والأندرويد الحديث -
+     من غيرها زرار الحفظ بيقع تحت الشريط ده وميتداسش */
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* ظل فوق الفوتر طالما لسه فيه فورم ماشي تحته - أول ما المستخدم يوصل لآخر
+   الفورم الظل بيختفي، فبيبقى واضح إن مفيش حاجة تانية فاتته */
+.modal[data-at-bottom='false'] .modal-footer {
+  box-shadow: 0 -12px 20px -16px rgba(20, 30, 28, 0.6);
+}
+
+/* الزراير جوه الفوتر بتقف جنب بعض: "حفظ" بياخد المساحة اللي فاضلة عشان يفضل
+   هو أكبر هدف على الشاشة، و"إلغاء" بياخد قد نصه بس */
+.modal-footer .btn {
+  margin-top: 0;
+}
+
+.modal-footer .btn-primary,
+.modal-footer .btn-accent,
+.modal-footer .btn-danger {
+  flex: 1;
+  width: auto;
+}
+
+.modal-footer .btn-soft,
+.modal-footer .btn-ghost {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 104px;
+}
+
+/* ============================================
+   عناصر خاصة بالفورمات اللي جوه النوافذ
+   ============================================ */
+
+/* شبكة اختيار (نوع القياس) جوه حقل: الهامش السفلي بتاعها بيتشال لأن الحقل
+   نفسه بياخد الهامش - من غير كده بيتجمّع هامشين ورا بعض */
+.field > .vital-type-grid {
+  margin-bottom: 0;
+}
+
+/* نفس الشبكة في شاشة القياسات بتوسّع خاناتها على الشاشة الكبيرة (screens.css)،
+   لأن الشاشة هناك بتاخد عرض الصفحة كله. جوه النافذة العرض ثابت 520px مهما كانت
+   الشاشة، فلو خدت نفس التوسيع كانت بتنزل لعمودين وتطوّل النافذة بلا أي داعي. */
+.modal .vital-type-grid {
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+}
+
+/* حقل بيتكتب فيه كود لاتيني (كود مشاركة المريض): خط لاتيني، حروف كبيرة،
+   وتباعد واسع - نفس شكل الكود اللي المستخدم بيقراه من كارت المريض بالظبط،
+   فبيتأكد إنه كتبه صح وهو بيكتبه */
+.code-input {
+  font-family: var(--font-family-latin);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.code-input::placeholder {
+  letter-spacing: normal;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+/* ============================================
+   صف مواعيد الجرعات (فورم الدواء)
+   ============================================ */
+
+/* كل ميعاد جرعة بيقعد في صف ليه رقم واضح جنبه. الرقم مش زينة: المستخدم
+   بيضيف 3-4 مواعيد لنفس الدوا، والأرقام هي اللي بتخلي "احذف التالت"
+   عملية مباشرة بدل عد الصفوف بالعين. */
+.time-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+
+.time-row:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: var(--color-primary-light);
+}
+
+.time-row-index {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-family-latin);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.time-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   شاشة كبيرة: نافذة في نص الشاشة بدل شيت من تحت
+   ============================================ */
+
+@media (min-width: 640px) {
+  .modal-overlay {
+    align-items: center;
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .modal {
+    max-height: 85vh;
+    max-height: 85dvh;
+    border-radius: var(--modal-radius);
+    /* حركة "بتقرب من العين" (تصغير + تشويش بيروح) بدل الطلوع من تحت -
+       على شاشة كبيرة الشيت الطالع من تحت مبيبقاش ليه معنى */
+    animation: focus-in var(--dur-4) var(--ease-emphasized) backwards;
+  }
+
+  .modal-overlay.is-closing .modal {
+    animation: focus-out var(--modal-exit) var(--ease-in-out) forwards;
+  }
+
+  /* المقبض بيختفي: مفيش سحب على الشاشة الكبيرة أصلاً */
+  .modal-grip {
+    display: none;
+  }
+
+  .modal-header {
+    padding-top: var(--space-3);
+  }
+}
+
+/* شاشة قصيرة جدًا وعرضية (موبايل مقلوب): الهيدر بيتراص عشان يفضل فيه مكان
+   للفورم نفسه بدل ما النافذة كلها تبقى عنوان */
+@media (max-height: 460px) {
+  .modal {
+    max-height: 96dvh;
+  }
+
+  .modal-grip {
+    margin-top: 6px;
+  }
+
+  .modal-header {
+    padding-block: var(--space-1);
+  }
+
+  .modal-subtitle {
+    display: none;
+  }
+
+  .modal-body {
+    padding-block: var(--space-2);
+  }
+}

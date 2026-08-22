@@ -12,6 +12,7 @@ https://ma3ak-m-k.onrender.com
 - CSS
 - JavaScript
 - React
+- esbuild
 - Node.js
 - Express
 - MySQL

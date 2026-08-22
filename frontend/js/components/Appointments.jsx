@@ -182,33 +182,46 @@ function AppointmentForm({ patientId, appointment, onClose, onSaved }) {
   }
 
   return (
-    <Modal title={isEdit ? 'تعديل الموعد' : 'موعد جديد'} onClose={onClose}>
+    <Modal
+      icon="calendar"
+      tone="info"
+      title={isEdit ? 'تعديل الموعد' : 'موعد جديد'}
+      subtitle="هيظهر للمريض في شاشته، وهنفكّره بيه قبل ميعاده"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديل' : 'إضافة الموعد'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <Banner onClose={() => setError('')}>{error}</Banner>
-      <form onSubmit={handleSubmit}>
-        <Field label="عنوان الموعد (مثال: كشف قلب)">
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} />
-        </Field>
-        <Field label="اسم الدكتور">
-          <input value={doctorName} onChange={(e) => setDoctorName(e.target.value)} />
-        </Field>
-        <Field label="المكان">
-          <input value={location} onChange={(e) => setLocation(e.target.value)} />
-        </Field>
-        <Field label="التاريخ والوقت">
-          <input
-            type="datetime-local"
-            required
-            value={appointmentAt}
-            onChange={(e) => setAppointmentAt(e.target.value)}
-          />
-        </Field>
-        <Field label="ملاحظات">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </Field>
-        <Button type="submit" disabled={saving}>
-          {saving ? 'جاري الحفظ...' : 'حفظ'}
-        </Button>
-      </form>
+
+      <Field label="عنوان الموعد (مثال: كشف قلب)">
+        <input required value={title} onChange={(e) => setTitle(e.target.value)} />
+      </Field>
+      <Field label="اسم الدكتور">
+        <input value={doctorName} onChange={(e) => setDoctorName(e.target.value)} />
+      </Field>
+      <Field label="المكان">
+        <input value={location} onChange={(e) => setLocation(e.target.value)} />
+      </Field>
+      <Field label="التاريخ والوقت">
+        <input
+          type="datetime-local"
+          required
+          value={appointmentAt}
+          onChange={(e) => setAppointmentAt(e.target.value)}
+        />
+      </Field>
+      <Field label="ملاحظات">
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
     </Modal>
   );
 }

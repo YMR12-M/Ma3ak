@@ -8,6 +8,12 @@
        الإدخال الافتراضية) بتتلوّن صح بدل ما تفضل فاتحة فوق تصميم داكن -->
   <meta name="color-scheme" content="light dark" />
   <title>معاك | MA3ak</title>
+  <!-- الوصف ده هو اللي بيظهر تحت اسم الموقع في نتايج البحث ولما اللينك يتبعت
+       على واتساب - من غيره المتصفحات ومحركات البحث بتقص أول كلام في الصفحة -->
+  <meta
+    name="description"
+    content="معاك - تطبيق بيساعد كبار السن ومتابعينهم على مواعيد الدوا والكشوفات. المتابع بيجهّز كل حاجة من موبايله، والمريض بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة."
+  />
 
   <!-- PWA: بيسمح للمتصفح (خصوصًا أندرويد/كروم) إنه يعتبر الموقع تطبيق قابل للتثبيت -->
   <link rel="manifest" href="/manifest.json" />
@@ -23,66 +29,62 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="معاك" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Cairo نسخة متغيّرة (400..900): ملف واحد بيغطي كل الأوزان بدل 4 ملفات
-       منفصلة - أخف في التحميل وبيدي أوزان وسيطة أنعم.
-       Plus Jakarta Sans للنصوص اللاتينية والأرقام بس (اسم التطبيق، الأكواد،
-       اللينكات). جوجل بيقسّم الخطوط بـ unicode-range، يعني ملف الخط اللاتيني
-       ده مش بينزّل أصلاً غير لما يبقى فيه حروف لاتينية على الشاشة. -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400..900&family=Plus+Jakarta+Sans:wght@500..800&display=swap"
-    rel="stylesheet"
-  />
+  <!-- الخطوط مستضافة عندنا (frontend/fonts/) مش من Google Fonts - السبب الكامل
+       في css/fonts.css. الملف العربي بيتحمّل قبل الـ CSS ما يتقري أصلاً: هو خط
+       كل النص في التطبيق تقريبًا، فتأخيره لحد ما المتصفح يلاقي @font-face
+       معناه إن المستخدم يشوف الصفحة بخط النظام الأول وبعدين تتبدّل قدامه.
+       crossorigin مطلوب حتى للملفات اللي من نفس السيرفر: طلبات الخطوط بتتبعت
+       في وضع CORS دايمًا، ومن غير الكلمة دي المتصفح بينزّل الملف مرتين. -->
+  <link rel="preload" href="/fonts/cairo-arabic.woff2" as="font" type="font/woff2" crossorigin />
 
-  <!-- الـ CSS مقسّم لطبقات، والترتيب ده مقصود (كل طبقة بتبني على اللي قبلها):
-       tokens (قيم التصميم) ← base (إعادة ضبط المتصفح) ← animations (الحركة)
-       ← materials (الخامات: زجاج، حبيبات، شرايح أيقونات، أسطح)
-       ← components (عناصر مشتركة) ← layout/auth/screens/patient (شاشات).
-       وسوم <link> منفصلة مش @import: المتصفح بيحمّلهم بالتوازي، بينما @import
-       بيحمّلهم واحد ورا التاني وبيأخّر أول رسم للصفحة. -->
-  <link rel="stylesheet" href="/css/tokens.css" />
-  <link rel="stylesheet" href="/css/base.css" />
-  <link rel="stylesheet" href="/css/animations.css" />
-  <link rel="stylesheet" href="/css/materials.css" />
-  <link rel="stylesheet" href="/css/components.css" />
-  <link rel="stylesheet" href="/css/layout.css" />
-  <link rel="stylesheet" href="/css/auth.css" />
-  <link rel="stylesheet" href="/css/screens.css" />
-  <link rel="stylesheet" href="/css/patient.css" />
+  <!-- ملف CSS واحد مبني من طبقات css/ العشرة (tokens ← base ← animations ←
+       materials ← components ← modal ← layout ← auth ← screens ← patient).
+       الطبقات موجودة زي ما هي في المصدر - الدمج بيحصل في وقت البناء بس، عشان
+       المتصفح يفتح طلب واحد بدل عشرة. الترتيب مصدره frontend/build.js. -->
+  <link rel="stylesheet" href="/dist/app.css" />
+
+  <!-- سكريبتات التطبيق. defer معناها: نزّلهم دلوقتي بالتوازي مع كل حاجة تانية،
+       وشغّلهم بعد ما الـ HTML يخلص - بالترتيب اللي مكتوبين بيه.
+       vendor.js فيه React + ReactDOM مستضافين عندنا، وapp.js فيه كل ملفات js/
+       متُرجمة ومدموجة. مفيش Babel في المتصفح خالص - التفاصيل في frontend/build.js. -->
+  <script defer src="/dist/vendor.js"></script>
+  <script defer src="/dist/app.js"></script>
+
+  <!-- المظهر لازم يتحدد قبل أول رسم، مش من جوه React.
+       من غير السطرين دول، المستخدم اللي مختار الوضع الداكن كان بيشوف ومضة بيضا
+       في الأول لحد ما الجافاسكريبت يحمّل ويشتغل - الومضة دي بالذات مؤذية للعين
+       في تطبيق ناس بتفتحه بالليل عشان مواعيد الدوا.
+       المفاتيح دي نفسها اللي بيستخدمها app.jsx (ma3ak_dark / ma3ak_font_large). -->
+  <script>
+    try {
+      var d = localStorage.getItem('ma3ak_dark');
+      var dark = d === null ? matchMedia('(prefers-color-scheme: dark)').matches : d === '1';
+      var root = document.documentElement;
+      root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      root.setAttribute('data-font', localStorage.getItem('ma3ak_font_large') === '1' ? 'large' : 'normal');
+    } catch (e) {
+      /* متصفح قافل التخزين المحلي (تصفّح خاص في بعض الأجهزة) - يفضل على الفاتح */
+    }
+  </script>
+
 </head>
 <body>
-  <div id="root"></div>
-
-  <!-- React (بدون أي build tool - CDN مباشرة) -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel Standalone: بيترجم JSX جوه المتصفح مباشرة -->
-  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-
-  <!-- كل مسارات السكريبتات لازم تبقى مطلقة (تبدأ بـ /) عشان تشتغل صح لما الصفحة
-       تتفتح من مسار تاني غير الجذر، زي /access/<token> بتاع لينك دخول المريض -->
-
-  <!-- JS عادي (مش JSX) -->
-  <script src="/js/api.js"></script>
-  <script src="/js/doseLogic.js"></script>
-
-  <!-- نظام الأيقونات - لازم قبل أي مكوّن، كل الشاشات بتستخدم <Icon> -->
-  <script type="text/babel" data-presets="react" src="/js/icons.jsx"></script>
-
-  <!-- مكونات React (ملفات .jsx فعلية، بيترجمها Babel live جوه المتصفح) -->
-  <script type="text/babel" data-presets="react" src="/js/components/Common.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Settings.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Auth.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Layout.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Dashboard.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Medications.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Appointments.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Vitals.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Notifications.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/Patients.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/components/PatientHome.jsx"></script>
-  <script type="text/babel" data-presets="react" src="/js/app.jsx"></script>
+  <!-- شاشة الإقلاع مكتوبة في الـ HTML نفسه، مش مستنية React.
+       React بيمسح المحتوى ده ويحط مكانه نفس الشاشة بالظبط أول ما يشتغل، فمفيش
+       أي قفزة بصرية - المستخدم بيشوف شاشة واحدة متصلة من أول جزء من الثانية.
+       مسار الأيقونة نسخة من أيقونة brand في js/icons.jsx. -->
+  <div id="root">
+    <div class="boot-screen">
+      <div class="boot-logo" aria-hidden="true">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20.8 4.4 13.3a5 5 0 1 1 7.6-6.4 5 5 0 1 1 7.6 6.4Z" />
+          <path d="M4.6 12.4h3.1l1.6-3 2.2 5.6 1.7-3.3 1 .7h5.2" />
+        </svg>
+      </div>
+      <div class="boot-name">معاك</div>
+    </div>
+  </div>
 
   <!-- تسجيل الـ Service Worker - شرط أساسي عشان كروم/أندرويد يعتبروا الموقع "قابل للتثبيت".
        لو فشل التسجيل لأي سبب (متصفح قديم، إلخ) التطبيق يفضل شغال عادي من غيره. -->

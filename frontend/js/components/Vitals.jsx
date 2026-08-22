@@ -167,58 +167,87 @@ function VitalForm({ patientId, defaultType, onClose, onSaved }) {
     }
   }
 
+  const selected = VITAL_TYPES.find((t) => t.key === type) || VITAL_TYPES[0];
+
   return (
-    <Modal title="قياس جديد" onClose={onClose}>
+    <Modal
+      icon={selected.icon}
+      tone={selected.tone}
+      title="قياس جديد"
+      subtitle={`بتسجّل ${selected.label} - هيتحفظ في تاريخ المريض`}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? 'جاري الحفظ...' : 'حفظ القياس'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <Banner onClose={() => setError('')}>{error}</Banner>
-      <form onSubmit={handleSubmit}>
-        <Field label="نوع القياس">
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            {VITAL_TYPES.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+
+      {/* قايمة منسدلة اتحوّلت لشبكة زراير: القايمة المنسدلة على الموبايل بتفتح
+          لستة نظام صغيرة الخط ومحتاجة دوستين، والزراير هنا مساحة كل واحد فيهم
+          أكبر من الحد الأدنى للّمس وشايف كل الأنواع مرة واحدة من غير ما يفتح حاجة. */}
+      <FieldGroup label="نوع القياس">
+        <div className="vital-type-grid" role="radiogroup" aria-label="نوع القياس">
+          {VITAL_TYPES.map((t) => (
+            <button
+              type="button"
+              key={t.key}
+              role="radio"
+              aria-checked={type === t.key}
+              className={type === t.key ? 'vital-type-btn active' : 'vital-type-btn'}
+              onClick={() => setType(t.key)}
+            >
+              <span className={`icon-chip icon-chip-sm tone-${t.tone}`} aria-hidden="true">
+                <Icon name={t.icon} size={21} />
+              </span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {type === 'blood_pressure' ? (
+        <FieldGroup label="الانقباضي / الانبساطي">
+          <div className="value-inputs">
+            <input
+              type="number"
+              required
+              placeholder="120"
+              aria-label="الضغط الانقباضي"
+              value={systolic}
+              onChange={(e) => setSystolic(e.target.value)}
+            />
+            <input
+              type="number"
+              required
+              placeholder="80"
+              aria-label="الضغط الانبساطي"
+              value={diastolic}
+              onChange={(e) => setDiastolic(e.target.value)}
+            />
+          </div>
+        </FieldGroup>
+      ) : (
+        <Field label={`القيمة ${unitByType[type] ? `(${unitByType[type]})` : ''}`}>
+          <input type="number" required value={value} onChange={(e) => setValue(e.target.value)} />
         </Field>
+      )}
 
-        {type === 'blood_pressure' ? (
-          <Field label="الانقباضي / الانبساطي">
-            <div className="value-inputs">
-              <input
-                type="number"
-                required
-                placeholder="120"
-                value={systolic}
-                onChange={(e) => setSystolic(e.target.value)}
-              />
-              <input
-                type="number"
-                required
-                placeholder="80"
-                value={diastolic}
-                onChange={(e) => setDiastolic(e.target.value)}
-              />
-            </div>
-          </Field>
-        ) : (
-          <Field label={`القيمة ${unitByType[type] ? `(${unitByType[type]})` : ''}`}>
-            <input type="number" required value={value} onChange={(e) => setValue(e.target.value)} />
-          </Field>
-        )}
-
-        <Field label="وقت القياس">
-          <input
-            type="datetime-local"
-            required
-            value={recordedAt}
-            onChange={(e) => setRecordedAt(e.target.value)}
-          />
-        </Field>
-
-        <Button type="submit" loading={saving}>
-          {saving ? 'جاري الحفظ...' : 'حفظ'}
-        </Button>
-      </form>
+      <Field label="وقت القياس">
+        <input
+          type="datetime-local"
+          required
+          value={recordedAt}
+          onChange={(e) => setRecordedAt(e.target.value)}
+        />
+      </Field>
     </Modal>
   );
 }

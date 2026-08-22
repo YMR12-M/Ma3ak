@@ -22,7 +22,16 @@ function SettingsSheet({
   const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
 
   return (
-    <Modal title="الإعدادات" onClose={onClose}>
+    <Modal
+      icon="settings"
+      tone="gray"
+      title="الإعدادات"
+      subtitle="الاختيارات دي محفوظة على الجهاز ده لوحده"
+      onClose={onClose}
+      footer={(close) => (
+        <Button onClick={close}>تم</Button>
+      )}
+    >
       <div className="settings-group-label">المظهر</div>
       <div className="segmented">
         <button
@@ -125,9 +134,6 @@ function SettingsSheet({
         </React.Fragment>
       )}
 
-      <Button onClick={onClose} style={{ marginTop: 16 }}>
-        تم
-      </Button>
     </Modal>
   );
 }

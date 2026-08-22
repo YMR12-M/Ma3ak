@@ -165,58 +165,77 @@ function MedicationForm({ patientId, medication, onClose, onSaved }) {
   }
 
   return (
-    <Modal title={isEdit ? 'تعديل الدواء' : 'دواء جديد'} onClose={onClose}>
+    <Modal
+      icon="pill"
+      tone="primary"
+      title={isEdit ? 'تعديل الدواء' : 'دواء جديد'}
+      subtitle={
+        isEdit
+          ? 'التعديل بيسري على جرعات النهارده اللي لسه ميعادها مجاش'
+          : 'اكتب اسمه ومواعيده، وإحنا هنفكّر المريض بيه في وقته'
+      }
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديل' : 'إضافة الدواء'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <Banner onClose={() => setError('')}>{error}</Banner>
-      <form onSubmit={handleSubmit}>
-        <Field label="اسم الدواء">
-          <input required value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label="الجرعة (مثال: قرص واحد)">
-          <input value={dosage} onChange={(e) => setDosage(e.target.value)} />
-        </Field>
-        <Field label="مواعيد الجرعات">
-          <div className="times-list">
-            {times.map((t, i) => (
-              <div key={i} className="time-row">
-                <input
-                  type="time"
-                  aria-label={`ميعاد الجرعة رقم ${i + 1}`}
-                  value={t}
-                  onChange={(e) => updateTime(i, e.target.value)}
-                />
-                {times.length > 1 && (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`حذف ميعاد الجرعة رقم ${i + 1}`}
-                    onClick={() => removeTime(i)}
-                  >
-                    <Icon name="trash" size={20} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="ghost" onClick={addTime}>
-              <Icon name="plus" size={18} strokeWidth={2.4} />
-              إضافة معاد
-            </Button>
-          </div>
-        </Field>
-        <Field label="تاريخ البداية">
-          <input
-            type="date"
-            required
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </Field>
-        <Field label="ملاحظات">
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </Field>
-        <Button type="submit" loading={saving}>
-          {saving ? 'جاري الحفظ...' : 'حفظ'}
-        </Button>
-      </form>
+
+      <Field label="اسم الدواء">
+        <input required value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Field label="الجرعة (مثال: قرص واحد)">
+        <input value={dosage} onChange={(e) => setDosage(e.target.value)} />
+      </Field>
+
+      {/* FieldGroup مش Field: جوه المجموعة دي أكتر من عنصر + زرار، و<label>
+          حواليهم كانت بتفتح ساعة أول جرعة لما حد يدوس على العنوان */}
+      <FieldGroup label="مواعيد الجرعات">
+        <div className="times-list">
+          {times.map((t, i) => (
+            <div key={i} className="time-row">
+              <span className="time-row-index" aria-hidden="true">
+                {i + 1}
+              </span>
+              <input
+                type="time"
+                aria-label={`ميعاد الجرعة رقم ${i + 1}`}
+                value={t}
+                onChange={(e) => updateTime(i, e.target.value)}
+              />
+              {times.length > 1 && (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`حذف ميعاد الجرعة رقم ${i + 1}`}
+                  onClick={() => removeTime(i)}
+                >
+                  <Icon name="trash" size={20} />
+                </button>
+              )}
+            </div>
+          ))}
+          <Button type="button" variant="ghost" onClick={addTime}>
+            <Icon name="plus" size={18} strokeWidth={2.4} />
+            إضافة معاد
+          </Button>
+        </div>
+      </FieldGroup>
+
+      <Field label="تاريخ البداية">
+        <input type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      </Field>
+      <Field label="ملاحظات">
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
     </Modal>
   );
 }

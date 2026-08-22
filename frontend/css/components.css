@@ -338,15 +338,7 @@ select {
   gap: var(--space-1);
 }
 
-.time-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.time-row input {
-  flex: 1;
-}
+/* .time-row اتنقل لـ css/modal.css - بقى صف كامل بأرقام مش مجرد سطر فليكس */
 
 .value-inputs {
   display: flex;
@@ -601,134 +593,8 @@ select {
   font-size: var(--font-size-md);
 }
 
-/* ============================================
-   النافذة (Modal) - شيت من تحت على الموبايل، نافذة في النص على الشاشة الكبيرة
-   ============================================ */
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-overlay);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: var(--color-overlay);
-  /* تشويش أقوى للخلفية اللي ورا النافذة: العين بتفقد التركيز عليها تمامًا
-     فبيبقى واضح إن الشاشة اللي ورا "معطّلة مؤقتًا" */
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  animation: fade-in var(--dur-2) var(--ease-out) backwards;
-}
-
-.modal {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 480px;
-  max-height: 92vh;
-  overflow: hidden;
-  padding-top: 14px;
-  background: var(--color-surface);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  box-shadow: var(--shadow-xl), var(--shadow-inset-top);
-  animation: sheet-up var(--dur-4) var(--ease-emphasized) backwards;
-}
-
-/* مقبض بصري صغير فوق الشاشة يوحي إنها "شيت" ممكن تتسحب - زي شاشات الموبايل المألوفة */
-.modal::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
-  width: 44px;
-  height: 5px;
-  border-radius: var(--radius-pill);
-  background: var(--color-border-strong);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  padding: var(--space-1) var(--space-3) var(--space-2);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: var(--font-size-md);
-  color: var(--color-primary-ink);
-}
-
-.modal-close {
-  flex-shrink: 0;
-  min-width: 42px;
-  min-height: 42px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color var(--dur-2) var(--ease-out),
-    color var(--dur-2) var(--ease-out),
-    transform var(--dur-1) var(--ease-out);
-}
-
-.modal-close:active {
-  transform: scale(0.92);
-}
-
-@media (hover: hover) {
-  .modal-close:hover {
-    background: var(--color-danger-light);
-    color: var(--color-danger);
-  }
-}
-
-.modal-body {
-  overflow-y: auto;
-  padding: var(--space-2) var(--space-3) var(--space-3);
-}
-
-.modal-body form {
-  display: flex;
-  flex-direction: column;
-}
-
-/* زرار الحفظ بيفضل ملتصق تحت الشاشة وانت بتسكرول في فورم طويل */
-.modal-body form > .btn[type='submit']:last-child {
-  position: sticky;
-  bottom: calc(var(--space-3) * -1);
-  margin: var(--space-2) calc(var(--space-3) * -1) calc(var(--space-3) * -1);
-  width: calc(100% + var(--space-3) * 2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: 0;
-  box-shadow: 0 -8px 16px -8px rgba(0, 0, 0, 0.18);
-}
-
-@media (min-width: 640px) {
-  .modal-overlay {
-    align-items: center;
-    padding: var(--space-2);
-  }
-
-  .modal {
-    border-radius: var(--radius-xl);
-    max-height: 85vh;
-    padding-top: 0;
-    animation: focus-in var(--dur-4) var(--ease-emphasized) backwards;
-  }
-
-  .modal::before {
-    display: none;
-  }
-}
+/* النافذة (Modal) ليها ملف لوحدها: css/modal.css - بقت شاشة كاملة بهيدر
+   وفوتر وحالات سكرول وحركة دخول وخروج، مش عنصر مشترك بسيط. */
 
 /* ============================================
    السويتشات والأزرار المقسّمة (شاشة الإعدادات)
