@@ -16,29 +16,30 @@ function AppLayout({
   onOpenSettings,
   children,
 }) {
+  // icon = اسم أيقونة من js/icons.jsx
   const tabs = [
-    { key: 'today', label: 'اليوم', icon: '🏠' },
-    { key: 'medications', label: 'الأدوية', icon: '💊' },
-    { key: 'appointments', label: 'المواعيد', icon: '📅' },
-    { key: 'vitals', label: 'القياسات', icon: '🩺' },
-    { key: 'notifications', label: 'الإشعارات', icon: '🔔' },
+    { key: 'today', label: 'اليوم', icon: 'home' },
+    { key: 'medications', label: 'الأدوية', icon: 'pill' },
+    { key: 'appointments', label: 'المواعيد', icon: 'calendar' },
+    { key: 'vitals', label: 'القياسات', icon: 'stethoscope' },
+    { key: 'notifications', label: 'الإشعارات', icon: 'bell' },
   ];
 
   if (user.role === 'caregiver') {
-    tabs.push({ key: 'patients', label: 'المرضى', icon: '🧓' });
+    tabs.push({ key: 'patients', label: 'المرضى', icon: 'users' });
   }
 
   const hasPatientSwitcher = user.role === 'caregiver' && patients.length > 0;
   const userInitial = (user.name || '').trim()[0] || '؟';
 
   return (
-    <div className="app-shell">
+    <div className="app-shell ambient">
       <header className="app-header">
         <div className="header-inner">
           <div className="header-row">
             <div className="header-brand">
               <span className="header-brand-logo" aria-hidden="true">
-                🤝
+                <Icon name="brand" size={21} strokeWidth={2} />
               </span>
               <span className="header-brand-name">
                 <span className="header-brand-ar">معاك</span>
@@ -49,7 +50,7 @@ function AppLayout({
             {hasPatientSwitcher && (
               <div className="patient-switcher">
                 <span className="patient-switcher-icon" aria-hidden="true">
-                  🧓
+                  <Icon name="user" size={17} />
                 </span>
                 <div className="patient-select-wrap">
                   <select
@@ -82,11 +83,11 @@ function AppLayout({
                   aria-label="الإعدادات"
                   title="الإعدادات"
                 >
-                  ⚙️
+                  <Icon name="settings" size={19} />
                 </button>
                 {/* أيقونة + كلمة "خروج" واضحة عمدًا - أيقونة لوحدها ممكن تتلخبط مع زرار الإعدادات جنبها */}
                 <button className="header-logout" onClick={onLogout} aria-label="تسجيل الخروج" title="تسجيل الخروج">
-                  <span aria-hidden="true">🚪</span>
+                  <Icon name="logout" size={17} />
                   <span className="header-logout-label">خروج</span>
                 </button>
               </div>
@@ -112,7 +113,9 @@ function AppLayout({
               aria-current={view === t.key ? 'page' : undefined}
             >
               <span className="tab-icon-wrap">
-                <span className="tab-icon">{t.icon}</span>
+                <span className="tab-icon">
+                  <Icon name={t.icon} size={25} />
+                </span>
                 {t.key === 'notifications' && unreadCount > 0 && (
                   <span className="badge">{unreadCount}</span>
                 )}
@@ -133,7 +136,9 @@ function IssueAlerts({ alerts, onDismiss }) {
     <div className="issue-alert-stack">
       {alerts.map((n) => (
         <div key={n.id} className="issue-alert">
-          <span className="issue-alert-icon">❗</span>
+          <span className="issue-alert-icon" aria-hidden="true">
+            <Icon name="alert" size={26} strokeWidth={2.1} />
+          </span>
           <div className="issue-alert-body">
             <div className="issue-alert-message">{n.message}</div>
             <div className="issue-alert-time">{formatDateTime(n.created_at)}</div>

@@ -1,0 +1,304 @@
+/* ============================================
+   MA3ak (معاك) - Materials
+   الطبقة اللي بتحوّل الألوان المجرّدة في tokens.css لـ "خامات" ملموسة:
+   إزاي السطح بياخد ضوء، إزاي الزجاج بيعمل تشويش، إزاي الحافة بتلمع،
+   وإزاي الأيقونة بتقعد جوه شريحة ملوّنة.
+
+   الملف ده مفيهوش أي مكوّن كامل - بس أدوات بتتركّب على المكوّنات في
+   components.css والشاشات. مكانه في الترتيب بعد animations وقبل components.
+   ============================================ */
+
+/* ============================================
+   الأيقونات
+   ============================================ */
+
+/* كل أيقونات التطبيق SVG من js/icons.jsx. بتاخد لون النص اللي حواليها
+   (stroke: currentColor جوه الملف نفسه)، فمحتاجة بس تتظبط في التخطيط. */
+.icon {
+  display: block;
+  flex: none;
+  /* الأيقونة بتتحرك بنعومة مع أي تغيير في العنصر اللي حاضنها (hover على كارت،
+     تفعيل تاب) - الحركة بتتعرّف على مستوى العنصر الحاضن مش هنا */
+  overflow: visible;
+}
+
+/* شريحة الأيقونة: مربع مدوّر بخلفية ملوّنة خفيفة جوّاه أيقونة بلون أغمق.
+   ده الشكل اللي بيدي الأيقونات "وزن" في التخطيط بدل ما تبقى خطوط سايبة،
+   وهو كمان اللي بيسمح بترميز لوني (كل نوع بلونه) من غير ما نلوّن نص. */
+.icon-chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  box-shadow: var(--shadow-inset-top);
+  transition:
+    transform var(--dur-3) var(--ease-spring),
+    background-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+/* لمعة رفيعة على الحرف العلوي للشريحة - بتخليها تبان مقعّرة/بارزة مش مجرد
+   مربع لون. بتتعمل بـ ::before عشان متأثرش على الأيقونة اللي جوه. */
+.icon-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-sheen);
+  pointer-events: none;
+}
+
+.icon-chip-sm { width: 38px; height: 38px; border-radius: 12px; }
+.icon-chip-lg { width: 64px; height: 64px; border-radius: 20px; }
+.icon-chip-round { border-radius: 50%; }
+
+/* النبرات اللونية - نفس الشريحة بترميز مختلف حسب المعنى */
+.tone-primary { background: var(--color-primary-light); color: var(--color-primary-ink); }
+.tone-accent  { background: var(--color-accent-light);  color: var(--color-accent-dark); }
+.tone-amber   { background: var(--color-accent-light);  color: var(--color-accent-dark); }
+.tone-danger  { background: var(--color-danger-light);  color: var(--color-danger); }
+.tone-rose    { background: var(--color-danger-light);  color: var(--color-danger); }
+.tone-warn    { background: var(--color-warning-light); color: var(--color-warning); }
+.tone-info    { background: var(--info-100);            color: var(--info-500); }
+.tone-blue    { background: var(--info-100);            color: var(--info-500); }
+.tone-purple  { background: var(--info-100);            color: var(--info-500); }
+.tone-gray    { background: var(--color-surface-alt);   color: var(--color-text-muted); }
+.tone-neutral { background: var(--color-surface-alt);   color: var(--color-text-muted); }
+
+/* شريحة مليانة بالتدرّج (للحاجة الأهم في الشاشة بس) */
+.icon-chip-solid {
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
+}
+
+.icon-chip-solid.tone-danger {
+  background: var(--grad-danger);
+  color: #fff;
+  box-shadow: var(--shadow-danger), var(--shadow-inset-top);
+}
+
+/* ============================================
+   الخلفية المحيطة: تدرّجات + حبيبات
+   ============================================ */
+
+/* الطبقتين دول بيتحطوا كـ pseudo-elements على حاوية الشاشة (.app-shell،
+   .patient-home، .auth-screen). الاتنين position: fixed عشان الخلفية تفضل
+   ثابتة والمحتوى يعدي فوقها وهو بيسكرول - ده بيدّي إحساس بالعمق (parallax)
+   من غير أي جافاسكريبت. */
+
+/* isolation: isolate بيخلي العنصر يعمل "سياق تكديس" خاص بيه، وده شرط عشان
+   الطبقتين اللي تحت (z-index: -1) يقعدوا ورا محتواه هو بس، من غير ما ينزلوا
+   ورا الصفحة كلها ويختفوا تحت خلفية الـ body. */
+.ambient {
+  position: relative;
+  isolation: isolate;
+}
+
+.ambient::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  /* z-index سالب: الطبقة بتترسم فوق خلفية الحاوية وتحت كل المحتوى اللي جواها.
+     الطريقة دي أضمن من إن كل عنصر ابن ياخد position: relative - أي عنصر ابن
+     محتاج يفضل fixed أو sticky (الهيدر، شريط التابات) كان هيتكسر. */
+  z-index: -1;
+  background: var(--mesh-app);
+  pointer-events: none;
+}
+
+/* طبقة الحبيبات فوق التدرّج. mix-blend-mode: overlay بيخلي الضوضاء تفتّح
+   الفاتح وتغمّق الغامق بدل ما تحط رمادي فوق كل حاجة.
+   الفايدة الحقيقية منها: التدرّجات الواسعة في الخلفية بتطلع فيها "أحزمة"
+   لونية على الشاشات العادية (8-bit)، والضوضاء بتكسر الأحزمة دي فالتدرّج
+   بيبان ناعم زي ما هو المفروض. */
+.ambient::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--noise);
+  background-size: 140px 140px;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* في الوضع الداكن الحبيبات لازم تخف - الضوضاء الفاتحة على خلفية غامقة
+   بتبان كـ "تشويش" واضح مش كملمس */
+:root[data-theme='dark'] .ambient::after {
+  opacity: 0.24;
+  mix-blend-mode: soft-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ambient::after {
+    opacity: 0.24;
+    mix-blend-mode: soft-light;
+  }
+}
+
+/* ============================================
+   الأسطح
+   ============================================ */
+
+/* السطح المرتفع: خلفية + حافة + ظل مركّب + خط ضوء علوي.
+   ده الشكل اللي كل كارت في التطبيق بيبني عليه. */
+.surface {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm), var(--shadow-inset-top);
+}
+
+/* الحافة المتوهّجة: خط بسُمك 1px بلون متدرّج حوالين العنصر.
+   CSS مفيهاش border متدرّج، فالحيلة المعتادة: نرسم التدرّج كخلفية على طبقة
+   فوق العنصر، ونستخدم mask بيسيب الإطار بس ويشيل النص.
+   بتتستخدم للعناصر البطلة في الشاشة (كارت الجرعة الحالية، كارت الدخول). */
+.edge-gradient {
+  position: relative;
+}
+
+.edge-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--grad-brand-line);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* الزجاج المصنفر: تشويش + زيادة تشبّع.
+   زيادة التشبّع (saturate) مش زينة - التشويش لوحده بيغسل الألوان اللي ورا
+   الطبقة ويخليها باهتة، والـ saturate بيرجّعها لحيويتها.
+   لازم يبقى فيه لون خلفية فعلي كمان: أي متصفح مش داعم backdrop-filter
+   (فايرفوكس بإعداد معيّن، متصفحات قديمة) هيوري اللون ده بدل الزجاج،
+   ومن غيره النص كان هيقع على خلفية شفافة تمامًا ومش هيتقرا. */
+.glass {
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* ============================================
+   اللمعة الزجاجية فوق الأسطح المليانة
+   ============================================ */
+
+/* بتتحط على الزراير والكروت اللي خلفيتها تدرّج مليان. بتوحي إن السطح لامع
+   وإن فيه مصدر ضوء واحد فوق الشمال - ثابت في كل التطبيق. */
+.has-sheen {
+  position: relative;
+  isolation: isolate;
+}
+
+.has-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--grad-sheen);
+  pointer-events: none;
+}
+
+/* ============================================
+   النص المتدرّج - للعناوين الكبيرة بس
+   ============================================ */
+
+/* بيلوّن حروف النص نفسها بتدرّج بدل لون واحد.
+   ممنوع استخدامه على أي نص أصغر من --font-size-xl: التدرّج بيقلّل التباين
+   على حروف رفيعة فبيبوّظ القراية - وده خط أحمر في تطبيق لكبار السن. */
+.text-gradient {
+  background: linear-gradient(120deg, var(--primary-deep) 0%, var(--primary-500) 45%, var(--primary-400) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* لو المتصفح مدعّمش قص الخلفية على النص، اللون ده هو اللي هيبان */
+  -webkit-text-fill-color: transparent;
+}
+
+/* الوضع الداكن: التدرّج بيتقلب لأفتح عشان يفضل مقروء على الخلفية الغامقة */
+:root[data-theme='dark'] .text-gradient {
+  background: linear-gradient(120deg, var(--primary-700) 0%, var(--primary-400) 60%, var(--primary-300) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .text-gradient {
+    background: linear-gradient(120deg, var(--primary-700) 0%, var(--primary-400) 60%, var(--primary-300) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+/* ============================================
+   حلقة التقدّم - دايرة بتتملى حسب نسبة الإنجاز
+   ============================================ */
+
+/* بتتستخدم في كارت ملخّص اليوم (المتابع) وشاشة المريض.
+   conic-gradient بيرسم القوس، والدايرة البيضا في النص بتفضّي المنتصف.
+   النسبة بتيجي من متغير --progress (رقم من 0 لـ 100) بيتحط inline من الـ JSX. */
+.progress-ring {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      var(--primary-400) 0%,
+      var(--primary-500) calc(var(--progress, 0) * 0.6%),
+      var(--primary-deep) calc(var(--progress, 0) * 1%),
+      color-mix(in srgb, var(--color-border) 70%, transparent) calc(var(--progress, 0) * 1%)
+    );
+  /* الحلقة بتتملى من صفر لقيمتها أول ما تظهر. القيمة نفسها بتتبعت من الـ JSX
+     كـ inline style، والحركة بتبدأ من صفر بفضل الـ keyframe اللي في
+     animations.css. محتاجة @property تحت عشان المتصفح يفهم --progress كرقم
+     يقدر يتحرّك بينه وبين رقم تاني - من غيرها بتقفز لقيمتها فورًا. */
+  animation: ring-fill var(--dur-5) var(--ease-out) backwards;
+}
+
+.progress-ring::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: inset 0 1px 3px rgba(20, 30, 28, 0.08);
+}
+
+.progress-ring-value {
+  position: relative;
+  z-index: 1;
+  font-weight: 800;
+  font-size: var(--font-size-md);
+  color: var(--color-primary-ink);
+  line-height: 1;
+}
+
+/* @property بيعرّف --progress كرقم فعلي مش نص، وده اللي بيخلي المتصفح يقدر
+   يعمل transition بينه وبين قيمة تانية (من غيره الحلقة بتقفز لقيمتها فورًا).
+   المتصفحات القديمة بتتجاهل البلوك ده وبتاخد الحلقة من غير حركة - نفس الشكل
+   النهائي بالظبط. */
+@property --progress {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}

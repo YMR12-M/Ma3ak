@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
   <meta name="theme-color" content="#2f7d6e" />
+  <!-- بيقول للمتصفح إن الصفحة بتدعم الوضعين، فعناصره هو (شريط السكرول، حقول
+       الإدخال الافتراضية) بتتلوّن صح بدل ما تفضل فاتحة فوق تصميم داكن -->
+  <meta name="color-scheme" content="light dark" />
   <title>معاك | MA3ak</title>
 
   <!-- PWA: بيسمح للمتصفح (خصوصًا أندرويد/كروم) إنه يعتبر الموقع تطبيق قابل للتثبيت -->
@@ -22,16 +25,26 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Cairo نسخة متغيّرة (400..900): ملف واحد بيغطي كل الأوزان بدل 4 ملفات
+       منفصلة - أخف في التحميل وبيدي أوزان وسيطة أنعم.
+       Plus Jakarta Sans للنصوص اللاتينية والأرقام بس (اسم التطبيق، الأكواد،
+       اللينكات). جوجل بيقسّم الخطوط بـ unicode-range، يعني ملف الخط اللاتيني
+       ده مش بينزّل أصلاً غير لما يبقى فيه حروف لاتينية على الشاشة. -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400..900&family=Plus+Jakarta+Sans:wght@500..800&display=swap"
+    rel="stylesheet"
+  />
 
   <!-- الـ CSS مقسّم لطبقات، والترتيب ده مقصود (كل طبقة بتبني على اللي قبلها):
        tokens (قيم التصميم) ← base (إعادة ضبط المتصفح) ← animations (الحركة)
+       ← materials (الخامات: زجاج، حبيبات، شرايح أيقونات، أسطح)
        ← components (عناصر مشتركة) ← layout/auth/screens/patient (شاشات).
        وسوم <link> منفصلة مش @import: المتصفح بيحمّلهم بالتوازي، بينما @import
        بيحمّلهم واحد ورا التاني وبيأخّر أول رسم للصفحة. -->
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/animations.css" />
+  <link rel="stylesheet" href="/css/materials.css" />
   <link rel="stylesheet" href="/css/components.css" />
   <link rel="stylesheet" href="/css/layout.css" />
   <link rel="stylesheet" href="/css/auth.css" />
@@ -53,6 +66,9 @@
   <!-- JS عادي (مش JSX) -->
   <script src="/js/api.js"></script>
   <script src="/js/doseLogic.js"></script>
+
+  <!-- نظام الأيقونات - لازم قبل أي مكوّن، كل الشاشات بتستخدم <Icon> -->
+  <script type="text/babel" data-presets="react" src="/js/icons.jsx"></script>
 
   <!-- مكونات React (ملفات .jsx فعلية، بيترجمها Babel live جوه المتصفح) -->
   <script type="text/babel" data-presets="react" src="/js/components/Common.jsx"></script>

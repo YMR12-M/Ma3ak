@@ -29,13 +29,15 @@ function SettingsSheet({
           className={darkMode ? 'segmented-btn' : 'segmented-btn active'}
           onClick={() => onSetDarkMode(false)}
         >
-          ☀️ فاتح
+          <Icon name="sun" size={19} />
+          فاتح
         </button>
         <button
           className={darkMode ? 'segmented-btn active' : 'segmented-btn'}
           onClick={() => onSetDarkMode(true)}
         >
-          🌙 داكن
+          <Icon name="moon" size={19} />
+          داكن
         </button>
       </div>
 
@@ -95,7 +97,10 @@ function SettingsSheet({
               <div className="settings-row-desc">تنبيه فوري بمواعيد الدوا</div>
             </div>
             {notifPermission === 'granted' ? (
-              <span className="settings-notif-ok">✅ مفعّل</span>
+              <span className="settings-notif-ok">
+                <Icon name="checkCircle" size={17} />
+                مفعّل
+              </span>
             ) : notifPermission === 'unsupported' ? (
               <span className="settings-notif-ok muted">مش متاح</span>
             ) : notifPermission === 'denied' ? (
@@ -112,7 +117,7 @@ function SettingsSheet({
             )}
             {notifPermission === 'denied' && notifHelpOpen && (
               <div className="settings-notif-help">
-                افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل "الإشعارات"
+                افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع فوق) وفعّل "الإشعارات"
                 من هناك، بعدين ارجع للتطبيق.
               </div>
             )}

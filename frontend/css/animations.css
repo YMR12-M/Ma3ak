@@ -134,6 +134,52 @@
   to   { transform: scaleX(1); }
 }
 
+/* ---------- حركات الطبقة الجديدة (الخامات) ---------- */
+
+/* دخول العنصر وهو "بيوصل لبؤرة الرؤية": من مصغّر ومشوّش شوية لحاد وواضح.
+   التشويش هو اللي بيعمل الفرق - العين بتقراه كـ "الحاجة دي بتقرب مني"
+   بدل "الحاجة دي بتزحف من تحت". بيتستخدم للكروت البطلة بس، مش لكل عنصر:
+   الـ blur عملية تقيلة على كرت الشاشة لو اتحطت على قايمة طويلة. */
+@keyframes focus-in {
+  from { opacity: 0; transform: scale(0.965) translateY(10px); filter: blur(7px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* تنفّس بطيء جدًا للخلفية اللونية ورا شاشات التطبيق - 40 ثانية للدورة.
+   المدة الطويلة دي مقصودة: المستخدم مش المفروض يلاحظ الحركة، هو بس
+   المفروض يحس إن الشاشة "حيّة" مش صورة ثابتة. */
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(-1.2%, 1%, 0) scale(1.05); }
+  66%  { transform: translate3d(1%, -0.8%, 0) scale(1.03); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* شعاع ضوء بيعدي على السطح مرة واحدة - للحظات الاحتفال (خلصت جرعات اليوم) */
+@keyframes shine-sweep {
+  from { transform: translateX(-140%) rotate(12deg); opacity: 0; }
+  30%  { opacity: 1; }
+  to   { transform: translateX(240%) rotate(12deg); opacity: 0; }
+}
+
+/* ملء حلقة التقدّم من صفر لقيمتها. --progress متعرّف كرقم في materials.css
+   عشان المتصفح يعرف يتحرّك بين قيمتين. */
+@keyframes ring-fill {
+  from { --progress: 0; }
+}
+
+/* هالة بتتنفّس حوالين العنصر الأهم في الشاشة */
+@keyframes halo-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 26%, transparent); }
+  50%      { box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-primary) 0%, transparent); }
+}
+
+/* مؤشّر التاب النشط في الشريط الجانبي بيزحف لمكانه */
+@keyframes rail-in {
+  from { opacity: 0; transform: scaleY(0.2); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
 /* ---------- كلاسات جاهزة ---------- */
 
 .anim-fade-in   { animation: fade-in var(--dur-3) var(--ease-out) backwards; }
@@ -141,6 +187,7 @@
 .anim-fade-down { animation: fade-down var(--dur-3) var(--ease-out) backwards; }
 .anim-pop       { animation: pop-in var(--dur-3) var(--ease-spring) backwards; }
 .anim-zoom      { animation: zoom-in var(--dur-3) var(--ease-out) backwards; }
+.anim-focus     { animation: focus-in var(--dur-5) var(--ease-emphasized) backwards; }
 
 /* دخول متتابع لعناصر أي قايمة: كل عنصر بيتأخّر 55ms عن اللي قبله.
    بيتعمل بـ nth-child مش بـ inline style، عشان الـ JSX يفضل نضيف من غير أي

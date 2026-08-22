@@ -3,11 +3,11 @@
    ============================================ */
 
 const VITAL_TYPES = [
-  { key: 'blood_pressure', label: 'ضغط الدم', icon: '🩸' },
-  { key: 'blood_sugar', label: 'السكر', icon: '🍬' },
-  { key: 'weight', label: 'الوزن', icon: '⚖️' },
-  { key: 'heart_rate', label: 'النبض', icon: '❤️' },
-  { key: 'temperature', label: 'الحرارة', icon: '🌡️' },
+  { key: 'blood_pressure', label: 'ضغط الدم', icon: 'pulse', tone: 'danger' },
+  { key: 'blood_sugar', label: 'السكر', icon: 'droplet', tone: 'info' },
+  { key: 'weight', label: 'الوزن', icon: 'scale', tone: 'primary' },
+  { key: 'heart_rate', label: 'النبض', icon: 'heart', tone: 'rose' },
+  { key: 'temperature', label: 'الحرارة', icon: 'thermometer', tone: 'accent' },
 ];
 
 function formatVitalValue(type, value) {
@@ -51,14 +51,17 @@ function VitalsView({ patientId }) {
   }
 
   if (!patientId) {
-    return <EmptyState icon="👤" text="لسه معندكش مريض مربوط." />;
+    return <EmptyState icon="user" text="لسه معندكش مريض مربوط." />;
   }
 
   return (
     <div className="view">
       <div className="view-header">
         <h2 className="view-title">القياسات الصحية</h2>
-        <Button onClick={() => setShowForm(true)}>➕ قياس جديد</Button>
+        <Button onClick={() => setShowForm(true)}>
+          <Icon name="plus" size={20} strokeWidth={2.4} />
+          قياس جديد
+        </Button>
       </div>
 
       <Banner onClose={() => setError('')}>{error}</Banner>
@@ -71,8 +74,10 @@ function VitalsView({ patientId }) {
             aria-pressed={activeType === t.key}
             onClick={() => setActiveType(t.key)}
           >
-            <div aria-hidden="true">{t.icon}</div>
-            <div>{t.label}</div>
+            <span className={`icon-chip icon-chip-sm tone-${t.tone}`} aria-hidden="true">
+              <Icon name={t.icon} size={21} />
+            </span>
+            <span>{t.label}</span>
           </button>
         ))}
       </div>
@@ -80,7 +85,7 @@ function VitalsView({ patientId }) {
       {loading ? (
         <SkeletonCards count={3} />
       ) : vitals.length === 0 ? (
-        <EmptyState icon="🩺" text="مفيش قياسات مسجلة للنوع ده لسه." />
+        <EmptyState icon="stethoscope" text="مفيش قياسات مسجلة للنوع ده لسه." />
       ) : (
         <Card>
           {vitals.map((v) => {
@@ -96,7 +101,7 @@ function VitalsView({ patientId }) {
                   aria-label={`حذف قياس ${formatVitalValue(v.type, value)} بتاريخ ${formatDateTime(v.recorded_at)}`}
                   onClick={() => handleDelete(v.id)}
                 >
-                  🗑
+                  <Icon name="trash" size={20} />
                 </button>
               </div>
             );

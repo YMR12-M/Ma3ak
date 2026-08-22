@@ -37,7 +37,7 @@ function MedicationsView({ patientId }) {
   }
 
   if (!patientId) {
-    return <EmptyState icon="👤" text="لسه معندكش مريض مربوط." />;
+    return <EmptyState icon="user" text="لسه معندكش مريض مربوط." />;
   }
 
   return (
@@ -50,7 +50,8 @@ function MedicationsView({ patientId }) {
             setShowForm(true);
           }}
         >
-          ➕ دواء جديد
+          <Icon name="plus" size={20} strokeWidth={2.4} />
+          دواء جديد
         </Button>
       </div>
 
@@ -59,7 +60,7 @@ function MedicationsView({ patientId }) {
       {loading ? (
         <SkeletonCards count={3} />
       ) : meds.length === 0 ? (
-        <EmptyState icon="💊" text="مفيش أدوية مسجلة، ضيف أول دواء." />
+        <EmptyState icon="pill" text="مفيش أدوية مسجلة، ضيف أول دواء." />
       ) : (
         <div className="med-list stagger">
           {meds.map((m) => {
@@ -72,6 +73,7 @@ function MedicationsView({ patientId }) {
                   <div className="med-times">
                     {times.map((t) => (
                       <span key={t} className="chip">
+                        <Icon name="clock" size={15} />
                         {t}
                       </span>
                     ))}
@@ -189,13 +191,14 @@ function MedicationForm({ patientId, medication, onClose, onSaved }) {
                     aria-label={`حذف ميعاد الجرعة رقم ${i + 1}`}
                     onClick={() => removeTime(i)}
                   >
-                    🗑
+                    <Icon name="trash" size={20} />
                   </button>
                 )}
               </div>
             ))}
             <Button type="button" variant="ghost" onClick={addTime}>
-              ➕ إضافة معاد
+              <Icon name="plus" size={18} strokeWidth={2.4} />
+              إضافة معاد
             </Button>
           </div>
         </Field>
