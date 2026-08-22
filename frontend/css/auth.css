@@ -1,0 +1,370 @@
+/* ============================================
+   MA3ak (معاك) - شاشة الدخول / الحساب الجديد
+   دي أول (وأحيانًا الوحيدة) شاشة بتتشاف قبل تسجيل الدخول، فهي كمان
+   واجهة التعريف بالتطبيق: نص الشاشة عرض للمميزات، والنص التاني الفورم.
+   على الموبايل الفورم بييجي الأول والمميزات تحته - محدش يستنى يسكرول
+   عشان يسجّل دخول.
+   ============================================ */
+
+.auth-screen {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-2);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* خلفية "شبكة لونية" متحركة - تدرّجات لونية بس (مفيش صور ولا فيديو)، وبتتحرك
+   ببطء شديد (24 ثانية للدورة) فبتدّي إحساس بالعمق من غير ما تشتت أو تتعب العين */
+.auth-mesh {
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  background: var(--mesh-bg);
+  filter: blur(28px);
+  animation: mesh-drift 24s var(--ease-in-out) infinite;
+  pointer-events: none;
+}
+
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1180px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* ============================================
+   نص الفورم
+   ============================================ */
+
+.auth-panel {
+  display: flex;
+  justify-content: center;
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.auth-card-header {
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  background: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-surface) 100%);
+  text-align: center;
+}
+
+.auth-card-body {
+  padding: var(--space-3) var(--space-3) var(--space-4);
+}
+
+/* البراند جوه كارت الفورم - النسخة المصغّرة (النسخة الكبيرة في نص العرض) */
+.auth-card-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--grad-brand);
+  font-size: 32px;
+  line-height: 1;
+  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
+  animation: pop-in var(--dur-4) var(--ease-spring) backwards;
+}
+
+.auth-card-title {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-ink);
+}
+
+.auth-card-tag {
+  margin-top: var(--space-0);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- تابات دخول / حساب جديد ---------- */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: var(--space-3);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: var(--space-1) 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.tab:active {
+  transform: scale(0.97);
+}
+
+.tab.active {
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-hint {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  animation: fade-up var(--dur-3) var(--ease-out) backwards;
+}
+
+/* الفورم نفسه بيدخل بحركة خفيفة كل ما المستخدم يبدّل بين دخول وحساب جديد */
+.auth-form {
+  animation: fade-up var(--dur-3) var(--ease-out) backwards;
+}
+
+/* ============================================
+   نص العرض: البراند + المميزات
+   ============================================ */
+
+.auth-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: fade-up var(--dur-5) var(--ease-out) backwards;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border-radius: 26px;
+  background: var(--grad-brand);
+  font-size: 38px;
+  line-height: 1;
+  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
+  animation: float-soft 6s var(--ease-in-out) infinite;
+}
+
+.auth-title {
+  font-size: var(--font-size-display);
+  color: var(--color-primary-ink);
+  line-height: 1.1;
+}
+
+.auth-tagline {
+  margin-top: var(--space-0);
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.auth-pitch {
+  max-width: 46ch;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.auth-pitch strong {
+  color: var(--color-primary-ink);
+}
+
+/* ---------- شبكة المميزات ---------- */
+
+.auth-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .auth-feature:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    box-shadow: var(--shadow-md);
+  }
+
+  .auth-feature:hover .auth-feature-icon {
+    transform: scale(1.12) rotate(-6deg);
+  }
+}
+
+.auth-feature-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--color-primary-light);
+  font-size: 22px;
+  line-height: 1;
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+
+/* نبرات لونية مختلفة للأيقونات عشان الشبكة متبقاش لون واحد ممل */
+.auth-feature-icon.tone-accent { background: var(--color-accent-light); }
+.auth-feature-icon.tone-danger { background: var(--color-danger-light); }
+.auth-feature-icon.tone-info   { background: var(--info-100); }
+
+.auth-feature-title {
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.auth-feature-desc {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* ---------- شارات صغيرة تحت المميزات ---------- */
+
+.auth-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
+  color: var(--color-primary-ink);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+/* ============================================
+   ترتيب الشاشة على المقاسات المختلفة
+   ============================================ */
+
+/* موبايل: الفورم فوق والمميزات تحته (الأولوية للي جاي يسجّل دخول) */
+@media (max-width: 959px) {
+  .auth-panel { order: 1; }
+  .auth-showcase { order: 2; }
+
+  .auth-title { font-size: var(--font-size-xl); }
+  .auth-logo { width: 60px; height: 60px; border-radius: 20px; font-size: 30px; }
+  .auth-pitch { font-size: var(--font-size-sm); }
+  .auth-features { grid-template-columns: 1fr; }
+}
+
+/* ديسكتوب: عمودين - العرض على اليمين (بداية السطر في RTL) والفورم على الشمال */
+@media (min-width: 960px) {
+  .auth-screen {
+    padding: var(--space-4);
+    align-items: flex-start;
+  }
+
+  .auth-layout {
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: var(--space-4);
+    /* من فوق مش من النص: قايمة المميزات أطول من الكارت، ولو وقفنا الاتنين في
+       النص بيبان الكارت طايح لتحت من غير سبب */
+    align-items: start;
+  }
+
+  /* ترتيب الـ DOM بيحط الفورم الأول (عشان الموبايل)، وهنا بنحدد مكان كل واحد
+     صراحةً: العرض في العمود العريض (يمين الشاشة = بداية القراية بالعربي)
+     والفورم في العمود الأضيق جنبه. من غير التحديد ده الفورم كان بياخد العمود
+     العريض لمجرد إنه الأول في الـ DOM. */
+  .auth-showcase {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .auth-panel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* الفورم بيفضل ثابت قدام العين وانت بتسكرول في المميزات - محدش يضطر يرجع فوق عشان يسجّل */
+  .auth-panel {
+    position: sticky;
+    top: var(--space-4);
+  }
+
+  /* البراند الكبير ظاهر جنبه، فالكارت مش محتاج هيدر ضخم */
+  .auth-card-header {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+  }
+
+  .auth-card-logo {
+    width: 56px;
+    height: 56px;
+    font-size: 26px;
+  }
+
+  .auth-card-title {
+    font-size: var(--font-size-lg);
+  }
+}

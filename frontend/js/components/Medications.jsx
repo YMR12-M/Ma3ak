@@ -57,11 +57,11 @@ function MedicationsView({ patientId }) {
       <Banner onClose={() => setError('')}>{error}</Banner>
 
       {loading ? (
-        <Spinner />
+        <SkeletonCards count={3} />
       ) : meds.length === 0 ? (
         <EmptyState icon="💊" text="مفيش أدوية مسجلة، ضيف أول دواء." />
       ) : (
-        <div className="med-list">
+        <div className="med-list stagger">
           {meds.map((m) => {
             const times = typeof m.times === 'string' ? JSON.parse(m.times) : m.times;
             return (
@@ -210,7 +210,7 @@ function MedicationForm({ patientId, medication, onClose, onSaved }) {
         <Field label="ملاحظات">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" loading={saving}>
           {saving ? 'جاري الحفظ...' : 'حفظ'}
         </Button>
       </form>

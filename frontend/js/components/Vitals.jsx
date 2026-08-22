@@ -78,7 +78,7 @@ function VitalsView({ patientId }) {
       </div>
 
       {loading ? (
-        <Spinner />
+        <SkeletonCards count={3} />
       ) : vitals.length === 0 ? (
         <EmptyState icon="🩺" text="مفيش قياسات مسجلة للنوع ده لسه." />
       ) : (
@@ -210,7 +210,7 @@ function VitalForm({ patientId, defaultType, onClose, onSaved }) {
           />
         </Field>
 
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" loading={saving}>
           {saving ? 'جاري الحفظ...' : 'حفظ'}
         </Button>
       </form>

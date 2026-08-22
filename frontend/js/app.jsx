@@ -250,6 +250,10 @@ function App() {
   if (booting) {
     return (
       <div className="boot-screen">
+        {/* شاشة الإقلاع بتبان جزء من ثانية غالبًا - بس لما النت بطيء بتفضل
+            ثواني، فالأفضل تبقى شاشة براند حقيقية مش دايرة بتلف على أبيض */}
+        <div className="boot-logo" aria-hidden="true">🤝</div>
+        <div className="boot-name">معاك</div>
         <Spinner />
       </div>
     );

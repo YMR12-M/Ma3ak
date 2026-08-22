@@ -2,9 +2,18 @@
    MA3ak (معاك) - Common / reusable UI components
    ============================================ */
 
-function Button({ children, variant = 'primary', ...props }) {
+// loading بيقفل الزرار ويوري دايرة صغيرة بتلف جواه - المستخدم يعرف إن دوسته
+// وصلت وإن فيه حاجة بتحصل، بدل ما يفضل يدوس تاني وتالت على زرار شكله ساكن.
+// بنفصل loading عن باقي الـ props عمدًا عشان ميتسربش كـ attribute على <button>.
+function Button({ children, variant = 'primary', loading = false, disabled = false, ...props }) {
   return (
-    <button className={`btn btn-${variant}`} {...props}>
+    <button
+      className={`btn btn-${variant}${loading ? ' is-loading' : ''}`}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {loading && <span className="btn-spinner" aria-hidden="true" />}
       {children}
     </button>
   );
@@ -25,6 +34,25 @@ function Field({ label, children }) {
 
 function Spinner() {
   return <div className="spinner" role="status" aria-label="جاري التحميل" />;
+}
+
+// بديل الـ Spinner في الشاشات اللي بتعرض قايمة كروت: بيرسم هيكل الكروت نفسها
+// وهي بتحمّل، فالصفحة مبتنطش لما البيانات توصل - الشكل هو هو، بس اتملى.
+// aria-hidden لأن الحالة نفسها معلَنة لقارئ الشاشة من الـ role="status" اللي فوق.
+function SkeletonCards({ count = 3 }) {
+  return (
+    <div className="skeleton-list" role="status" aria-label="جاري التحميل">
+      {Array.from({ length: count }).map((_, i) => (
+        <div className="skeleton-card" key={i} aria-hidden="true">
+          <div className="skeleton skeleton-avatar" />
+          <div className="skeleton-card-body">
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function EmptyState({ icon = '📭', text }) {
@@ -62,8 +90,30 @@ function Modal({ title, onClose, children }) {
   const titleId = React.useRef(`modal-title-${modalTitleSeq++}`).current;
   const closeRef = React.useRef(null);
 
+  // onClose غالبًا بيتبعت كدالة سهمية جديدة مع كل رندر، فبنمسكها في ref
+  // ونخلي الـ effect يشتغل مرة واحدة بس عند الفتح. من غير كده كان ممكن الـ
+  // effect يعيد نفسه مع أي رندر ويخطف التركيز من الحقل اللي المستخدم بيكتب فيه.
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
   React.useEffect(() => {
     closeRef.current && closeRef.current.focus();
+
+    // Escape بيقفل النافذة - سلوك متوقع من أي حد بيستخدم كيبورد، وكان ناقص.
+    function onKeyDown(e) {
+      if (e.key === 'Escape') onCloseRef.current();
+    }
+    document.addEventListener('keydown', onKeyDown);
+
+    // منع سكرول الصفحة اللي ورا النافذة وهي مفتوحة - من غير كده الموبايل
+    // بيسكرول الصفحة اللي تحت لما السكرول جوه النافذة يخلص.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, []);
 
   return (

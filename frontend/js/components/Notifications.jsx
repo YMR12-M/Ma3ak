@@ -49,7 +49,7 @@ function NotificationsView({ notifications, onRefresh }) {
       {notifications.length === 0 ? (
         <EmptyState icon="🔔" text="مفيش إشعارات لسه." />
       ) : (
-        <Card className="notif-list">
+        <Card className="notif-list stagger">
           {notifications.map((n) => (
             <div
               key={n.id}

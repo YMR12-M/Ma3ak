@@ -61,13 +61,13 @@ function AppointmentsView({ patientId }) {
       <Banner onClose={() => setError('')}>{error}</Banner>
 
       {loading ? (
-        <Spinner />
+        <SkeletonCards count={3} />
       ) : appts.length === 0 ? (
         <EmptyState icon="📅" text="مفيش مواعيد مسجلة." />
       ) : (
         <React.Fragment>
           {upcoming.length > 0 && (
-            <div className="dose-list">
+            <div className="dose-list stagger">
               {upcoming.map((a) => (
                 <AppointmentCard
                   key={a.id}
