@@ -102,13 +102,14 @@ function AppLayout({
         {children}
       </main>
 
-      <nav className="tab-bar">
+      <nav className="tab-bar" aria-label="التنقل بين شاشات التطبيق">
         <div className="tab-bar-inner">
           {tabs.map((t) => (
             <button
               key={t.key}
               className={view === t.key ? 'tab-bar-item active' : 'tab-bar-item'}
               onClick={() => onChangeView(t.key)}
+              aria-current={view === t.key ? 'page' : undefined}
             >
               <span className="tab-icon-wrap">
                 <span className="tab-icon">{t.icon}</span>

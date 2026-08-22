@@ -36,7 +36,7 @@ function TodayView({ patientId }) {
   if (!patientId) {
     return <EmptyState icon="🧓" text="لسه معندكش مريض. روح لتاب (المرضى) وضيف أول واحد." />;
   }
-  if (loading) return <Spinner />;
+  if (loading) return <SkeletonCards count={3} />;
 
   const pending = doses.filter((d) => d.status === 'pending');
   const done = doses.filter((d) => d.status !== 'pending');
@@ -49,7 +49,7 @@ function TodayView({ patientId }) {
       {doses.length === 0 && <EmptyState icon="💊" text="مفيش أدوية مسجلة النهارده" />}
 
       {pending.length > 0 && (
-        <div className="dose-list">
+        <div className="dose-list stagger">
           {pending.map((d) => (
             <Card key={d.id} className="dose-card">
               <div className="dose-info">
@@ -73,7 +73,7 @@ function TodayView({ patientId }) {
       {done.length > 0 && (
         <React.Fragment>
           <h3 className="view-subtitle">تم تسجيلها</h3>
-          <div className="dose-list">
+          <div className="dose-list stagger">
             {done.map((d) => (
               <Card key={d.id} className="dose-card done">
                 <div className="dose-info">

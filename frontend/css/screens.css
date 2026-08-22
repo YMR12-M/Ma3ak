@@ -1,0 +1,569 @@
+/* ============================================
+   MA3ak (معاك) - شاشات المتابع
+   الأشكال الخاصة بكل تاب: جرعات اليوم، الأدوية، المواعيد، القياسات،
+   الإشعارات، والمرضى. (الأشكال العامة زي الكارت والزرار في components.css)
+   ============================================ */
+
+/* ============================================
+   جرعات النهارده
+   ============================================ */
+
+.dose-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dose-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  overflow: hidden;
+}
+
+/* شريط لوني على حرف الكارت بيقول حالة الجرعة من غير ما تقرا حاجة */
+.dose-card::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 5px;
+  background: var(--grad-brand);
+}
+
+.dose-card.done::before {
+  background: var(--color-border-strong);
+}
+
+.dose-card .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.dose-card.done {
+  opacity: 0.9;
+}
+
+.dose-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* الساعة في كتلة مستقلة بخلفية خفيفة - أول حاجة العين بتدور عليها في صف الجرعة */
+.dose-time {
+  flex-shrink: 0;
+  min-width: 86px;
+  padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-weight: 800;
+  font-size: var(--font-size-md);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dose-card.done .dose-time {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.dose-name {
+  font-weight: 700;
+}
+
+.dose-dosage {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   الأدوية والمرضى (نفس شكل الكارت: محتوى + إجراءات)
+   ============================================ */
+
+.med-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.med-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.med-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-name {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.med-dosage {
+  color: var(--color-text-muted);
+}
+
+.med-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-1);
+}
+
+.med-notes {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.med-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.med-actions .btn {
+  margin-top: 0;
+}
+
+/* "🔗 لينك الدخول" و"🔄 لينك جديد" أطول من "تعديل"/"إيقاف" - على موبايل ضيق
+   كانوا بيتلفوا على سطرين. حشو/خط أصغر شوية (لسه فوق حد اللمسة المريحة) كفاية. */
+.patient-link-actions .btn {
+  padding: var(--space-1) var(--space-2);
+  gap: var(--space-0);
+  font-size: 13px;
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+/* ============================================
+   المواعيد الطبية
+   ============================================ */
+
+.appt-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.appt-title {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.appt-meta {
+  margin-top: var(--space-0);
+  color: var(--color-text-muted);
+}
+
+.appt-datetime {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-1);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   القياسات الصحية
+   ============================================ */
+
+.vital-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.vital-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-0);
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-1);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+.vital-type-btn > div:first-child {
+  font-size: 24px;
+  line-height: 1;
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+
+.vital-type-btn:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .vital-type-btn:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+    transform: translateY(-2px);
+  }
+}
+
+.vital-type-btn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+
+.vital-type-btn.active > div:first-child {
+  transform: scale(1.18);
+}
+
+.vital-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.vital-row:last-child {
+  border-bottom: none;
+}
+
+.vital-value {
+  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.vital-date {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   الإشعارات
+   ============================================ */
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1);
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+
+.notif-item:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  .notif-item:hover {
+    background: var(--color-surface-alt);
+  }
+}
+
+.notif-item.unread {
+  border-inline-start: 5px solid var(--color-accent);
+  background: var(--color-warning-light);
+}
+
+.notif-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.notif-message {
+  font-weight: 600;
+}
+
+.notif-date {
+  margin-top: var(--space-0);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   لينك دخول المريض وكود المشاركة
+   ============================================ */
+
+.link-code-box {
+  margin-top: var(--space-2);
+  text-align: center;
+}
+
+.link-code {
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  letter-spacing: 6px;
+}
+
+.share-link-text {
+  display: block;
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-size: var(--font-size-sm);
+  word-break: break-all;
+  direction: ltr;
+  text-align: center;
+  text-decoration: underline;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .share-link-text:hover {
+    background: var(--color-primary-soft);
+  }
+}
+
+.copy-hint {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================
+   بانر مشكلة المريض - بيظهر فوق أي تاب لحد ما المتابع يتعامل معاه
+   ============================================ */
+
+.issue-alert-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.issue-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius);
+  animation: pop-in var(--dur-3) var(--ease-spring) backwards;
+}
+
+.issue-alert-icon {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--grad-danger);
+  color: #fff;
+  font-size: var(--font-size-md);
+}
+
+/* حلقة بتتوسّع وتختفي حوالين الأيقونة - بلاغ من مريض حاجة مستعجلة، لازم تشد العين */
+.issue-alert-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--color-danger);
+  animation: pulse-ring 2s var(--ease-out) infinite;
+}
+
+.issue-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.issue-alert-message {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.issue-alert-time {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.issue-alert-dismiss {
+  flex-shrink: 0;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--grad-danger);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  box-shadow: var(--shadow-danger);
+  transition: transform var(--dur-1) var(--ease-out), filter var(--dur-2) var(--ease-out);
+}
+
+.issue-alert-dismiss:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .issue-alert-dismiss:hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* ============================================
+   الإعدادات (النافذة مشتركة بين المتابع والمريض)
+   ============================================ */
+
+.settings-group-label {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  color: var(--color-text-muted);
+  letter-spacing: 0.3px;
+}
+
+.settings-group-label:not(:first-child) {
+  margin-top: var(--space-1);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings-row-title {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.settings-row-desc {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.settings-notif-ok {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.settings-notif-ok.muted {
+  color: var(--color-text-muted);
+}
+
+.settings-notif-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.settings-notif-btn:active {
+  transform: scale(0.96);
+}
+
+.settings-notif-btn-muted {
+  background: var(--color-text-muted);
+}
+
+/* صف الإشعارات لازم يلف تحته نص الإرشاد لو الصلاحية مرفوضة - باقي الصفوف مش محتاجة كده */
+.settings-row-wrap {
+  flex-wrap: wrap;
+}
+
+.settings-notif-help {
+  flex-basis: 100%;
+  margin-top: var(--space-0);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* كود المشاركة - رقم قصير المفروض المتابع يقراه لحد تاني بالتليفون، فبيستاهل
+   يبان كشريحة واضحة مش نص عادي وسط سطر بيتلف */
+.share-code-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.share-code {
+  padding: 2px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-text);
+  font-weight: 800;
+  letter-spacing: 2px;
+  direction: ltr;
+}

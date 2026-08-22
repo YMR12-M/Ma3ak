@@ -1,0 +1,175 @@
+/* ============================================
+   MA3ak (معاك) - Motion
+   كل الـ @keyframes بتاعة التطبيق في مكان واحد، + كلاسات جاهزة لاستخدامها.
+
+   فلسفة الحركة هنا (مهمة، لأن الجمهور كبار السن):
+   1. كل حركة ليها معنى: بتقول "الحاجة دي جديدة"، "ده اتسجّل"، "ده وقته دلوقتي".
+      مفيش حركة للزينة بس.
+   2. الدخول من تحت لفوق بمسافة صغيرة (6-14px) وسرعة 200-480ms - محسوسة بس
+      مش بتأخّر حد عن الوصول للزرار.
+   3. ممنوع أي حاجة بتلمع/بترقص بسرعة أو بتغيّر مكان عنصر قابل للضغط بعد ما
+      المستخدم يكون مدّ إيده عليه.
+   4. أي مستخدم مفعّل "تقليل الحركة" في نظامه بياخد التطبيق ساكن تمامًا -
+      الحارس العام في آخر الملف.
+   5. كل حركات الدخول بتستخدم fill-mode: backwards مش both - وده مقصود ومهم:
+      both بيسيب transform شغّال على العنصر للأبد بعد ما الحركة تخلص، وأي عنصر
+      عليه transform بيبقى "containing block" لأي عنصر position:fixed جواه.
+      يعني نافذة (modal) جوه .view كانت بتتموضع بالنسبة لـ .view مش بالنسبة
+      للشاشة، فتطلع ناقصة/مقصوصة. backwards بيدي نفس شكل الدخول بالظبط
+      وبيسيب العنصر نضيف من أي transform بعد ما الحركة تنتهي.
+   ============================================ */
+
+/* ---------- دخول العناصر ---------- */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* دخول من جنب - بيحترم اتجاه الصفحة (RTL) لأنه بيستخدم منطق البداية/النهاية عبر متغير */
+@keyframes fade-side {
+  from { opacity: 0; transform: translateX(var(--slide-from, 18px)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.92) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- حالات مستمرة ---------- */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* حلقة بتتوسّع وتختفي - بتلف حوالين الحاجة اللي "وقتها دلوقتي" (جرعة وصل ميعادها) */
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.55; }
+  70%  { transform: scale(1.12); opacity: 0; }
+  100% { transform: scale(1.12); opacity: 0; }
+}
+
+/* نبض خفيف جدًا في الحجم - للعنصر نفسه مش للحلقة */
+@keyframes soft-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+/* طفو بطيء لأيقونات العرض في شاشة الدخول */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+
+/* لمعة بتعدي على سطح رمادي - للتحميل (skeleton). بتتحرك من اليمين للشمال لأن الصفحة RTL */
+@keyframes shimmer {
+  from { background-position: -160% 0; }
+  to   { background-position: 160% 0; }
+}
+
+/* تحرّك بطيء جدًا للخلفية اللونية في شاشة الدخول - 24 ثانية، محسوس بالكاد */
+@keyframes mesh-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-1.5%, 1.5%, 0) scale(1.06); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* الظل الملوّن تحت الزرار الأساسي بيتنفّس - تلميح إن ده الزرار الرئيسي في الشاشة */
+@keyframes glow-breathe {
+  0%, 100% { box-shadow: var(--shadow-primary); }
+  50%      { box-shadow: 0 12px 30px -6px color-mix(in srgb, var(--primary-600) 70%, transparent); }
+}
+
+/* لمعة بتمسح عرض الزرار مرة واحدة عند الهوفر */
+@keyframes sheen {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to   { transform: translateX(220%) skewX(-18deg); }
+}
+
+/* ---------- تأكيد ونجاح ---------- */
+
+@keyframes check-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.14); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* رسم علامة الصح بتاعة SVG سطر بسطر (stroke-dashoffset) */
+@keyframes draw-check {
+  from { stroke-dashoffset: 48; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* هزة قصيرة لرسائل الخطأ - مرة واحدة، خفيفة، من غير مبالغة */
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(5px); }
+  75%      { transform: translateX(-5px); }
+}
+
+/* ملء شريط التقدّم من صفر لقيمته - بيتحدّد بـ --fill من الـ inline style */
+@keyframes bar-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ---------- كلاسات جاهزة ---------- */
+
+.anim-fade-in   { animation: fade-in var(--dur-3) var(--ease-out) backwards; }
+.anim-fade-up   { animation: fade-up var(--dur-4) var(--ease-out) backwards; }
+.anim-fade-down { animation: fade-down var(--dur-3) var(--ease-out) backwards; }
+.anim-pop       { animation: pop-in var(--dur-3) var(--ease-spring) backwards; }
+.anim-zoom      { animation: zoom-in var(--dur-3) var(--ease-out) backwards; }
+
+/* دخول متتابع لعناصر أي قايمة: كل عنصر بيتأخّر 55ms عن اللي قبله.
+   بيتعمل بـ nth-child مش بـ inline style، عشان الـ JSX يفضل نضيف من غير أي
+   منطق حركة جواه - أي قايمة بتاخد الكلاس ده وخلاص.
+   بنوقف عند 8 عناصر: بعد كده التأخير بيبقى محسوس كبطء مش كأناقة. */
+.stagger > * {
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 55ms; }
+.stagger > *:nth-child(3) { animation-delay: 110ms; }
+.stagger > *:nth-child(4) { animation-delay: 165ms; }
+.stagger > *:nth-child(5) { animation-delay: 220ms; }
+.stagger > *:nth-child(6) { animation-delay: 275ms; }
+.stagger > *:nth-child(7) { animation-delay: 330ms; }
+.stagger > *:nth-child(n + 8) { animation-delay: 385ms; }
+
+/* ============================================
+   الحارس العام: "تقليل الحركة" في إعدادات النظام
+   بيطفّي كل الأنيميشن والانتقالات في التطبيق كله، بدل ما كل ملف يفتكر يعمل كده لوحده.
+   العناصر بتفضل ظاهرة عادي: المدة بتبقى شبه صفر فالفريم الأخير بيتعرض فورًا.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,782 @@
+/* ============================================
+   MA3ak (معاك) - Components
+   العناصر القابلة لإعادة الاستخدام في كل شاشات التطبيق:
+   الزراير، الحقول، الكروت، الشرايح (chips/pills)، البانرات، النوافذ،
+   مؤشرات التحميل، السويتشات. أي شكل بيتكرر في أكتر من شاشة مكانه هنا.
+   ============================================ */
+
+/* ============================================
+   الزراير
+   ============================================ */
+
+.btn {
+  position: relative;
+  overflow: hidden; /* بيحجز اللمعة (::after) جوه حدود الزرار المدوّرة */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  line-height: 1.25;
+  cursor: pointer;
+  isolation: isolate;
+  transition:
+    transform var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    filter var(--dur-2) var(--ease-out);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* الضغط بيرد فعل فوري (120ms) - مهم في تطبيق بيتستخدم باللمس على موبايل:
+   المستخدم لازم يحس إن دوسته وصلت قبل ما رد السيرفر يوصل */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* لمعة بتمسح الزرار مرة واحدة عند الهوفر - على أجهزة الماوس بس، مش اللمس */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled)::after,
+  .btn-accent:hover:not(:disabled)::after {
+    opacity: 1;
+    animation: sheen var(--dur-5) var(--ease-out);
+  }
+}
+
+/* ---------- الزرار الأساسي ---------- */
+
+.btn-primary {
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary);
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px -6px color-mix(in srgb, var(--primary-600) 62%, transparent);
+    filter: brightness(1.05);
+  }
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 4px 10px -4px color-mix(in srgb, var(--primary-600) 55%, transparent);
+}
+
+/* حالة التحميل: دايرة صغيرة بتلف جوه الزرار نفسه.
+   الزرار بيبقى disabled في الحالة دي (شوف Button في Common.jsx)، فبنرجّع
+   شفافية شبه كاملة عشان النص يفضل مقروء وهو بيشتغل. */
+.btn.is-loading {
+  opacity: 0.92;
+  cursor: progress;
+}
+
+.btn-spinner {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 3px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ---------- زرار مفرّغ (إجراءات ثانوية: تعديل، لينك، إضافة معاد) ---------- */
+
+.btn-ghost {
+  width: auto;
+  background: transparent;
+  color: var(--color-primary-ink);
+  border: 2px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+@media (hover: hover) {
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+}
+
+/* ---------- زرار خطر (إيقاف دواء، حذف موعد) ---------- */
+
+.btn-danger {
+  width: auto;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 2px solid transparent;
+}
+
+.btn-danger:focus-visible {
+  box-shadow: var(--ring-danger);
+}
+
+@media (hover: hover) {
+  .btn-danger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+    transform: translateY(-1px);
+  }
+}
+
+/* ---------- زرار مكمّل (نبرة دافية - للإجراءات المميّزة زي الإبلاغ عن مشكلة) ---------- */
+
+.btn-accent {
+  background: var(--grad-accent);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+}
+
+/* ---------- زرار هادي (خلفية محايدة) ---------- */
+
+.btn-soft {
+  width: auto;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .btn-soft:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-alt));
+  }
+}
+
+/* ---------- زرار أيقونة مربّع (حذف صف، إلخ) ---------- */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) {
+  .icon-btn:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+  }
+}
+
+/* ---------- زرار على هيئة لينك ---------- */
+
+.link-like {
+  width: 100%;
+  min-height: var(--tap-min);
+  border: none;
+  background: transparent;
+  color: var(--color-primary-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .link-like:hover {
+    background: var(--color-primary-light);
+  }
+}
+
+/* ============================================
+   الحقول والفورمات
+   ============================================ */
+
+.field {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.field-label {
+  display: block;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-faint);
+}
+
+@media (hover: hover) {
+  input:hover:not(:focus),
+  select:hover:not(:focus),
+  textarea:hover:not(:focus) {
+    border-color: var(--color-border-strong);
+  }
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--ring);
+}
+
+/* الحقل اللي المتصفح رافضه بعد محاولة إرسال - إطار أحمر واضح، من غير هزة متكررة */
+input:user-invalid,
+select:user-invalid,
+textarea:user-invalid {
+  border-color: var(--color-danger);
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: var(--line-height);
+}
+
+/* السهم الافتراضي بتاع select بيختلف شكله من متصفح للتاني - بنرسمه بنفسنا */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+    linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+  background-position: calc(var(--space-2) + 5px) calc(50% + 2px), var(--space-2) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-inline-start: calc(var(--space-2) + 20px);
+}
+
+.times-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.time-row input {
+  flex: 1;
+}
+
+.value-inputs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.value-inputs input {
+  flex: 1;
+}
+
+/* ============================================
+   الكروت
+   ============================================ */
+
+.card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  }
+}
+
+/* ============================================
+   الشرايح: chip (معاد جرعة) و status-pill (حالة جرعة)
+   ============================================ */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.status-pill.taken {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status-pill.missed {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* ============================================
+   البانرات (خطأ / نجاح)
+   ============================================ */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  border-inline-start: 5px solid currentColor;
+  animation: fade-down var(--dur-3) var(--ease-out) backwards, nudge var(--dur-4) var(--ease-out) var(--dur-3);
+}
+
+.banner-error {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.banner-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+  animation: fade-down var(--dur-3) var(--ease-out) backwards; /* النجاح مش محتاج هزة */
+}
+
+.banner-close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .banner-close:hover {
+    background: color-mix(in srgb, currentColor 15%, transparent);
+  }
+}
+
+/* ============================================
+   التحميل: مؤشر دوّار + هياكل (skeleton)
+   ============================================ */
+
+.spinner {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  margin: var(--space-4) auto;
+  border-radius: 50%;
+}
+
+/* حلقة خلفية ثابتة + قوس بيلف فوقها - أوضح من دايرة بتلف لوحدها */
+.spinner::before,
+.spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.spinner::before {
+  border: 5px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.spinner::after {
+  border: 5px solid transparent;
+  border-top-color: var(--color-primary);
+  border-inline-end-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  animation: spin 0.85s linear infinite;
+}
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-alt) 25%,
+    color-mix(in srgb, var(--color-surface) 70%, var(--color-surface-alt)) 50%,
+    var(--color-surface-alt) 75%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton-line {
+  height: 14px;
+  margin-bottom: var(--space-1);
+}
+
+.skeleton-line:last-child {
+  width: 60%;
+  margin-bottom: 0;
+}
+
+/* هيكل كارت مطابق لشكل كروت القوايم الحقيقية (أيقونة دايرية + سطرين نص)،
+   عشان الصفحة متنطّش لما البيانات توصل وتتبدّل بالكروت الحقيقية */
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.skeleton-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+
+.skeleton-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   الحالة الفاضية
+   ============================================ */
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-5) var(--space-2);
+  color: var(--color-text-muted);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 92px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, var(--color-primary-light), var(--color-surface-alt));
+  font-size: 44px;
+  line-height: 1;
+  animation: float-soft 5s var(--ease-in-out) infinite;
+}
+
+/* ============================================
+   النافذة (Modal) - شيت من تحت على الموبايل، نافذة في النص على الشاشة الكبيرة
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--color-overlay);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade-in var(--dur-2) var(--ease-out) backwards;
+}
+
+.modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow: hidden;
+  padding-top: 14px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-xl);
+  animation: sheet-up var(--dur-3) var(--ease-out) backwards;
+}
+
+/* مقبض بصري صغير فوق الشاشة يوحي إنها "شيت" ممكن تتسحب - زي شاشات الموبايل المألوفة */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 {
+  font-size: var(--font-size-md);
+  color: var(--color-primary-ink);
+}
+
+.modal-close {
+  flex-shrink: 0;
+  min-width: 42px;
+  min-height: 42px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.modal-close:active {
+  transform: scale(0.92);
+}
+
+@media (hover: hover) {
+  .modal-close:hover {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.modal-body form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* زرار الحفظ بيفضل ملتصق تحت الشاشة وانت بتسكرول في فورم طويل */
+.modal-body form > .btn[type='submit']:last-child {
+  position: sticky;
+  bottom: calc(var(--space-3) * -1);
+  margin: var(--space-2) calc(var(--space-3) * -1) calc(var(--space-3) * -1);
+  width: calc(100% + var(--space-3) * 2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0;
+  box-shadow: 0 -8px 16px -8px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-width: 640px) {
+  .modal-overlay {
+    align-items: center;
+    padding: var(--space-2);
+  }
+
+  .modal {
+    border-radius: var(--radius-lg);
+    max-height: 85vh;
+    padding-top: 0;
+    animation: pop-in var(--dur-3) var(--ease-spring) backwards;
+  }
+
+  .modal::before {
+    display: none;
+  }
+}
+
+/* ============================================
+   السويتشات والأزرار المقسّمة (شاشة الإعدادات)
+   ============================================ */
+
+.segmented {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: var(--space-3);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+}
+
+.segmented-btn {
+  flex: 1;
+  min-height: 46px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 10px 6px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.segmented-btn:active {
+  transform: scale(0.96);
+}
+
+.segmented-btn.active {
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle-switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 54px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+.toggle-switch:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.toggle-switch.on {
+  background: var(--grad-brand);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: inset-inline-start var(--dur-2) var(--ease-spring);
+}
+
+.toggle-switch.on .toggle-thumb {
+  inset-inline-start: 25px;
+}
+
+/* ============================================
+   شارة العدّ (على أيقونة الإشعارات)
+   ============================================ */
+
+.badge {
+  position: absolute;
+  top: -5px;
+  inset-inline-end: -7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--grad-danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 20%, transparent);
+  animation: pop-in var(--dur-3) var(--ease-spring) backwards;
+}

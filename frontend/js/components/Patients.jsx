@@ -27,7 +27,7 @@ function PatientsView({ patients, onChanged }) {
       {patients.length === 0 ? (
         <EmptyState icon="🧓" text="لسه معندكش مريض. ضيف أول واحد وابعتله اللينك." />
       ) : (
-        <div className="med-list">
+        <div className="med-list stagger">
           {patients.map((p) => (
             <PatientCard key={p.id} patient={p} onError={setError} onChanged={onChanged} />
           ))}
@@ -92,7 +92,12 @@ function PatientCard({ patient, onError, onChanged }) {
       <div className="med-main">
         <div className="med-name">{current.name}</div>
         {current.phone && <div className="med-dosage">{current.phone}</div>}
-        {current.link_code && <div className="med-notes">كود المشاركة: {current.link_code}</div>}
+        {current.link_code && (
+          <div className="med-notes share-code-row">
+            كود المشاركة:
+            <span className="share-code">{current.link_code}</span>
+          </div>
+        )}
       </div>
       {/* كلاس تاني (patient-link-actions) بس لتصغير الحشو/الخط شوية هنا - الزرارين كانوا
           بيتلفوا على سطرين على موبايل ضيق لأن نصهم أطول من "تعديل"/"إيقاف" العادية */}
@@ -185,7 +190,7 @@ function AddPatientForm({ onClose, onCreated }) {
         <Field label="رقم موبايل المريض (اختياري)">
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01xxxxxxxxx" />
         </Field>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" loading={saving}>
           {saving ? 'جاري الإضافة...' : 'إضافة'}
         </Button>
       </form>
@@ -225,7 +230,7 @@ function JoinPatientForm({ onClose, onJoined }) {
             placeholder="مثال: A1B2C3"
           />
         </Field>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" loading={saving}>
           {saving ? 'جاري الانضمام...' : 'انضمام'}
         </Button>
       </form>

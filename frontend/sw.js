@@ -9,7 +9,7 @@
 
 /* لازم يتغيّر الرقم ده مع أي تعديل في قايمة APP_SHELL تحت - هو اللي بيخلي
    المتصفح يرمي الكاش القديم ويحمّل النسخة الجديدة (شوف حدث activate تحت). */
-const CACHE_NAME = 'ma3ak-shell-v2';
+const CACHE_NAME = 'ma3ak-shell-v3';
 
 /* قشرة التطبيق كاملة. مهم: لازم تشمل كل ملفات المكوّنات كمان - قبل كده كانت
    القايمة فيها app.jsx بس من غير الـ 11 ملف اللي بيعرّفوا كل المكوّنات، يعني
@@ -19,7 +19,13 @@ const APP_SHELL = [
   '/',
   '/manifest.json',
   '/css/tokens.css',
-  '/css/global.css',
+  '/css/base.css',
+  '/css/animations.css',
+  '/css/components.css',
+  '/css/layout.css',
+  '/css/auth.css',
+  '/css/screens.css',
+  '/css/patient.css',
   '/js/api.js',
   '/js/doseLogic.js',
   '/js/app.jsx',
@@ -69,7 +75,14 @@ self.addEventListener('fetch', (event) => {
       caches.match(event.request).then((cached) => {
         const network = fetch(event.request)
           .then((res) => {
-            if (res.ok) caches.open(CACHE_NAME).then((cache) => cache.put(event.request, res.clone()));
+            // النسخة لازم تتاخد **دلوقتي حالًا**، مش جوه الـ then بتاعة caches.open:
+            // لحد ما الـ promise دي تخلص، الصفحة تكون خلاص قرت جسم الرد الأصلي،
+            // وclone() على رد اتقرا بيرمي TypeError - فالكاش كان بيفضل قديم للأبد
+            // (أي تعديل في CSS أو JS ما كانش بيوصل للمستخدم إلا بمسح بيانات الموقع).
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+            }
             return res;
           })
           .catch(() => cached);

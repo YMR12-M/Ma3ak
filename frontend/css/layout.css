@@ -1,0 +1,644 @@
+/* ============================================
+   MA3ak (معاك) - Layout
+   قشرة تطبيق المتابع: الهيدر العلوي، منطقة المحتوى، شريط التابات السفلي،
+   وعناوين الشاشات. (شاشة المريض ليها تخطيط مختلف تمامًا في patient.css)
+   ============================================ */
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(60% 30% at 50% 0%, color-mix(in srgb, var(--color-primary) 7%, transparent) 0%, transparent 100%),
+    var(--color-bg);
+}
+
+/* ============================================
+   الهيدر - صف واحد مضغوط: البراند + المريض اللي بتتابعه + المستخدم/الإعدادات/خروج
+   ============================================ */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  /* زجاج مصنفر: المحتوى بيعدي من تحته خافت بدل ما يختفي فجأة تحت لون صلب */
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow: var(--shadow-xs);
+  animation: fade-down var(--dur-4) var(--ease-out) backwards;
+}
+
+/* شريط تمييز رفيع بلون البراند أسفل الهيدر - هوية بصرية من غير ما ياخد مساحة */
+.app-header::after {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--grad-brand-line);
+  opacity: 0.9;
+}
+
+.header-inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 8px var(--space-2);
+  min-height: 52px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* شعار في دايرة متدرّجة بدل إيموجي عاري - إحساس أوضح بهوية بصرية حقيقية */
+.header-brand-logo {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--grad-brand);
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .header-brand:hover .header-brand-logo {
+    transform: scale(1.08) rotate(-6deg);
+  }
+}
+
+.header-brand-name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-0);
+}
+
+.header-brand-ar {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-primary-ink);
+}
+
+.header-brand-en {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  letter-spacing: 0.5px;
+}
+
+/* كارت "بتتابع فلان" - العنصر المرن الوحيد في الصف، بيمتص أي مساحة زيادة أو ناقصة */
+.patient-switcher {
+  flex: 1;
+  min-width: 64px;
+  /* من غيرها الشريط بياخد كل الفراغ الفاضل في الهيدر لوحده - على الديسكتوب كان
+     بيتمدد لكبسولة طويلة فاضية شكلها مش مظبوط */
+  max-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0);
+  height: 38px;
+  padding-inline-start: 10px;
+  background: var(--color-primary-light);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-radius: var(--radius-pill);
+  transition: border-color var(--dur-2) var(--ease-out), background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .patient-switcher:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  }
+}
+
+.patient-switcher:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--ring);
+}
+
+.patient-switcher-icon {
+  flex-shrink: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.patient-select-wrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.patient-select-wrap::after {
+  content: '▾';
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 10px;
+  transform: translateY(-50%);
+  color: var(--color-primary-ink);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.patient-select {
+  width: 100%;
+  height: 36px;
+  min-height: 0;
+  padding-inline-start: 2px;
+  padding-inline-end: 22px;
+  border: none;
+  background: transparent;
+  background-image: none; /* السهم الافتراضي بتاع components.css متلغي هنا - فيه سهم مرسوم في ::after فوق */
+  color: var(--color-primary-ink);
+  font-weight: 700;
+  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.patient-select:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* شريحة المستخدم: أفاتار بحرف الاسم + الاسم - نفس لغة أفاتار "متابعك" في شاشة
+   المريض، عشان الهوية البصرية توحّد بين الشاشتين بدل اسم عاري */
+.header-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  min-width: 0;
+  padding-inline-start: 3px;
+  padding-inline-end: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+}
+
+.header-user-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: var(--shadow-inset-top);
+}
+
+.header-user {
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.header-icon-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0);
+  flex-shrink: 0;
+}
+
+.header-icon-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.header-icon-btn:active {
+  transform: scale(0.92);
+}
+
+@media (hover: hover) {
+  .header-icon-btn:hover {
+    background: var(--color-primary-light);
+    transform: rotate(35deg);
+  }
+}
+
+/* زرار خروج: أيقونة باب + كلمة "خروج" واضحة - أيقونة لوحدها ممكن تتلخبط مع زرار الإعدادات جنبها */
+.header-logout {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0);
+  height: 38px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.header-logout span:first-child {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.header-logout:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .header-logout:hover {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
+}
+
+/* على الموبايل الضيق، شريط "بتتابع" هو أهم عنصر في الهيدر للمتابع - بناخد له
+   المساحة الأولوية ونقلّل أي زينة تانية (الاسم الإنجليزي، اسم المستخدم كتابة) */
+@media (max-width: 480px) {
+  .header-brand-en,
+  .header-user {
+    display: none;
+  }
+
+  .header-user-chip {
+    padding-inline-end: 6px;
+  }
+}
+
+/* ============================================
+   منطقة المحتوى
+   ============================================ */
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-3);
+  /* مساحة كافية تحت عشان شريط التابات العائم ميغطّيش آخر عنصر في الصفحة */
+  padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-3));
+}
+
+/* كل شاشة بتدخل بحركة صعود خفيفة - بتدّي إحساس إن التاب اتبدّل فعلاً */
+.view {
+  animation: fade-up var(--dur-3) var(--ease-out) backwards;
+}
+
+.view-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+/* خط صغير ملوّن تحت عنوان الشاشة - تفصيلة هوية بسيطة بتربط الشاشات ببعض */
+.view-header .view-title,
+.view > .view-title {
+  position: relative;
+  padding-bottom: var(--space-1);
+}
+
+.view-header .view-title::after,
+.view > .view-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 42px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand-line);
+}
+
+.view-subtitle {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.view-header .btn {
+  width: auto;
+  margin-top: 0;
+}
+
+/* ============================================
+   شريط التابات السفلي - كبسولة زجاجية عايمة فوق المحتوى
+   ============================================ */
+
+.tab-bar {
+  position: fixed;
+  bottom: var(--space-2);
+  inset-inline: var(--space-2);
+  z-index: var(--z-tabbar);
+  display: flex;
+  justify-content: center;
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.tab-bar-inner {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  /* زجاج مصنفر: محتوى الصفحة بيبان خافت من تحت الشريط */
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--color-surface) 70%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    var(--shadow-inset-top),
+    0 18px 38px rgba(20, 30, 28, 0.18),
+    0 3px 8px rgba(20, 30, 28, 0.1);
+  overflow: hidden; /* شبكة أمان: أي عنصر جوه بيحاول يكبر عن حجمه بيتقص هنا بدل ما يطفح برا الكارت المدوّر */
+}
+
+.tab-bar-item {
+  position: relative;
+  flex: 1;
+  min-width: 0; /* أهم سطر هنا: من غيره الفلكس بيرفض يضغط عناصره تحت عرض النص الطبيعي، فالشريط كله بيطفح برا حدوده مع 6 تابات */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 64px;
+  padding: 8px 1px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.tab-bar-item:active {
+  transform: scale(0.93);
+}
+
+.tab-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+}
+
+.tab-icon {
+  font-size: var(--font-size-md);
+  line-height: 1;
+  display: inline-block;
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+
+.tab-label {
+  font-size: 11.5px; /* أصغر من باقي التطبيق عمدًا - عشان 6 تابات بالعربي تتسع في شريط واحد من غير قص؛ باقي نصوص التطبيق فاضلة بالمقاس الكبير المعتاد */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: font-weight var(--dur-2) var(--ease-out);
+}
+
+/* التاب النشط بياخد كارت ملوّن كامل - أوضح للعين من دايرة صغيرة حوالين الأيقونة */
+.tab-bar-item.active {
+  color: var(--color-primary-ink);
+  background: linear-gradient(
+    180deg,
+    var(--color-primary-light) 0%,
+    color-mix(in srgb, var(--color-primary) 15%, var(--color-primary-light)) 100%
+  );
+  box-shadow: var(--shadow-inset-top), 0 2px 8px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.tab-bar-item.active .tab-icon {
+  transform: scale(1.18) translateY(-1px);
+  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--color-primary) 40%, transparent));
+}
+
+.tab-bar-item.active .tab-label {
+  font-weight: 800;
+}
+
+/* نقطة صغيرة تحت التاب النشط - تلميح إضافي بسيط زي واجهات الموبايل المألوفة */
+.tab-dot {
+  display: none;
+}
+
+.tab-bar-item.active .tab-dot {
+  display: block;
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  animation: tab-dot-in var(--dur-3) var(--ease-spring) backwards;
+}
+
+@keyframes tab-dot-in {
+  from { opacity: 0; transform: translate(-50%, 6px) scale(0.4); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (hover: hover) {
+  .tab-bar-item:not(.active):hover {
+    color: var(--color-text);
+    background: var(--color-surface-alt);
+  }
+
+  .tab-bar-item:not(.active):hover .tab-icon {
+    transform: translateY(-2px);
+  }
+}
+
+/* ============================================
+   شاشة الإقلاع (قبل ما نعرف المستخدم داخل ولا لأ)
+   ============================================ */
+
+.boot-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--color-bg);
+}
+
+.boot-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: var(--grad-brand);
+  font-size: 38px;
+  box-shadow: var(--shadow-primary);
+  animation: soft-beat 1.8s var(--ease-in-out) infinite;
+}
+
+.boot-name {
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--color-primary-ink);
+  animation: fade-in var(--dur-5) var(--ease-out) backwards;
+}
+
+/* ============================================
+   بانر تثبيت التطبيق - عنصر عادي في تدفق الصفحة (مش fixed) عمدًا، عشان
+   ميعملش تداخل مع الأزرار اللي تحته
+   ============================================ */
+
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  margin-bottom: var(--space-3);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 12%, var(--color-surface)),
+    var(--color-surface)
+  );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  border-radius: var(--radius);
+  animation: fade-down var(--dur-4) var(--ease-out) backwards;
+}
+
+.install-banner-icon {
+  flex-shrink: 0;
+  font-size: 28px;
+  line-height: 1;
+  animation: float-soft 4s var(--ease-in-out) infinite;
+}
+
+.install-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner-title {
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary-ink);
+}
+
+.install-banner-desc {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.install-banner-btn {
+  flex-shrink: 0;
+  min-height: 42px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-primary);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+
+.install-banner-btn:active {
+  transform: scale(0.96);
+}
+
+.install-banner-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-faint);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .install-banner-close:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-main {
+    padding: var(--space-2);
+    padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-2));
+  }
+}

@@ -1,0 +1,896 @@
+/* ============================================
+   MA3ak (معاك) - شاشة المريض
+   أهم شاشة في التطبيق كله: حاجة واحدة بس واضحة قدام كبير السن -
+   الجرعة اللي عليه دلوقتي - وزرار واحد كبير للإبلاغ عن أي مشكلة.
+   خط أكبر، مساحات لمس أكبر، وحركة أهدى من شاشة المتابع.
+   ============================================ */
+
+/* الصفحة بارتفاع الشاشة بالظبط، مقسّمة: هيدر / محتوى بيسكرول لوحده / فوتر تابت.
+   كده زرار "حصلت مشكلة؟" بياخد مساحته الحقيقية تحت (مش عايم فوق المحتوى بـ
+   position:fixed)، فمستحيل يغطّي زرار "خدت الدوا" مهما طال الكارت اللي فوقه. */
+.patient-home {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(70% 40% at 50% 0%, color-mix(in srgb, var(--color-primary) 9%, transparent) 0%, transparent 100%),
+    var(--color-bg);
+}
+
+/* ============================================
+   الهيدر
+   ============================================ */
+
+.patient-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--color-border);
+  animation: fade-down var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-greeting {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  color: var(--color-primary-ink);
+}
+
+.patient-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.patient-settings-btn {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 18px;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    transform var(--dur-2) var(--ease-spring);
+}
+
+.patient-settings-btn:active {
+  transform: scale(0.92);
+}
+
+@media (hover: hover) {
+  .patient-settings-btn:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    transform: rotate(35deg);
+  }
+}
+
+.patient-logout {
+  min-height: 46px;
+  padding: 10px 20px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--ease-out),
+    color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+
+.patient-logout:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .patient-logout:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
+}
+
+/* ============================================
+   المحتوى
+   ============================================ */
+
+.patient-main {
+  flex: 1;
+  min-height: 0; /* عشان الفلكس يسيب المحتوى يعمل سكرول جواه بدل ما يطفح برا الشاشة */
+  width: 100%;
+  max-width: var(--content-max-patient);
+  margin: 0 auto;
+  padding: var(--space-3);
+  /* مساحة تحت كافية لارتفاع زرار "حصلت مشكلة؟" (فوتر تابت جنبها مش جواها) + هامشه -
+     من غيرها آخر عنصر في المحتوى بيلزق في الفوتر على الشاشات القصيرة */
+  padding-bottom: calc(80px + var(--space-3) + var(--space-2));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.patient-empty {
+  padding: var(--space-5) var(--space-2);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, var(--color-primary-light), var(--color-surface-alt));
+  font-size: 60px;
+  animation: float-soft 5s var(--ease-in-out) infinite;
+}
+
+.patient-today {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ============================================
+   نقط التقدّم - جرعة لكل نقطة، بلون بيقول حالتها بنظرة واحدة
+   ============================================ */
+
+.patient-progress-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  animation: fade-down var(--dur-3) var(--ease-out) backwards;
+}
+
+.progress-dot {
+  position: relative;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: background-color var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-spring);
+}
+
+.progress-dot-open {
+  background: color-mix(in srgb, var(--color-primary) 55%, var(--color-primary-light));
+}
+
+.progress-dot-taken {
+  background: var(--grad-brand);
+  transform: scale(1.05);
+}
+
+.progress-dot-missed {
+  background: var(--grad-danger);
+}
+
+/* النقطة بتاعة الجرعة اللي وقتها دلوقتي: حلقة ثابتة + حلقة بتتوسّع وتختفي */
+.progress-dot-active {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.progress-dot-active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary);
+  animation: pulse-ring 2.2s var(--ease-out) infinite;
+}
+
+.patient-progress-label {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   الجرعة الرئيسية - "الحاجة الواحدة" اللي الشاشة دي مبنية عشانها
+   ============================================ */
+
+.patient-hero-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  animation: pop-in var(--dur-4) var(--ease-spring) backwards;
+}
+
+/* حالة "دلوقتي": إطار بلون البراند + هالة خفيفة بتتنفّس حواليه.
+   دي أقوى إشارة بصرية في التطبيق كله، ومحجوزة للحظة دي بس. */
+.patient-hero-open {
+  border: 3px solid var(--color-primary);
+  box-shadow: var(--shadow-lg), 0 0 0 8px color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.patient-hero-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.patient-hero-label.muted {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.patient-hero-icon {
+  position: relative;
+  font-size: 66px;
+  line-height: 1;
+}
+
+/* أيقونة الدوا في حالة "دلوقتي" بتنبض ببطء - حركة محسوسة بس مش مزعجة */
+.patient-hero-open .patient-hero-icon {
+  animation: soft-beat 2.4s var(--ease-in-out) infinite;
+}
+
+.patient-hero-name {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.patient-hero-meta {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+}
+
+/* زرار "خدت الدوا" - أكبر وأوضح زرار في التطبيق */
+.patient-hero-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 80px;
+  margin-top: var(--space-2);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-primary);
+  animation: glow-breathe 3s var(--ease-in-out) infinite;
+  transition: transform var(--dur-1) var(--ease-out), filter var(--dur-2) var(--ease-out);
+}
+
+.patient-hero-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.94);
+}
+
+.patient-hero-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring), var(--shadow-primary);
+}
+
+/* حالة "لسه بدري": نفس الكارت بلون هادي، من غير أي نبض - مفيش حاجة مطلوبة منه دلوقتي */
+.patient-hero-waiting {
+  background: var(--color-surface-alt);
+  box-shadow: var(--shadow-sm);
+}
+
+.patient-hero-waiting .patient-hero-icon {
+  font-size: 58px;
+  animation: none;
+}
+
+/* حالة "خلص كل حاجة النهارده" - لحظة مكافأة، تستاهل شوية احتفال */
+.patient-hero-alldone {
+  padding: var(--space-5) var(--space-3);
+  background: linear-gradient(160deg, var(--color-primary-light), var(--color-surface));
+  border: 2px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.patient-hero-alldone .patient-hero-icon {
+  animation: check-pop var(--dur-5) var(--ease-spring) backwards;
+}
+
+.patient-hero-alldone .patient-hero-name {
+  color: var(--color-primary-ink);
+}
+
+/* زرار "اسمع الدواء" - نطق صوتي فوق كارت الجرعة الرئيسية */
+.patient-hero-speak {
+  position: absolute;
+  top: 14px;
+  inset-inline-start: 14px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-size: 19px;
+  cursor: pointer;
+  transition: transform var(--dur-2) var(--ease-spring), background-color var(--dur-2) var(--ease-out);
+}
+
+.patient-hero-speak:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) {
+  .patient-hero-speak:hover {
+    background: var(--color-primary-soft);
+    transform: scale(1.08);
+  }
+}
+
+.patient-hero-waiting .patient-hero-speak {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   باقي جرعات النهارده
+   ============================================ */
+
+.patient-secondary-title {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.patient-secondary-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.patient-secondary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: border-color var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .patient-secondary-row:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  }
+}
+
+.patient-secondary-row.status-taken {
+  background: var(--color-surface-alt);
+  opacity: 0.9;
+}
+
+.patient-secondary-row.status-missed {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger);
+}
+
+.patient-secondary-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  font-size: 22px;
+}
+
+.patient-secondary-row.status-taken .patient-secondary-icon {
+  background: var(--color-success-light);
+}
+
+.patient-secondary-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-secondary-name {
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.patient-secondary-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.patient-secondary-take {
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-primary);
+  transition: transform var(--dur-1) var(--ease-out);
+}
+
+.patient-secondary-take:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   كارت "متابعك" - المريض يعرف مين شايف حالته
+   ============================================ */
+
+.patient-caregiver-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  margin-top: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-caregiver-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.patient-caregiver-name {
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: var(--font-size-sm);
+}
+
+.patient-caregiver-avatar {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-weight: 800;
+  font-size: var(--font-size-md);
+  box-shadow: var(--shadow-inset-top);
+}
+
+/* ============================================
+   بانرات شاشة المريض (وضع الليل / صلاحية الإشعارات)
+   ============================================ */
+
+.patient-night-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-notif-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-notif-banner > span:first-child {
+  flex-shrink: 0;
+  font-size: var(--font-size-lg);
+}
+
+.patient-notif-text {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.patient-notif-btn {
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-warning);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-out), filter var(--dur-2) var(--ease-out);
+}
+
+.patient-notif-btn:active {
+  transform: scale(0.96);
+}
+
+/* حالة "الصلاحية مرفوضة": المتصفح مش هيوري نافذة إذن تاني، فمفيش زرار هيشتغل فعليًا -
+   بنستبدله بلون محايد ونص إرشاد بدل زرار بيبان شغال وهو مش هيعمل حاجة */
+.patient-notif-banner-denied {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border);
+}
+
+.patient-notif-banner-denied .patient-notif-btn {
+  background: var(--color-text-muted);
+}
+
+.patient-notif-help {
+  margin-top: 6px;
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* ============================================
+   زرار "حصلت مشكلة؟" - فوتر تابت دايمًا ظاهر وسهل يوصله الإصبع
+   (مش عايم بـ position:fixed فوق المحتوى - شوف كومنت .patient-home فوق)
+   ============================================ */
+
+.patient-issue-btn {
+  flex-shrink: 0;
+  display: block;
+  width: calc(100% - (var(--space-3) * 2));
+  max-width: var(--content-max-patient);
+  min-height: 80px;
+  margin: 0 auto var(--space-3);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--grad-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: transform var(--dur-1) var(--ease-out), filter var(--dur-2) var(--ease-out);
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
+}
+
+.patient-issue-btn:active {
+  transform: scale(0.98);
+  filter: brightness(0.93);
+}
+
+.patient-issue-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-accent), 0 0 0 4px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+@media (hover: hover) {
+  .patient-issue-btn:hover {
+    filter: brightness(1.05);
+  }
+}
+
+/* ============================================
+   شيت "حصل إيه؟"
+   ============================================ */
+
+.issue-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--color-overlay);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade-in var(--dur-2) var(--ease-out) backwards;
+}
+
+.issue-sheet {
+  width: 100%;
+  max-width: var(--content-max-patient);
+  max-height: 85vh;
+  padding: var(--space-3);
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-xl);
+  animation: sheet-up var(--dur-3) var(--ease-out) backwards;
+}
+
+/* مقبض سحب - بصريًا بيقول "ده شيت ممكن تقفله" */
+.issue-sheet-handle {
+  width: 48px;
+  height: 5px;
+  margin: 0 auto var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+
+.issue-title {
+  font-size: var(--font-size-lg);
+  text-align: center;
+}
+
+.issue-subtitle {
+  margin-top: var(--space-0);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.issue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.issue-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 124px;
+  padding: var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-alt);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out);
+}
+
+.issue-option:active:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .issue-option:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .issue-option:hover:not(:disabled) .issue-option-icon {
+    transform: scale(1.12);
+  }
+}
+
+.issue-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* دايرة موحّدة المقاس واللون حوالين كل أيقونة - عشان شكل الاختيارات يبان متظبط
+   مع بعضه حتى لو الإيموجي نفسه ملوّن في واحد وفلات في التاني */
+.issue-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  font-size: 30px;
+  line-height: 1;
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+
+.tone-blue   { background: color-mix(in srgb, var(--info-500) 16%, var(--color-surface)); }
+.tone-amber  { background: var(--color-warning-light); }
+.tone-purple { background: color-mix(in srgb, #7c4fd1 16%, var(--color-surface)); }
+.tone-rose   { background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface)); }
+.tone-gray   { background: var(--color-surface); border: 1px solid var(--color-border); }
+.tone-danger { background: var(--color-danger-light); }
+
+/* خيار "عايز حد يكلمني" مميّز عن الباقي - أهم اختيار لما المريض محتاج مساعدة فورية */
+.issue-option-urgent {
+  border-color: color-mix(in srgb, var(--color-danger) 45%, var(--color-border));
+  background: var(--color-danger-light);
+}
+
+.issue-option-urgent:active:not(:disabled) {
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+/* خلفية الكارت نفسه حمرا فاتحة، فدايرة الأيقونة بنفس اللون كانت بتختفي جواه -
+   بنغمّقها شوية عشان تفضل بارزة زي باقي الاختيارات */
+.issue-option-urgent .issue-option-icon {
+  background: color-mix(in srgb, var(--color-danger) 22%, var(--color-surface));
+}
+
+.issue-back,
+.issue-close {
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-top: var(--space-2);
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .issue-back:hover,
+  .issue-close:hover {
+    background: var(--color-surface-alt);
+  }
+}
+
+/* ---------- شاشة "وصل خبر لمتابعك" ---------- */
+
+.issue-sent {
+  padding: var(--space-4) var(--space-2);
+  text-align: center;
+}
+
+.issue-sent-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto var(--space-2);
+  border-radius: 50%;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  font-size: 46px;
+  animation: check-pop var(--dur-4) var(--ease-spring) backwards;
+}
+
+/* حلقة واحدة بتتوسّع وتختفي حوالين علامة الصح - إحساس "تم" واضح */
+.issue-sent-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--color-success);
+  animation: pulse-ring 1.6s var(--ease-out) 2;
+}
+
+.issue-sent p {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  animation: fade-up var(--dur-4) var(--ease-out) var(--dur-2) backwards;
+}
+
+/* ============================================
+   تكبير الخط لشاشة المريض
+   تفضيل صريح ("حجم الخط: كبير")، أو تلقائي بالليل لتحسين الرؤية بعد 7 مساءً.
+   الاتنين ممكن يتجمعوا مع بعض.
+   ============================================ */
+
+.patient-home.font-large {
+  --font-size-xs: 18px;
+  --font-size-sm: 21px;
+  --font-size-base: 25px;
+  --font-size-md: 28px;
+  --font-size-lg: 33px;
+  --font-size-xl: 43px;
+}
+
+.patient-home.font-night {
+  --font-size-xs: 17px;
+  --font-size-sm: 20px;
+  --font-size-base: 23px;
+  --font-size-md: 25px;
+  --font-size-lg: 30px;
+  --font-size-xl: 39px;
+}
+
+.patient-home.font-large.font-night {
+  --font-size-xs: 20px;
+  --font-size-sm: 24px;
+  --font-size-base: 29px;
+  --font-size-md: 32px;
+  --font-size-lg: 37px;
+  --font-size-xl: 49px;
+}
+
+/* ============================================
+   الشاشات الضيقة
+   ============================================ */
+
+@media (max-width: 420px) {
+  .patient-main {
+    padding: var(--space-2);
+    padding-bottom: calc(80px + var(--space-3) + var(--space-2));
+  }
+
+  .patient-header {
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .patient-hero-icon {
+    font-size: 52px;
+  }
+
+  .patient-hero-name {
+    font-size: var(--font-size-lg);
+  }
+
+  .patient-issue-btn {
+    width: calc(100% - (var(--space-2) * 2));
+  }
+}

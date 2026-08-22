@@ -356,7 +356,7 @@ function PatientHome({
             {secondaryDoses.length > 0 && (
               <React.Fragment>
                 <div className="patient-secondary-title">باقي جرعات النهارده</div>
-                <div className="patient-secondary-list">
+                <div className="patient-secondary-list stagger">
                   {secondaryDoses.map((d) => (
                     <div key={d.id} className={`patient-secondary-row status-${d.status}`}>
                       <span className="patient-secondary-icon" aria-hidden="true">
@@ -528,7 +528,7 @@ function IssueSheet({ patientId, medications, onClose }) {
             <h3 className="issue-title">حصل إيه؟</h3>
             <p className="issue-subtitle">اختار اللي حصلك، هيوصل خبر فورًا لمتابعك</p>
             <Banner onClose={() => setError('')}>{error}</Banner>
-            <div className="issue-grid">
+            <div className="issue-grid stagger">
               {ISSUE_OPTIONS.map((opt) => (
                 <button
                   key={opt.key}
