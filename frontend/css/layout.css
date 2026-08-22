@@ -9,9 +9,10 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(60% 30% at 50% 0%, color-mix(in srgb, var(--color-primary) 7%, transparent) 0%, transparent 100%),
-    var(--color-bg);
+  background: var(--color-bg);
+  /* كلاس .ambient (materials.css) بيضيف طبقتين ثابتتين ورا كل حاجة: تدرّجات
+     لونية واسعة + حبيبات. ثابتتين (fixed) عمدًا: المحتوى بيسكرول فوقهم وهما
+     واقفين، فبيحصل إحساس بالعمق زي ما يكون فيه طبقتين على بُعد مختلف. */
 }
 
 /* ============================================
@@ -22,12 +23,14 @@
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  /* زجاج مصنفر: المحتوى بيعدي من تحته خافت بدل ما يختفي فجأة تحت لون صلب */
+  /* زجاج مصنفر: المحتوى بيعدي من تحته خافت بدل ما يختفي فجأة تحت لون صلب.
+     التشويش هنا أقوى من الأول (26px) لأن الخلفية بقى وراها تدرّجات لونية
+     وحبيبات - تشويش خفيف كان هيسيبها تبان مبعثرة تحت الهيدر. */
   background: var(--color-surface-glass);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(190%);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-xs), var(--shadow-inset-top);
   animation: fade-down var(--dur-4) var(--ease-out) backwards;
 }
 
@@ -61,21 +64,31 @@
   white-space: nowrap;
 }
 
-/* شعار في دايرة متدرّجة بدل إيموجي عاري - إحساس أوضح بهوية بصرية حقيقية */
+/* شعار التطبيق: أيقونة SVG (قلب + خط نبض) جوه مربّع مدوّر متدرّج.
+   مربّع مدوّر مش دايرة - الشكل ده هو نفسه شكل أيقونة التطبيق على شاشة
+   الموبايل، فالمستخدم بيربط الاتنين ببعض فورًا. */
 .header-brand-logo {
   position: relative;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 12px;
   background: var(--grad-brand);
-  font-size: 16px;
-  line-height: 1;
+  color: var(--color-on-primary);
   box-shadow: var(--shadow-primary), var(--shadow-inset-top);
   transition: transform var(--dur-3) var(--ease-spring);
+}
+
+/* لمعة الضوء فوق الشعار */
+.header-brand-logo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-sheen);
 }
 
 @media (hover: hover) {
@@ -91,16 +104,21 @@
 }
 
 .header-brand-ar {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--color-primary-ink);
 }
 
+/* الاسم الإنجليزي بالخط اللاتيني + تباعد حروف بسيط.
+   ملحوظة مهمة: تباعد الحروف (letter-spacing) بيتحط على النص اللاتيني بس -
+   في العربي الحروف بتتوصل ببعضها، والتباعد بيقطع الوصلات دي فالكلمة بتطلع
+   مفكّكة وصعبة القراية. */
 .header-brand-en {
+  font-family: var(--font-family-latin);
   font-size: 11px;
   font-weight: 700;
   color: var(--color-text-faint);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 /* كارت "بتتابع فلان" - العنصر المرن الوحيد في الصف، بيمتص أي مساحة زيادة أو ناقصة */
@@ -323,6 +341,16 @@
   padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-3));
 }
 
+/* الشاشات بتتبدّل جوه نفس الحاوية، والمتصفح بيرسم الجديدة فوق القديمة على طول.
+   view-transition-name بيخلي المتصفح (اللي بيدعم View Transitions) يعمل
+   انتقال ناعم بين الحالتين بدل القطع المفاجئ. المتصفحات اللي مبتدعمش
+   بتتجاهل السطر ده تمامًا وبتاخد الانتقال العادي. */
+@media (prefers-reduced-motion: no-preference) {
+  .app-main {
+    view-transition-name: app-content;
+  }
+}
+
 /* كل شاشة بتدخل بحركة صعود خفيفة - بتدّي إحساس إن التاب اتبدّل فعلاً */
 .view {
   animation: fade-up var(--dur-3) var(--ease-out) backwards;
@@ -332,6 +360,12 @@
   font-size: var(--font-size-lg);
   margin-bottom: var(--space-2);
   color: var(--color-text);
+}
+
+/* أول شاشة بتظهر بعد الدخول بتاخد دخول أوضح شوية من باقي التنقّل */
+.view > .view-title,
+.view > .view-header {
+  animation: fade-up var(--dur-4) var(--ease-out) backwards;
 }
 
 /* خط صغير ملوّن تحت عنوان الشاشة - تفصيلة هوية بسيطة بتربط الشاشات ببعض */
@@ -347,10 +381,11 @@
   position: absolute;
   bottom: 0;
   inset-inline-start: 0;
-  width: 42px;
+  width: 48px;
   height: 4px;
   border-radius: var(--radius-pill);
   background: var(--grad-brand-line);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-primary) 55%, transparent);
 }
 
 .view-subtitle {
@@ -395,15 +430,16 @@
   margin: 0 auto;
   padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
   /* زجاج مصنفر: محتوى الصفحة بيبان خافت من تحت الشريط */
-  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid color-mix(in srgb, var(--color-surface) 70%, transparent);
   border-radius: var(--radius-lg);
   box-shadow:
     var(--shadow-inset-top),
-    0 18px 38px rgba(20, 30, 28, 0.18),
-    0 3px 8px rgba(20, 30, 28, 0.1);
+    0 2px 6px rgba(20, 30, 28, 0.08),
+    0 14px 30px rgba(20, 30, 28, 0.16),
+    0 30px 60px rgba(20, 30, 28, 0.12);
   overflow: hidden; /* شبكة أمان: أي عنصر جوه بيحاول يكبر عن حجمه بيتقص هنا بدل ما يطفح برا الكارت المدوّر */
 }
 
@@ -472,7 +508,7 @@
 }
 
 .tab-bar-item.active .tab-icon {
-  transform: scale(1.18) translateY(-1px);
+  transform: scale(1.14) translateY(-1px);
   filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--color-primary) 40%, transparent));
 }
 
@@ -530,16 +566,36 @@
 }
 
 .boot-logo {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 82px;
-  height: 82px;
-  border-radius: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 28px;
   background: var(--grad-brand);
-  font-size: 38px;
-  box-shadow: var(--shadow-primary);
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
   animation: soft-beat 1.8s var(--ease-in-out) infinite;
+}
+
+.boot-logo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--grad-sheen);
+}
+
+/* هالة بتتوسّع وتختفي حوالين الشعار وقت التحميل - بتقول "التطبيق بيشتغل"
+   من غير مؤشّر تحميل دوّار منفصل */
+.boot-logo::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 34px;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+  animation: pulse-ring 2s var(--ease-out) infinite;
 }
 
 .boot-name {
@@ -572,8 +628,15 @@
 
 .install-banner-icon {
   flex-shrink: 0;
-  font-size: 28px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  box-shadow: var(--shadow-inset-top);
   animation: float-soft 4s var(--ease-in-out) infinite;
 }
 
@@ -640,5 +703,126 @@
   .app-main {
     padding: var(--space-2);
     padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-2));
+  }
+}
+
+/* ============================================
+   الشاشة الكبيرة: شريط التنقل بينزل من تحت ويقف جنب
+   ============================================
+
+   ده أكبر فرق بين شكل التطبيق على الموبايل وعلى شاشة كبيرة. قبل كده الشريط
+   كان بيفضل كبسولة عايمة تحت في نص شاشة عرضها 2000px، والمحتوى عمود ضيّق
+   في النص - يعني 70% من الشاشة فاضية والتطبيق شكله "موقع موبايل مكبّر".
+
+   على 1100px وفوق: الشريط بيتحوّل لعمود جانبي كامل الارتفاع على جهة بداية
+   القراية (اليمين في العربي)، الأيقونة والكلمة بيقفوا جنب بعض بدل فوق بعض،
+   والمحتوى بياخد العرض اللي اتفضى. كل ده CSS بس - الـ JSX واحد في الحالتين
+   (نفس عناصر nav بالظبط)، فمفيش أي منطق تخطيط في الجافاسكريبت.
+   ============================================ */
+
+@media (min-width: 1100px) {
+  .app-shell {
+    /* مساحة العمود الجانبي. الشريط نفسه position: fixed فمش بياخد مكان في
+       التدفق - الحشوة دي هي اللي بتمنع المحتوى إنه يقع تحته. */
+    padding-inline-start: var(--rail-width);
+  }
+
+  .tab-bar {
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    width: var(--rail-width);
+    display: block;
+    animation: fade-side var(--dur-4) var(--ease-out) backwards;
+  }
+
+  .tab-bar-inner {
+    flex-direction: column;
+    gap: var(--space-0);
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    padding: calc(var(--space-6) + var(--space-2)) var(--space-1) var(--space-3);
+    border: none;
+    border-inline-end: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+    border-radius: 0;
+    /* العمود الجانبي ملازق الحرف فمش محتاج ظل عايم - بس حافة وخلفية زجاجية */
+    box-shadow: none;
+    overflow-y: auto;
+  }
+
+  .tab-bar-item {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-1);
+    min-height: 54px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    text-align: start;
+  }
+
+  .tab-bar-item:active {
+    transform: scale(0.98);
+  }
+
+  .tab-icon-wrap {
+    width: 30px;
+    height: 30px;
+  }
+
+  .tab-label {
+    /* في الشريط السفلي الكلمة كانت مضغوطة لـ 11.5px عشان 6 تابات تتسع في صف
+       واحد. هنا كل تاب في سطر لوحده، فالكلمة بترجع لمقاسها الطبيعي المريح. */
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+  }
+
+  /* التاب النشط: خلفية خفيفة + شريط لوني على حرف بداية السطر (زي علامة
+     الكتاب). أوضح في عمود من الكارت المتدرّج اللي بيتستخدم في الشريط السفلي. */
+  .tab-bar-item.active {
+    background: var(--color-primary-light);
+    box-shadow: none;
+  }
+
+  .tab-bar-item.active::before {
+    content: '';
+    position: absolute;
+    inset-block: 10px;
+    inset-inline-start: 0;
+    width: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--grad-brand);
+    animation: rail-in var(--dur-3) var(--ease-spring) backwards;
+  }
+
+  .tab-bar-item.active .tab-icon {
+    transform: none;
+  }
+
+  /* النقطة تحت الأيقونة كانت للشريط السفلي - الشريط الجانبي بقى له مؤشّره */
+  .tab-bar-item.active .tab-dot {
+    display: none;
+  }
+
+  /* مفيش شريط تحت، فالمحتوى مش محتاج المساحة المحجوزة اللي كانت تحته */
+  .app-main {
+    padding: var(--space-4) var(--space-3) var(--space-6);
+  }
+
+  .header-row {
+    min-height: 64px;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .header-user {
+    max-width: 160px;
+    font-size: 14px;
+  }
+
+  .patient-switcher {
+    max-width: 300px;
   }
 }

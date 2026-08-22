@@ -30,6 +30,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Cairo خط متغيّر (variable font): المتصفح بيولّد أي وزن بين 400 و900 من ملف
+     واحد بدل ما ينزّل ملف لكل وزن. optical-sizing بيخلي الحروف تترسم بتفاصيل
+     مختلفة شوية حسب المقاس - أوضح في المقاسات الصغيرة وأرشق في العناوين. */
+  font-optical-sizing: auto;
+  font-synthesis-weight: none;
+  /* أي كلمة أطول من عرض الحاوية (لينك، إيميل) تتكسر بدل ما تمدّ الصفحة أفقيًا */
+  overflow-wrap: break-word;
   /* تغيير المظهر (فاتح/داكن) بيتم بتبديل متغيرات على :root - الانتقال ده بيخلي
      التبديل يحصل بتدرّج ناعم بدل قفزة لون مفاجئة في وش المستخدم */
   transition: background-color var(--dur-3) var(--ease-out), color var(--dur-3) var(--ease-out);
@@ -51,6 +58,14 @@ h3,
 h4 {
   line-height: var(--line-height-tight);
   font-weight: 800;
+  /* بيوزّع كلمات العنوان على السطور بالتساوي بدل ما يسيب كلمة وحيدة في آخر
+     سطر. فرق بسيط بس هو الفرق بين عنوان "مركون" وعنوان مظبوط. */
+  text-wrap: balance;
+}
+
+/* نفس الفكرة للفقرات: بيمنع إن آخر سطر يبقى فيه كلمة واحدة يتيمة */
+p {
+  text-wrap: pretty;
 }
 
 button,
@@ -135,6 +150,26 @@ textarea:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-faint);
   background-clip: content-box;
+}
+
+/* ---------- الأرقام والنصوص اللاتينية ---------- */
+
+/* أي رقم بيتقارن بغيره في عمود (ساعات الجرعات، قيم القياسات) لازم يبقى
+   tabular-nums: كل رقم بياخد نفس العرض بالظبط، فالأرقام بتقف تحت بعضها
+   في خط مستقيم بدل ما ترقص شمال ويمين وانت بتعدّي بعينك على القايمة. */
+.num,
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* النصوص اللاتينية الصريحة (اسم التطبيق بالإنجليزي، الأكواد، اللينكات).
+   Cairo بيرسم الحروف اللاتينية بشكل مقبول بس مش أكتر - الخط ده مصمّم للاتيني
+   فبيدّي الكلمات دي شكل مضبوط، والعربي اللي ممكن يتخلط معاه بيرجع لـ Cairo
+   تلقائيًا لأنه تاني حاجة في السلسلة. */
+.latin {
+  font-family: var(--font-family-latin);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- كلاسات مساعدة عامة ---------- */

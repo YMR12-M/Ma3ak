@@ -2,11 +2,12 @@
    MA3ak (معاك) - الإشعارات
    ============================================ */
 
+// أسماء أيقونات من js/icons.jsx حسب نوع الإشعار
 const NOTIF_ICONS = {
-  missed_dose: '⚠️',
-  upcoming_appointment: '📅',
-  general: '🔔',
-  patient_issue: '❗',
+  missed_dose: 'warning',
+  upcoming_appointment: 'calendar',
+  general: 'bell',
+  patient_issue: 'alert',
 };
 
 function NotificationsView({ notifications, onRefresh }) {
@@ -47,7 +48,7 @@ function NotificationsView({ notifications, onRefresh }) {
       <Banner onClose={() => setError('')}>{error}</Banner>
 
       {notifications.length === 0 ? (
-        <EmptyState icon="🔔" text="مفيش إشعارات لسه." />
+        <EmptyState icon="bell" text="مفيش إشعارات لسه." />
       ) : (
         <Card className="notif-list stagger">
           {notifications.map((n) => (
@@ -65,7 +66,9 @@ function NotificationsView({ notifications, onRefresh }) {
               }}
               aria-label={`${n.is_read ? '' : 'غير مقروء: '}${n.message}، ${formatDateTime(n.created_at)}`}
             >
-              <span className="notif-icon" aria-hidden="true">{NOTIF_ICONS[n.type] || '🔔'}</span>
+              <span className="notif-icon" aria-hidden="true">
+                <Icon name={NOTIF_ICONS[n.type] || 'bell'} size={23} />
+              </span>
               <div>
                 <div className="notif-message">{n.message}</div>
                 <div className="notif-date">{formatDateTime(n.created_at)}</div>

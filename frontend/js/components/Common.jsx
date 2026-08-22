@@ -55,10 +55,14 @@ function SkeletonCards({ count = 3 }) {
   );
 }
 
-function EmptyState({ icon = '📭', text }) {
+// icon هنا اسم أيقونة من js/icons.jsx (مش إيموجي) - الأسماء المتاحة كلها
+// معرّفة في ICON_PATHS هناك.
+function EmptyState({ icon = 'inbox', text }) {
   return (
     <div className="empty-state">
-      <div className="empty-icon">{icon}</div>
+      <div className="empty-icon">
+        <Icon name={icon} size={46} strokeWidth={1.6} />
+      </div>
       <p>{text}</p>
     </div>
   );
@@ -202,12 +206,14 @@ function InstallBanner({ deferredPrompt, onInstalled }) {
 
   return (
     <div className="install-banner">
-      <span className="install-banner-icon" aria-hidden="true">📲</span>
+      <span className="install-banner-icon" aria-hidden="true">
+        <Icon name="install" size={28} />
+      </span>
       <div className="install-banner-body">
         <div className="install-banner-title">ثبّت معاك على شاشتك الرئيسية</div>
         <div className="install-banner-desc">
           {ios
-            ? 'دوس على زرار المشاركة ⬆️ تحت في Safari، بعدين "إضافة إلى الشاشة الرئيسية"'
+            ? 'دوس على زرار المشاركة تحت في Safari، بعدين "إضافة إلى الشاشة الرئيسية"'
             : 'تفتحه بضغطة واحدة زي أي تطبيق تاني، من غير ما تدور عليه في المتصفح'}
         </div>
       </div>

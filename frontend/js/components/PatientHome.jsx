@@ -45,12 +45,12 @@ function ringDoseAlarm() {
 // tone بيحدد لون دايرة الأيقونة - بنغلّفها في خلفية موحّدة المقاس واللون بدل ما نسيب
 // شكل الإيموجي الخام (اللي بيختلف كتير من نوع لنوع - بعضها ملوّن وبعضها فلات) يبان متلخبط
 const ISSUE_OPTIONS = [
-  { key: 'forgot_dose', icon: '🕐', label: 'نسيت آخد جرعة', tone: 'blue' },
-  { key: 'med_finished', icon: '💊', label: 'الدوا خلص', tone: 'amber' },
-  { key: 'unclear_dose', icon: '❓', label: 'مش فاهم إزاي آخده', tone: 'purple' },
-  { key: 'side_effect', icon: '😣', label: 'حاسس بتعب بعد الدوا', tone: 'rose' },
-  { key: 'other', icon: '⚠️', label: 'حاجة تانية', tone: 'gray' },
-  { key: 'want_call', icon: '📞', label: 'عايز حد يكلمني', tone: 'danger', urgent: true },
+  { key: 'forgot_dose', icon: 'clock', label: 'نسيت آخد جرعة', tone: 'blue' },
+  { key: 'med_finished', icon: 'pill', label: 'الدوا خلص', tone: 'amber' },
+  { key: 'unclear_dose', icon: 'question', label: 'مش فاهم إزاي آخده', tone: 'purple' },
+  { key: 'side_effect', icon: 'unwell', label: 'حاسس بتعب بعد الدوا', tone: 'rose' },
+  { key: 'other', icon: 'warning', label: 'حاجة تانية', tone: 'gray' },
+  { key: 'want_call', icon: 'phone', label: 'عايز حد يكلمني', tone: 'danger', urgent: true },
 ];
 
 function PatientHome({
@@ -249,11 +249,12 @@ function PatientHome({
     if (d.isOpen) return 'open';
     return 'locked';
   }
+  // أسماء أيقونات من js/icons.jsx
   function secondaryIcon(d) {
-    if (d.status === 'taken') return '✅';
-    if (d.status === 'missed') return '⚠️';
-    if (d.isLocked) return '🕒';
-    return '💊';
+    if (d.status === 'taken') return 'checkCircle';
+    if (d.status === 'missed') return 'warning';
+    if (d.isLocked) return 'clock';
+    return 'pill';
   }
   function secondaryMeta(d) {
     if (d.status === 'taken') return `اتاخدت - ${formatTime(d.scheduled_at)}`;
@@ -265,9 +266,9 @@ function PatientHome({
   const rootClassName = `patient-home${fontLarge ? ' font-large' : ''}${isNightBoost ? ' font-night' : ''}`;
 
   return (
-    <div className={rootClassName}>
+    <div className={`${rootClassName} ambient`}>
       <header className="patient-header">
-        <span className="patient-greeting">أهلاً {firstName} 👋</span>
+        <span className="patient-greeting">أهلاً {firstName}</span>
         <div className="patient-header-actions">
           <button
             className="patient-settings-btn"
@@ -275,7 +276,7 @@ function PatientHome({
             aria-label="الإعدادات"
             title="الإعدادات"
           >
-            ⚙️
+            <Icon name="settings" size={22} />
           </button>
           <button className="patient-logout" onClick={onLogout}>
             خروج
@@ -296,7 +297,9 @@ function PatientHome({
           <Spinner />
         ) : doses.length === 0 ? (
           <div className="patient-empty">
-            <div className="patient-empty-icon">📭</div>
+            <div className="patient-empty-icon">
+              <Icon name="inbox" size={58} strokeWidth={1.5} />
+            </div>
             <p>معندكش أدوية دلوقتي</p>
           </div>
         ) : (
@@ -318,15 +321,18 @@ function PatientHome({
             {heroKind === 'open' && (
               <div className="patient-hero-card patient-hero-open">
                 <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
-                  🔊
+                  <Icon name="speaker" size={24} />
                 </button>
                 <div className="patient-hero-label">دلوقتي</div>
-                <div className="patient-hero-icon">💊</div>
+                <div className="patient-hero-icon" aria-hidden="true">
+                  <Icon name="pill" size={56} strokeWidth={1.7} />
+                </div>
                 <div className="patient-hero-name">{heroDose.name}</div>
                 <div className="patient-hero-meta">الساعة {formatTime(heroDose.scheduled_at)}</div>
                 {heroDose.dosage && <div className="patient-hero-meta">{heroDose.dosage}</div>}
                 <button className="patient-hero-btn" onClick={() => handleTake(heroDose.id)}>
-                  ✅ خدت الدوا
+                  <Icon name="check" size={30} strokeWidth={2.6} />
+                  خدت الدوا
                 </button>
               </div>
             )}
@@ -334,10 +340,12 @@ function PatientHome({
             {heroKind === 'waiting' && (
               <div className="patient-hero-card patient-hero-waiting">
                 <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
-                  🔊
+                  <Icon name="speaker" size={24} />
                 </button>
                 <div className="patient-hero-label muted">الجرعة الجاية</div>
-                <div className="patient-hero-icon">🕒</div>
+                <div className="patient-hero-icon" aria-hidden="true">
+                  <Icon name="clock" size={48} strokeWidth={1.6} />
+                </div>
                 <div className="patient-hero-name">{waitingDose.name}</div>
                 <div className="patient-hero-meta">
                   هتقدر تأكدها الساعة {formatTimeObj(waitingDose.availableFrom)}
@@ -347,7 +355,9 @@ function PatientHome({
 
             {heroKind === 'allDone' && (
               <div className="patient-hero-card patient-hero-alldone">
-                <div className="patient-hero-icon">🎉</div>
+                <div className="patient-hero-icon" aria-hidden="true">
+                  <Icon name="sparkles" size={54} strokeWidth={1.7} />
+                </div>
                 <div className="patient-hero-name">خلصت كل جرعات النهارده</div>
               </div>
             )}
@@ -360,7 +370,7 @@ function PatientHome({
                   {secondaryDoses.map((d) => (
                     <div key={d.id} className={`patient-secondary-row status-${d.status}`}>
                       <span className="patient-secondary-icon" aria-hidden="true">
-                        {secondaryIcon(d)}
+                        <Icon name={secondaryIcon(d)} size={24} />
                       </span>
                       <div className="patient-secondary-body">
                         <div className="patient-secondary-name">{d.name}</div>
@@ -368,7 +378,8 @@ function PatientHome({
                       </div>
                       {d.isOpen && (
                         <button className="patient-secondary-take" onClick={() => handleTake(d.id)}>
-                          ✅ خدت
+                          <Icon name="check" size={17} strokeWidth={2.6} />
+                          خدت
                         </button>
                       )}
                     </div>
@@ -396,22 +407,22 @@ function PatientHome({
 
         {isNightBoost && (
           <div className="patient-night-banner">
-            <span aria-hidden="true">🌙</span>
+            <Icon name="moon" size={20} />
             <span>وضع الليل: الخط أكبر شوية عشان الرؤية بالليل</span>
           </div>
         )}
 
         {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
           <div className={`patient-notif-banner${notifPermission === 'denied' ? ' patient-notif-banner-denied' : ''}`}>
-            <span aria-hidden="true">{notifPermission === 'denied' ? '🔕' : '🔔'}</span>
+            <Icon name={notifPermission === 'denied' ? 'bellOff' : 'bell'} size={26} />
             <div className="patient-notif-text">
               {notifPermission === 'denied' ? (
                 <React.Fragment>
                   <div>التنبيهات موقوفة من إعدادات المتصفح</div>
                   {notifHelpOpen && (
                     <div className="patient-notif-help">
-                      افتح إعدادات الموقع من المتصفح (دوس على 🔒 جنب عنوان الموقع فوق) وفعّل
-                      "الإشعارات" من هناك، بعدين ارجع للتطبيق.
+                      افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع
+                      فوق) وفعّل "الإشعارات" من هناك، بعدين ارجع للتطبيق.
                     </div>
                   )}
                 </React.Fragment>
@@ -432,7 +443,8 @@ function PatientHome({
       </main>
 
       <button className="patient-issue-btn" onClick={() => setShowIssue(true)}>
-        ❗ حصلت مشكلة؟
+        <Icon name="alert" size={28} strokeWidth={2.3} />
+        حصلت مشكلة؟
       </button>
 
       {showIssue && (
@@ -497,8 +509,8 @@ function IssueSheet({ patientId, medications, onClose }) {
 
         {step === 'sent' ? (
           <div className="issue-sent">
-            <div className="issue-sent-icon">
-              <span aria-hidden="true">✅</span>
+            <div className="issue-sent-icon" aria-hidden="true">
+              <Icon name="check" size={46} strokeWidth={2.6} />
             </div>
             <p>تمام، وصل خبر لـ اللي بيتابعك</p>
           </div>
@@ -514,7 +526,9 @@ function IssueSheet({ patientId, medications, onClose }) {
                   disabled={sending}
                   onClick={() => send('med_finished', m)}
                 >
-                  <span className="issue-option-icon tone-amber">💊</span>
+                  <span className="issue-option-icon tone-amber" aria-hidden="true">
+                    <Icon name="pill" size={30} strokeWidth={1.8} />
+                  </span>
                   <span>{m}</span>
                 </button>
               ))}
@@ -536,7 +550,9 @@ function IssueSheet({ patientId, medications, onClose }) {
                   disabled={sending}
                   onClick={() => handlePick(opt.key)}
                 >
-                  <span className={`issue-option-icon tone-${opt.tone}`}>{opt.icon}</span>
+                  <span className={`issue-option-icon tone-${opt.tone}`} aria-hidden="true">
+                    <Icon name={opt.icon} size={30} strokeWidth={1.8} />
+                  </span>
                   <span>{opt.label}</span>
                 </button>
               ))}

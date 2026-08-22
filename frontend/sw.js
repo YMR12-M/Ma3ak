@@ -9,7 +9,7 @@
 
 /* لازم يتغيّر الرقم ده مع أي تعديل في قايمة APP_SHELL تحت - هو اللي بيخلي
    المتصفح يرمي الكاش القديم ويحمّل النسخة الجديدة (شوف حدث activate تحت). */
-const CACHE_NAME = 'ma3ak-shell-v3';
+const CACHE_NAME = 'ma3ak-shell-v4';
 
 /* قشرة التطبيق كاملة. مهم: لازم تشمل كل ملفات المكوّنات كمان - قبل كده كانت
    القايمة فيها app.jsx بس من غير الـ 11 ملف اللي بيعرّفوا كل المكوّنات، يعني
@@ -21,6 +21,7 @@ const APP_SHELL = [
   '/css/tokens.css',
   '/css/base.css',
   '/css/animations.css',
+  '/css/materials.css',
   '/css/components.css',
   '/css/layout.css',
   '/css/auth.css',
@@ -28,6 +29,7 @@ const APP_SHELL = [
   '/css/patient.css',
   '/js/api.js',
   '/js/doseLogic.js',
+  '/js/icons.jsx',
   '/js/app.jsx',
   '/js/components/Common.jsx',
   '/js/components/Settings.jsx',

@@ -19,13 +19,16 @@ function PatientsView({ patients, onChanged }) {
     <div className="view">
       <div className="view-header">
         <h2 className="view-title">المرضى اللي بتتابعهم</h2>
-        <Button onClick={() => setShowAddForm(true)}>➕ إضافة مريض جديد</Button>
+        <Button onClick={() => setShowAddForm(true)}>
+          <Icon name="plus" size={20} strokeWidth={2.4} />
+          إضافة مريض جديد
+        </Button>
       </div>
 
       <Banner onClose={() => setError('')}>{error}</Banner>
 
       {patients.length === 0 ? (
-        <EmptyState icon="🧓" text="لسه معندكش مريض. ضيف أول واحد وابعتله اللينك." />
+        <EmptyState icon="users" text="لسه معندكش مريض. ضيف أول واحد وابعتله اللينك." />
       ) : (
         <div className="med-list stagger">
           {patients.map((p) => (
@@ -103,7 +106,8 @@ function PatientCard({ patient, onError, onChanged }) {
           بيتلفوا على سطرين على موبايل ضيق لأن نصهم أطول من "تعديل"/"إيقاف" العادية */}
       <div className="med-actions patient-link-actions">
         <Button variant="ghost" aria-label={`عرض لينك دخول ${current.name}`} onClick={() => setShowShare(true)}>
-          🔗 لينك الدخول
+          <Icon name="link" size={17} />
+          لينك الدخول
         </Button>
         <Button
           variant="ghost"
@@ -111,7 +115,14 @@ function PatientCard({ patient, onError, onChanged }) {
           onClick={handleRegenerate}
           disabled={regenerating}
         >
-          {regenerating ? '...' : '🔄 لينك جديد'}
+          {regenerating ? (
+            '...'
+          ) : (
+            <React.Fragment>
+              <Icon name="refresh" size={17} />
+              لينك جديد
+            </React.Fragment>
+          )}
         </Button>
       </div>
       {showShare && (
@@ -148,7 +159,10 @@ function ShareLinkModal({ patient, onClose }) {
         <a className="share-link-text" href={link} target="_blank" rel="noopener noreferrer">
           {link}
         </a>
-        <Button onClick={copyLink}>{copied ? '✅ اتنسخ' : '📋 نسخ اللينك'}</Button>
+        <Button onClick={copyLink}>
+          <Icon name={copied ? 'checkCircle' : 'copy'} size={19} />
+          {copied ? 'اتنسخ' : 'نسخ اللينك'}
+        </Button>
         {copyFailed && (
           <p className="copy-hint">
             معرفناش ننسخه تلقائيًا (بيحصل لو بتفتح التطبيق بعنوان مش localhost). دوس مطوّل على

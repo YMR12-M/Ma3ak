@@ -37,7 +37,7 @@ function AppointmentsView({ patientId }) {
   }
 
   if (!patientId) {
-    return <EmptyState icon="👤" text="لسه معندكش مريض مربوط." />;
+    return <EmptyState icon="user" text="لسه معندكش مريض مربوط." />;
   }
 
   const now = new Date();
@@ -54,7 +54,8 @@ function AppointmentsView({ patientId }) {
             setShowForm(true);
           }}
         >
-          ➕ موعد جديد
+          <Icon name="plus" size={20} strokeWidth={2.4} />
+          موعد جديد
         </Button>
       </div>
 
@@ -63,7 +64,7 @@ function AppointmentsView({ patientId }) {
       {loading ? (
         <SkeletonCards count={3} />
       ) : appts.length === 0 ? (
-        <EmptyState icon="📅" text="مفيش مواعيد مسجلة." />
+        <EmptyState icon="calendar" text="مفيش مواعيد مسجلة." />
       ) : (
         <React.Fragment>
           {upcoming.length > 0 && (

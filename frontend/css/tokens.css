@@ -1,11 +1,16 @@
 /* ============================================
    MA3ak (معاك) - Design Tokens
-   المصدر الوحيد لكل قيم التصميم: ألوان، خطوط، مسافات، ظلال، حركة.
+   المصدر الوحيد لكل قيم التصميم: ألوان، خطوط، مسافات، ظلال، حركة، خامات.
    باقي ملفات الـ CSS بتستهلك المتغيرات دي بس - مفيش لون أو ظل مكتوب يدويًا
    في أي ملف تاني، عشان تغيير الهوية البصرية كلها يبقى من الملف ده لوحده.
 
    القاعدة الحاكمة للتصميم كله: الجمهور كبار السن ومتابعينهم -
    خط كبير، تباين عالي، مساحات لمس واسعة (56px حد أدنى)، حركة هادية مش مشتتة.
+
+   ملحوظة على "الفخامة": الإحساس بالجودة العالية هنا جاي من العمق (ظلال
+   متعددة الطبقات)، ومن حدّة العناصر (أيقونات SVG مش إيموجي)، ومن دقة
+   الإيقاع (مسافات وخطوط متناسقة) - مش من تقليل التباين أو ترقيق الخطوط.
+   أي "أناقة" بتيجي على حساب وضوح الرؤية مرفوضة في التطبيق ده.
    ============================================ */
 
 :root {
@@ -18,6 +23,10 @@
   --primary-500: #2f7d6e;
   --primary-600: #276a5d;
   --primary-700: #235c51;
+  /* لون أعمق مايل للأزرق - بيتستخدم في آخر تدرّج الهوية بس. الانتقال من أخضر
+     لمزرق بيدّي التدرّج عمق حقيقي بدل تدرّج من لون واحد لنفسه أغمق (اللي بيطلع
+     شكله "مسطّح" مهما كان). */
+  --primary-deep: #1c5a63;
 
   /* ---------- اللون المكمّل (عسلي دافي: تنبيه من غير فزع) ---------- */
   --accent-100: #fbeedd;
@@ -35,15 +44,15 @@
   --info-500: #2f6fed;
 
   /* ---------- الأسطح والنص ---------- */
-  --color-bg: #faf8f4;
-  --color-bg-tint: #f3f7f5;
+  --color-bg: #f7f5f0;
+  --color-bg-tint: #f1f6f3;
   --color-surface: #ffffff;
-  --color-surface-alt: #f2efe8;
-  --color-surface-glass: rgba(255, 255, 255, 0.72);
-  --color-text: #22282a;
-  --color-text-muted: #5b6669;
+  --color-surface-alt: #f1eee7;
+  --color-surface-glass: rgba(255, 255, 255, 0.7);
+  --color-text: #1f2527;
+  --color-text-muted: #586366;
   --color-text-faint: #8b9497;
-  --color-border: #e1ddd3;
+  --color-border: #e3dfd6;
   --color-border-strong: #cdc7ba;
   --color-overlay: rgba(18, 26, 24, 0.55);
 
@@ -53,14 +62,40 @@
   --color-primary-ink: var(--primary-700);
   --color-on-primary: #ffffff;
 
-  /* ---------- الظلال (سلّم متدرّج) ---------- */
-  --shadow-xs: 0 1px 2px rgba(20, 30, 28, 0.06);
-  --shadow-sm: 0 2px 8px rgba(20, 30, 28, 0.06);
-  --shadow: 0 4px 16px rgba(20, 30, 28, 0.08);
-  --shadow-md: 0 8px 24px rgba(20, 30, 28, 0.1);
-  --shadow-lg: 0 12px 32px rgba(20, 30, 28, 0.14);
-  --shadow-xl: 0 24px 56px rgba(20, 30, 28, 0.18);
+  /* ---------- الظلال ----------
+     كل ظل هنا مركّب من أكتر من طبقة، مش طبقة واحدة. الفكرة مأخوذة من طريقة وقوع
+     الضوء الحقيقي: طبقة ملتصقة قوية وضيقة جدًا (خط التلامس مع السطح)، وطبقة
+     أوسع وأخف (الظل المنتشر)، وطبقة تالتة واسعة جدًا وخفيفة أوي (الضوء المحيط).
+     ظل الطبقة الواحدة بيبان "مرسوم"، والمركّب بيبان إن العنصر فعلًا مرفوع فوق
+     الصفحة - وده أكبر فرق بين واجهة عادية وواجهة بتحس إنها "غالية". */
+  --shadow-xs:
+    0 1px 1px rgba(20, 30, 28, 0.04),
+    0 1px 3px rgba(20, 30, 28, 0.05);
+  --shadow-sm:
+    0 1px 2px rgba(20, 30, 28, 0.05),
+    0 2px 6px rgba(20, 30, 28, 0.05),
+    0 6px 14px rgba(20, 30, 28, 0.04);
+  --shadow:
+    0 1px 2px rgba(20, 30, 28, 0.05),
+    0 4px 10px rgba(20, 30, 28, 0.06),
+    0 12px 26px rgba(20, 30, 28, 0.05);
+  --shadow-md:
+    0 1px 2px rgba(20, 30, 28, 0.06),
+    0 6px 14px rgba(20, 30, 28, 0.07),
+    0 18px 38px rgba(20, 30, 28, 0.07);
+  --shadow-lg:
+    0 2px 4px rgba(20, 30, 28, 0.06),
+    0 10px 22px rgba(20, 30, 28, 0.08),
+    0 28px 56px rgba(20, 30, 28, 0.09);
+  --shadow-xl:
+    0 2px 6px rgba(20, 30, 28, 0.08),
+    0 16px 34px rgba(20, 30, 28, 0.1),
+    0 44px 90px rgba(20, 30, 28, 0.13);
+  /* خط ضوء رفيع على الحرف العلوي - بيوحي إن السطح مرفوع والضوء جاي من فوق */
   --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-inset-edge:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(20, 30, 28, 0.04);
 }
 
 /* ---------- الوضع الداكن: تفضيل النظام (لما المستخدم ميكونش اختار صراحة) ---------- */
@@ -75,12 +110,13 @@
     --primary-500: #35897a;
     --primary-600: #3f9c8b;
     --primary-700: #8fd8c9;
-  
+    --primary-deep: #2a7f8c;
+
     --accent-100: #3a3020;
     --accent-300: #b8813f;
     --accent-500: #d9924a;
     --accent-600: #e8a55f;
-  
+
     --danger-100: #3a2320;
     --danger-500: #e0625a;
     --danger-600: #ef7a72;
@@ -88,30 +124,52 @@
     --warn-500: #d8ad3e;
     --info-100: #1e2a41;
     --info-500: #6f9bf2;
-  
+
     --color-primary-hover: #46a08e;
     --color-primary-ink: #8fd8c9;
     --color-on-primary: #ffffff;
-  
-    --color-bg: #121817;
-    --color-bg-tint: #151d1b;
-    --color-surface: #1c2321;
-    --color-surface-alt: #252d2b;
-    --color-surface-glass: rgba(28, 35, 33, 0.72);
+
+    --color-bg: #101615;
+    --color-bg-tint: #141c1a;
+    --color-surface: #1b2220;
+    --color-surface-alt: #242c2a;
+    --color-surface-glass: rgba(27, 34, 32, 0.72);
     --color-text: #f0f4f2;
     --color-text-muted: #a9b4b1;
     --color-text-faint: #7f8b88;
-    --color-border: #303a37;
+    --color-border: #2f3936;
     --color-border-strong: #435049;
-    --color-overlay: rgba(6, 10, 9, 0.66);
-  
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
-    --shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.42);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
-    --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.58);
-    --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --color-overlay: rgba(4, 8, 7, 0.7);
+
+    /* في الوضع الداكن الظل لوحده مش بيبيّن الارتفاع (أسود على أسود)، فالطبقة
+       اللي بتشتغل فعلًا هي خط الضوء العلوي في --shadow-inset-top تحت. */
+    --shadow-xs:
+      0 1px 1px rgba(0, 0, 0, 0.25),
+      0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-sm:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 2px 6px rgba(0, 0, 0, 0.3),
+      0 6px 14px rgba(0, 0, 0, 0.25);
+    --shadow:
+      0 1px 2px rgba(0, 0, 0, 0.32),
+      0 4px 10px rgba(0, 0, 0, 0.34),
+      0 12px 26px rgba(0, 0, 0, 0.3);
+    --shadow-md:
+      0 1px 2px rgba(0, 0, 0, 0.36),
+      0 6px 14px rgba(0, 0, 0, 0.4),
+      0 18px 38px rgba(0, 0, 0, 0.36);
+    --shadow-lg:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 10px 22px rgba(0, 0, 0, 0.46),
+      0 28px 56px rgba(0, 0, 0, 0.44);
+    --shadow-xl:
+      0 2px 6px rgba(0, 0, 0, 0.45),
+      0 16px 34px rgba(0, 0, 0, 0.5),
+      0 44px 90px rgba(0, 0, 0, 0.55);
+    --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --shadow-inset-edge:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -119,7 +177,6 @@
 /* التكرار هنا مقصود: CSS مفيهاش وسيلة لإعادة استخدام بلوك متغيرات في أكتر من
    محدِّد، وأي تعديل هنا لازم يتعمل في البلوك اللي فوق كمان. */
 :root[data-theme='dark'] {
-  /* التدرّجات الفاتحة بتتقلب لتدرّجات داكنة - نفس الأسماء، قيم مناسبة للخلفية الداكنة */
   --primary-50: #17322d;
   --primary-100: #1e403a;
   --primary-200: #27544b;
@@ -128,6 +185,7 @@
   --primary-500: #35897a;
   --primary-600: #3f9c8b;
   --primary-700: #8fd8c9;
+  --primary-deep: #2a7f8c;
 
   --accent-100: #3a3020;
   --accent-300: #b8813f;
@@ -146,25 +204,45 @@
   --color-primary-ink: #8fd8c9;
   --color-on-primary: #ffffff;
 
-  --color-bg: #121817;
-  --color-bg-tint: #151d1b;
-  --color-surface: #1c2321;
-  --color-surface-alt: #252d2b;
-  --color-surface-glass: rgba(28, 35, 33, 0.72);
+  --color-bg: #101615;
+  --color-bg-tint: #141c1a;
+  --color-surface: #1b2220;
+  --color-surface-alt: #242c2a;
+  --color-surface-glass: rgba(27, 34, 32, 0.72);
   --color-text: #f0f4f2;
   --color-text-muted: #a9b4b1;
   --color-text-faint: #7f8b88;
-  --color-border: #303a37;
+  --color-border: #2f3936;
   --color-border-strong: #435049;
-  --color-overlay: rgba(6, 10, 9, 0.66);
+  --color-overlay: rgba(4, 8, 7, 0.7);
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.42);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.58);
-  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-xs:
+    0 1px 1px rgba(0, 0, 0, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    0 6px 14px rgba(0, 0, 0, 0.25);
+  --shadow:
+    0 1px 2px rgba(0, 0, 0, 0.32),
+    0 4px 10px rgba(0, 0, 0, 0.34),
+    0 12px 26px rgba(0, 0, 0, 0.3);
+  --shadow-md:
+    0 1px 2px rgba(0, 0, 0, 0.36),
+    0 6px 14px rgba(0, 0, 0, 0.4),
+    0 18px 38px rgba(0, 0, 0, 0.36);
+  --shadow-lg:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 10px 22px rgba(0, 0, 0, 0.46),
+    0 28px 56px rgba(0, 0, 0, 0.44);
+  --shadow-xl:
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 16px 34px rgba(0, 0, 0, 0.5),
+    0 44px 90px rgba(0, 0, 0, 0.55);
+  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --shadow-inset-edge:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================
@@ -189,24 +267,60 @@
   --color-warning: var(--warn-500);
   --color-warning-light: var(--warn-100);
 
-  /* ---------- تدرّجات الهوية ---------- */
-  --grad-brand: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 52%, var(--primary-600) 100%);
-  --grad-brand-line: linear-gradient(90deg, var(--primary-500), var(--accent-500));
-  --grad-accent: linear-gradient(135deg, var(--accent-300) 0%, var(--accent-500) 100%);
+  /* ---------- تدرّجات الهوية ----------
+     التدرّج الأساسي بيلف من أخضر فاتح لأخضر داكن لمزرق عميق - إزاحة في درجة
+     اللون (hue) مش في الإضاءة بس، وده اللي بيمنعه يبان "مسطّح". */
+  --grad-brand: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 48%, var(--primary-600) 76%, var(--primary-deep) 100%);
+  --grad-brand-soft: linear-gradient(135deg, var(--primary-100) 0%, var(--primary-50) 100%);
+  --grad-brand-line: linear-gradient(90deg, var(--primary-deep), var(--primary-500), var(--accent-500));
+  --grad-accent: linear-gradient(135deg, var(--accent-300) 0%, var(--accent-500) 70%, var(--accent-600) 100%);
   --grad-danger: linear-gradient(135deg, #d4574f 0%, var(--danger-600) 100%);
   --grad-surface: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-tint) 100%);
 
-  /* خلفية "شبكة لونية" ناعمة لشاشة الدخول - دواير تدرّج مش صور، يعني صفر تحميل زيادة */
+  /* لمعة زجاجية بتتحط فوق الأسطح المرتفعة (كارت الجرعة، الزرار الكبير) -
+     ضوء خافت جاي من فوق الشمال وبيختفي في النص */
+  --grad-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 34%, transparent 62%);
+
+  /* خلفية "شبكة لونية" ناعمة - دواير تدرّج مش صور، يعني صفر تحميل زيادة */
   --mesh-bg:
     radial-gradient(58% 44% at 8% 6%, color-mix(in srgb, var(--primary-300) 40%, transparent) 0%, transparent 70%),
     radial-gradient(48% 40% at 96% 12%, color-mix(in srgb, var(--accent-300) 32%, transparent) 0%, transparent 72%),
     radial-gradient(60% 50% at 88% 96%, color-mix(in srgb, var(--primary-200) 44%, transparent) 0%, transparent 74%),
     radial-gradient(40% 34% at 18% 92%, color-mix(in srgb, var(--accent-100) 66%, transparent) 0%, transparent 70%);
 
+  /* نفس الفكرة بس أخف كتير - دي بتتحط ورا شاشات التطبيق نفسها مش شاشة الدخول،
+     فلازم تفضل مجرد إحساس بعمق في الخلفية، ميقراش كـ "لون" */
+  --mesh-app:
+    radial-gradient(46% 30% at 12% 0%, color-mix(in srgb, var(--primary-300) 20%, transparent) 0%, transparent 68%),
+    radial-gradient(40% 26% at 90% 4%, color-mix(in srgb, var(--accent-300) 13%, transparent) 0%, transparent 70%),
+    radial-gradient(52% 34% at 78% 88%, color-mix(in srgb, var(--primary-200) 18%, transparent) 0%, transparent 72%);
+
+  /* ---------- الحبيبات (grain) ----------
+     طبقة ضوضاء رمادية شفافة جدًا بتتحط فوق الخلفية. الغرض منها إن التدرّجات
+     الكبيرة ما تطلعش فيها "أحزمة" لونية (banding) - المتصفح بيقرّب الألوان
+     المتقاربة لنفس القيمة فبتظهر حلقات واضحة في التدرّج، والضوضاء بتكسرها.
+     دي كمان اللي بتدّي الخلفية ملمس بدل ما تبقى لون رقمي مسطّح.
+     مرسومة كـ SVG جوه الـ CSS نفسه - مفيش أي ملف صورة بيتحمّل. */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+
   /* ---------- ظلال ملوّنة (للعناصر الأساسية بس: الزرار الرئيسي، كارت الجرعة) ---------- */
-  --shadow-primary: 0 8px 20px -6px color-mix(in srgb, var(--primary-600) 55%, transparent);
-  --shadow-accent: 0 8px 20px -6px color-mix(in srgb, var(--accent-600) 50%, transparent);
-  --shadow-danger: 0 8px 20px -6px color-mix(in srgb, var(--danger-500) 45%, transparent);
+  --shadow-primary:
+    0 2px 4px -1px color-mix(in srgb, var(--primary-deep) 40%, transparent),
+    0 8px 18px -6px color-mix(in srgb, var(--primary-600) 55%, transparent),
+    0 18px 36px -14px color-mix(in srgb, var(--primary-600) 45%, transparent);
+  --shadow-primary-lift:
+    0 3px 6px -1px color-mix(in srgb, var(--primary-deep) 45%, transparent),
+    0 12px 26px -6px color-mix(in srgb, var(--primary-600) 62%, transparent),
+    0 26px 50px -16px color-mix(in srgb, var(--primary-600) 52%, transparent);
+  --shadow-accent:
+    0 2px 4px -1px color-mix(in srgb, var(--accent-600) 38%, transparent),
+    0 8px 18px -6px color-mix(in srgb, var(--accent-600) 50%, transparent);
+  --shadow-danger:
+    0 2px 4px -1px color-mix(in srgb, var(--danger-600) 35%, transparent),
+    0 8px 18px -6px color-mix(in srgb, var(--danger-500) 45%, transparent);
+
+  /* هالة لونية واسعة وخفيفة - للعناصر اللي المفروض العين تروحلها فورًا */
+  --glow-primary: 0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent), 0 0 34px -6px color-mix(in srgb, var(--color-primary) 40%, transparent);
 
   /* حلقة التركيز - نفس الشكل بالظبط على كل عنصر تفاعلي في التطبيق */
   --ring: 0 0 0 4px color-mix(in srgb, var(--color-primary) 32%, transparent);
@@ -214,6 +328,10 @@
 
   /* ---------- الخطوط ---------- */
   --font-family: 'Cairo', 'Tahoma', 'Segoe UI', sans-serif;
+  /* خط لاتيني منفصل للأرقام والكلمات الإنجليزية (الاسم Ma3ak، الأكواد، اللينكات).
+     أرقام Cairo العربية شكلها مش متساوي العرض، فالساعات في قايمة الجرعات كانت
+     بترقص شمال ويمين وانت بتعدّي بينها. */
+  --font-family-latin: 'Plus Jakarta Sans', 'Cairo', 'Segoe UI', sans-serif;
   --font-size-xs: 14px;
   --font-size-sm: 17px;
   --font-size-base: 20px;
@@ -235,16 +353,19 @@
 
   /* ---------- الحواف ---------- */
   --radius-xs: 8px;
-  --radius-sm: 10px;
-  --radius: 16px;
-  --radius-lg: 22px;
-  --radius-xl: 28px;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
   --radius-pill: 999px;
 
   /* ---------- الحركة: كل transition/animation في المشروع بتستخدم القيم دي ---------- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  /* منحنى "مؤكِّد": بيطلع بسرعة وبيقف ببطء شديد - بيستخدم للحاجات اللي بتظهر
+     وبتاخد انتباه (الشيتات، الكروت الرئيسية) عشان تبان مدفوعة مش منزلقة */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 320ms;
@@ -255,6 +376,7 @@
   --tap-min: 56px;               /* أصغر مساحة لمس مسموح بيها في التطبيق كله */
   --content-max: 760px;          /* عرض محتوى شاشة المتابع */
   --content-max-patient: 640px;  /* شاشة المريض أضيق شوية - سطر أقصر = قراية أسهل */
+  --rail-width: 0px;             /* عرض شريط التنقل الجانبي - بيتفعّل على الشاشات الكبيرة بس */
 
   /* ---------- ترتيب الطبقات ---------- */
   --z-header: 10;
@@ -287,5 +409,28 @@
     --font-size-lg: 23px;
     --font-size-xl: 28px;
     --font-size-display: 34px;
+  }
+}
+
+/* على الشاشة الكبيرة التطبيق بيتمدد بدل ما يفضل عمود ضيق في نص شاشة فاضية:
+   المحتوى بياخد عرض أكبر، وشريط التنقل بينتقل من تحت لعمود جانبي (layout.css)،
+   والخط بيكبر درجة عشان يملا المساحة بدل ما يبان تايه فيها. */
+@media (min-width: 1100px) {
+  :root {
+    --content-max: 1080px;
+    --content-max-patient: 720px;
+    --rail-width: 236px;
+    --font-size-base: 21px;
+    --font-size-md: 23px;
+    --font-size-lg: 28px;
+    --font-size-xl: 38px;
+    --font-size-display: 52px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --content-max: 1240px;
+    --font-size-display: 60px;
   }
 }
