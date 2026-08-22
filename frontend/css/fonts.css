@@ -1,0 +1,64 @@
+/* ============================================
+   MA3ak (معاك) - الخطوط
+
+   الخطوط مستضافة عندنا في frontend/fonts/ - مش من Google Fonts.
+
+   ليه؟ وسم <link> لملف CSS من fonts.googleapis.com بيوقف رسم الصفحة كلها لحد
+   ما يوصل: المتصفح لازم يعمل DNS + TLS + طلب لدومين تاني خالص قبل ما يرسم أي
+   حاجة. القياس على اتصال موبايل متوسط كان **919 ملي ثانية** ضايعة في الخطوة
+   دي لوحدها - أكتر من تلات أضعاف الوقت اللي بياخده كل CSS التطبيق (303ms).
+   الملفات هنا بتيجي من نفس السيرفر على نفس الاتصال المفتوح أصلاً.
+
+   ومكسب تاني مهم لتطبيق صحي: مفيش أي طلب من متصفح المستخدم لسيرفر طرف تالت،
+   يعني مفيش IP ولا User-Agent بيتسرّبوا لجوجل مع كل فتحة للتطبيق.
+   وكمان الخط شغال أوفلاين مع باقي التطبيق (PWA).
+
+   الملفات دي أصلها من Google Fonts، والخطين الاتنين مرخّصين بـ SIL Open Font
+   License 1.1 - الاستضافة الذاتية مسموحة صراحة فيها.
+
+   لو احتجت تحدّثهم:
+     curl -A "<user-agent متصفح حديث>" \
+       "https://fonts.googleapis.com/css2?family=Cairo:wght@400..900&family=Plus+Jakarta+Sans:wght@500..800&display=swap"
+   وهات منها روابط الـ woff2 بتاعة النطاقات اللي تحت وحمّلها في frontend/fonts/.
+
+   بنجيب النطاقات (subsets) اللي التطبيق بيستخدمها فعلاً بس:
+     - Cairo عربي: كل نص التطبيق تقريبًا.
+     - Cairo لاتيني: الأرقام (الساعات، القياسات) وأي كلمة إنجليزية.
+     - Plus Jakarta Sans لاتيني: الأرقام والأكواد واللينكات اللي محتاجة عرض ثابت.
+   نطاقات زي السيريلية والفيتنامية اتشالت - ملفات مكانتش هتتحمّل أبدًا.
+   ============================================ */
+
+/* unicode-range هو اللي بيخلي المتصفح ينزّل الملف المطلوب بس: صفحة كلها عربي
+   مش هتنزّل الملف اللاتيني غير لما يظهر فيها رقم أو حرف إنجليزي.
+   وfont-display: swap معناه النص بيتعرض فورًا بخط النظام ويتبدّل أول ما الخط
+   بتاعنا يجهز - المستخدم مبيستناش الخط عشان يقرا. */
+
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400 900; /* خط متغيّر: ملف واحد بيغطي كل الأوزان */
+  font-display: swap;
+  src: url('/fonts/cairo-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF,
+    U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/cairo-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url('/fonts/jakarta-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

@@ -9,39 +9,24 @@
 
 /* لازم يتغيّر الرقم ده مع أي تعديل في قايمة APP_SHELL تحت - هو اللي بيخلي
    المتصفح يرمي الكاش القديم ويحمّل النسخة الجديدة (شوف حدث activate تحت). */
-const CACHE_NAME = 'ma3ak-shell-v4';
+const CACHE_NAME = 'ma3ak-shell-v6';
 
-/* قشرة التطبيق كاملة. مهم: لازم تشمل كل ملفات المكوّنات كمان - قبل كده كانت
-   القايمة فيها app.jsx بس من غير الـ 11 ملف اللي بيعرّفوا كل المكوّنات، يعني
-   لو حد فتح التطبيق أول مرة وهو أوفلاين كان بيلاقي صفحة بيضا: الملفات
-   الأساسية موجودة في الكاش بس المكوّنات اللي بترسم الشاشة مش موجودة. */
+/* قشرة التطبيق كاملة - بقت 5 ملفات بدل 26.
+   قبل كده كان كل ملف CSS وكل ملف مكوّن بيتكاشّ لوحده، لأن المتصفح كان بيحمّلهم
+   كلهم واحد واحد. دلوقتي البناء (frontend/build.js) بيدمجهم في تلات ملفات جوه
+   dist/، فالقايمة هنا بقت هي دي بالظبط.
+   مهم: ملفات المصدر (js/*.jsx و css/*.css) **مش** مفروض تتحط هنا - المتصفح
+   مبيطلبهاش أصلاً، والـ dist هو اللي بيتحمّل فعليًا. */
 const APP_SHELL = [
   '/',
   '/manifest.json',
-  '/css/tokens.css',
-  '/css/base.css',
-  '/css/animations.css',
-  '/css/materials.css',
-  '/css/components.css',
-  '/css/layout.css',
-  '/css/auth.css',
-  '/css/screens.css',
-  '/css/patient.css',
-  '/js/api.js',
-  '/js/doseLogic.js',
-  '/js/icons.jsx',
-  '/js/app.jsx',
-  '/js/components/Common.jsx',
-  '/js/components/Settings.jsx',
-  '/js/components/Auth.jsx',
-  '/js/components/Layout.jsx',
-  '/js/components/Dashboard.jsx',
-  '/js/components/Medications.jsx',
-  '/js/components/Appointments.jsx',
-  '/js/components/Vitals.jsx',
-  '/js/components/Notifications.jsx',
-  '/js/components/Patients.jsx',
-  '/js/components/PatientHome.jsx',
+  '/dist/app.css',
+  '/dist/vendor.js',
+  '/dist/app.js',
+  // الخطوط بقت مستضافة عندنا، فبتتكاش زي أي ملف تاني - يعني التطبيق أوفلاين
+  // بيفضل بخطه الحقيقي بدل ما يقع على خط النظام
+  '/fonts/cairo-arabic.woff2',
+  '/fonts/cairo-latin.woff2',
 ];
 
 self.addEventListener('install', (event) => {

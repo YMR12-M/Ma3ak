@@ -52,6 +52,32 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ---------- الخروج ----------
+   النوافذ كانت بتتشال من الشاشة فجأة من غير أي حركة، وده أكتر حاجة كانت
+   بتخلي التطبيق يبان "صفحة ويب" مش تطبيق. الحركات دي بتديها خروج مقصود:
+   منحنى بيبدأ بطيء وبيتسارع (عكس منحنى الدخول بالظبط) - يعني الحاجة بتتدفع
+   برّه الشاشة، مش بتتزحلق منها.
+   الحركات دي مالهاش مدة هنا - المدة بتتحدد من --modal-exit في css/modal.css،
+   ولازم تفضل مساوية لـ MODAL_EXIT_MS في js/components/Common.jsx (الجافاسكريبت
+   بيستنى المدة دي قبل ما يشيل النافذة من الشاشة). */
+
+@keyframes fade-out {
+  from { opacity: var(--drag-fade, 1); }
+  to   { opacity: 0; }
+}
+
+/* الشيت بينزل برّه حرف الشاشة السفلي */
+@keyframes sheet-down {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(100%); }
+}
+
+/* نظير focus-in: النافذة بتبعد عن العين وبتتشوّش وهي رايحة */
+@keyframes focus-out {
+  from { opacity: 1; transform: scale(1); filter: blur(0); }
+  to   { opacity: 0; transform: scale(0.96); filter: blur(5px); }
+}
+
 @keyframes zoom-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }

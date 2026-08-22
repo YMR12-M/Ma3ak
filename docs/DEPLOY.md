@@ -44,7 +44,10 @@ mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/schema.s
 
 1. **New** → **Web Service** → اختار الريبو.
 2. **Root Directory**: `backend`
-3. **Build Command**: `npm install`
+3. **Build Command**: `npm install --include=dev && npm run build`
+   (الـ `--include=dev` مهم: Render بيبني وNODE_ENV=production، وفي الوضع ده npm بيتخطى
+   devDependencies - يعني esbuild أداة بناء الواجهة مكانتش هتتسطّب. لو حصلت مشكلة هنا،
+   `npm install && npm start` لوحدهم بيشتغلوا برضه لأن ناتج البناء متسجّل في الريبو.)
 4. **Start Command**: `npm start`
 5. في **Environment**: ضيف `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, و`JWT_SECRET` (قيمة عشوائية طويلة - تقدر تولّدها بـ `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
 

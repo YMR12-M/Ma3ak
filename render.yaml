@@ -11,7 +11,10 @@ services:
     plan: free
     region: frankfurt
     rootDir: backend
-    buildCommand: npm install
+    # --include=dev مهم: Render بيشغّل البناء وNODE_ENV=production، وفي الوضع
+    # ده npm بيتخطى devDependencies - يعني esbuild (أداة بناء الواجهة) مكانش
+    # هيتسطّب والبناء كان هيفشل.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /
     envVars:

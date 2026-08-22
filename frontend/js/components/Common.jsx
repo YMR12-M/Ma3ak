@@ -32,6 +32,20 @@ function Field({ label, children }) {
   );
 }
 
+// نفس شكل Field بالظبط، بس لمجموعة عناصر مش حقل واحد (مواعيد الجرعات، اختيار
+// نوع القياس، الرقمين بتوع الضغط). السبب إن <label> حوالين أكتر من عنصر
+// بيربط نفسه بأول واحد فيهم، فالدوسة على العنوان كانت بتفعّل زرار "إضافة معاد"
+// أو تفتح ساعة أول جرعة من غير ما المستخدم يقصد. هنا العنوان نص عادي،
+// والمجموعة نفسها بتتوصف لقارئ الشاشة بـ aria-label من العنصر اللي جواها.
+function FieldGroup({ label, children }) {
+  return (
+    <div className="field">
+      <span className="field-label">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 function Spinner() {
   return <div className="spinner" role="status" aria-label="جاري التحميل" />;
 }
@@ -85,29 +99,126 @@ function Banner({ type = 'error', children, onClose }) {
   );
 }
 
-let modalTitleSeq = 0;
+/* ============================================
+   النافذة (Modal)
+   ============================================
+   كل شاشات "الإضافة والتعديل" في التطبيق بتتفتح جوه المكوّن ده: دواء جديد،
+   موعد جديد، قياس جديد، مريض جديد، لينك الدخول، الإعدادات. يعني أي تحسين هنا
+   بيتوزّع على التطبيق كله مرة واحدة، وأي إهمال هنا بيتوزّع كمان.
 
-// role="dialog" + aria-modal بيقولوا لقارئ الشاشة إن الصفحة اللي وراه معطّلة مؤقتًا،
-// وaria-labelledby بيربط النافذة بعنوانها عشان تتقري لحظة ما تفتح. التركيز بيروح
-// لزرار الإغلاق أول ما النافذة تفتح عشان مستخدم الكيبورد ميضيعش جوه الصفحة اللي وراها.
-function Modal({ title, onClose, children }) {
-  const titleId = React.useRef(`modal-title-${modalTitleSeq++}`).current;
-  const closeRef = React.useRef(null);
+   الشكل: شيت بيطلع من تحت على الموبايل، ونافذة في نص الشاشة على الشاشة الكبيرة.
+   كل نافذة ليها هوية: شريط تدرّج رفيع فوق، شريحة أيقونة بنبرة لونية، عنوان،
+   وسطر تحته بيقول النافذة دي بتعمل إيه - عشان المستخدم يعرف هو فين من غير
+   ما يقرا الفورم كله الأول.
 
-  // onClose غالبًا بيتبعت كدالة سهمية جديدة مع كل رندر، فبنمسكها في ref
-  // ونخلي الـ effect يشتغل مرة واحدة بس عند الفتح. من غير كده كان ممكن الـ
-  // effect يعيد نفسه مع أي رندر ويخطف التركيز من الحقل اللي المستخدم بيكتب فيه.
+   ودي المسؤوليات اللي جوه المكوّن غير الشكل:
+   1. Portal لـ <body> - أي عنصر عليه transform بيبقى هو المرجع لأي عنصر
+      position:fixed جواه، فنافذة بتتفتح من جوه كارت متحرّك كانت ممكن تتقص أو
+      تتموضع غلط. الـ portal بيطلّعها برّه شجرة الشاشة خالص فالمشكلة دي مبقاش
+      ليها وجود أصلًا (بدل ما نفضل حاسبين من كل حركة إن متسيبش transform وراها).
+   2. حبس التركيز (focus trap) - Tab بيلف جوه النافذة وميهربش للصفحة اللي وراها.
+   3. رجوع التركيز لزرار اللي فتح النافذة بعد ما تتقفل.
+   4. حركة خروج - النافذة بتنزل وتختفي بدل ما تتشال من الشاشة فجأة.
+   5. السحب لتحت بيقفلها على الموبايل، زي أي شيت في تطبيق أصلي.
+   6. ظل بيظهر تحت الهيدر أو فوق الفوتر بس لما يكون فيه محتوى مخبّي ورا كل
+      واحد فيهم - إشارة إن "فيه كمان تحت" من غير أي نص.
+*/
+
+const MODAL_FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]),' +
+  ' textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// لازم تساوي مدة حركة الخروج في css/modal.css - لو اتغيرت هناك تتغير هنا
+const MODAL_EXIT_MS = 240;
+// مسافة السحب اللي بعدها الشيت يتقفل بدل ما يرجع مكانه
+const MODAL_DRAG_CLOSE_PX = 110;
+// أو سحبة سريعة قصيرة (بيكسل في الملي ثانية) - الحركة السريعة نية واضحة برضه
+const MODAL_DRAG_CLOSE_VELOCITY = 0.5;
+
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+function Modal({
+  title,
+  subtitle,
+  icon,
+  tone = 'primary',
+  onClose,
+  onSubmit,
+  footer,
+  children,
+}) {
+  // useId بيدّي معرّف فريد وثابت عبر إعادة الرسم - ده بالظبط اللي هو موجود عشانه.
+  // (قبل كده كان عدّاد على مستوى الملف بيزيد مع كل رندر من غير داعي.)
+  const seq = React.useId();
+  const titleId = `modal-title-${seq}`;
+  const descId = `modal-desc-${seq}`;
+
+  const overlayRef = React.useRef(null);
+  const sheetRef = React.useRef(null);
+  const bodyRef = React.useRef(null);
+  const closingRef = React.useRef(false);
+
+  // onClose غالبًا بتتبعت كدالة سهمية جديدة مع كل رندر، فبنمسكها في ref ونخلي
+  // الـ effect يشتغل مرة واحدة بس عند الفتح. من غير كده الـ effect كان ممكن
+  // يعيد نفسه مع أي رندر ويخطف التركيز من الحقل اللي المستخدم بيكتب فيه.
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
 
-  React.useEffect(() => {
-    closeRef.current && closeRef.current.focus();
+  /* ---------- القفل (بحركة خروج) ---------- */
 
-    // Escape بيقفل النافذة - سلوك متوقع من أي حد بيستخدم كيبورد، وكان ناقص.
-    function onKeyDown(e) {
-      if (e.key === 'Escape') onCloseRef.current();
+  const requestClose = React.useCallback(function requestClose() {
+    if (closingRef.current) return; // اتداس مرتين بسرعة / Escape وقت ما هي بتقفل
+    closingRef.current = true;
+
+    if (prefersReducedMotion()) {
+      onCloseRef.current();
+      return;
     }
-    document.addEventListener('keydown', onKeyDown);
+    if (overlayRef.current) overlayRef.current.classList.add('is-closing');
+    setTimeout(() => onCloseRef.current(), MODAL_EXIT_MS);
+  }, []);
+
+  /* ---------- التركيز: الدخول، الحبس، والرجوع ---------- */
+
+  React.useEffect(() => {
+    // مين كان مركّز قبل ما النافذة تفتح - عشان نرجّعله التركيز لما تتقفل
+    const returnTo = document.activeElement;
+
+    /* التركيز بيروح للنافذة نفسها مش لزرار الإغلاق: قارئ الشاشة بيقرا وقتها
+       عنوان النافذة والسطر اللي بيشرحها (aria-labelledby/describedby) بدل ما
+       يقول "إغلاق" وخلاص، والـ Tab بعدها بينزل لأول حقل عادي. */
+    if (sheetRef.current) sheetRef.current.focus();
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        requestClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !sheetRef.current) return;
+
+      // حبس التركيز: من آخر عنصر بيلف لأول واحد، ومن أول واحد بـ Shift+Tab
+      // بيرجع لآخر واحد - فمستخدم الكيبورد ميضيعش في الصفحة اللي ورا النافذة.
+      const items = Array.prototype.filter.call(
+        sheetRef.current.querySelectorAll(MODAL_FOCUSABLE),
+        (el) => el.offsetWidth > 0 || el.offsetHeight > 0
+      );
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey && (active === first || active === sheetRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKeyDown, true);
 
     // منع سكرول الصفحة اللي ورا النافذة وهي مفتوحة - من غير كده الموبايل
     // بيسكرول الصفحة اللي تحت لما السكرول جوه النافذة يخلص.
@@ -115,30 +226,198 @@ function Modal({ title, onClose, children }) {
     document.body.style.overflow = 'hidden';
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
       document.body.style.overflow = previousOverflow;
+      // شرط focus موجود: العنصر ممكن يكون اتشال من الصفحة وإحنا مفتوحين
+      if (returnTo && typeof returnTo.focus === 'function' && document.contains(returnTo)) {
+        returnTo.focus();
+      }
     };
+  }, [requestClose]);
+
+  /* ---------- ظلال الهيدر والفوتر حسب مكان السكرول ---------- */
+
+  const [edges, setEdges] = React.useState({ top: true, bottom: true });
+
+  const syncEdges = React.useCallback(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const atTop = el.scrollTop <= 1;
+    // الـ 2 بيكسل دي هامش أمان: القسمة على شاشات فيها device pixel ratio كسري
+    // بتخلي المجموع يقف على 0.5 بيكسل من الآخر فمبيوصلش للتساوي أبدًا
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    setEdges((prev) => (prev.top === atTop && prev.bottom === atBottom ? prev : { top: atTop, bottom: atBottom }));
   }, []);
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  /* من غير مصفوفة اعتماديات: بيتقاس بعد كل رسم.
+     محتوى النافذة بيكبر ويصغر وهي مفتوحة (إضافة ميعاد جرعة، ظهور رسالة خطأ،
+     تبديل نوع القياس لواحد بحقلين) - وكل تغيير من دول بيعدي من رندر هنا.
+     القياس نفسه تلات قراءات أرقام من العنصر، وsetEdges بيرجع نفس الكائن لو
+     مفيش تغيير، فمفيش رسم زيادة ولا دورة لا نهائية. */
+  React.useLayoutEffect(syncEdges);
+
+  React.useLayoutEffect(() => {
+    /* الرسم مش الحالة الوحيدة اللي بتغيّر الحواف: كيبورد الموبايل لما يطلع
+       بيقصّر النافذة من غير ما أي حاجة في React تتغيّر، وكذلك تدوير الشاشة. */
+    if (typeof ResizeObserver === 'undefined' || !bodyRef.current) return;
+    const ro = new ResizeObserver(syncEdges);
+    ro.observe(bodyRef.current);
+    return () => ro.disconnect();
+  }, [syncEdges]);
+
+  /* ---------- السحب لتحت عشان تتقفل (لمس بس، وفي وضع الشيت بس) ---------- */
+
+  const drag = React.useRef({ active: false, startY: 0, dy: 0, startedAt: 0 });
+
+  function isSheetMode() {
+    return Boolean(window.matchMedia && window.matchMedia('(max-width: 639px)').matches);
+  }
+
+  function onDragStart(e) {
+    if (closingRef.current || !isSheetMode() || e.touches.length !== 1) return;
+    drag.current = { active: true, startY: e.touches[0].clientY, dy: 0, startedAt: Date.now() };
+    if (sheetRef.current) sheetRef.current.style.transition = 'none';
+  }
+
+  function onDragMove(e) {
+    const d = drag.current;
+    if (!d.active) return;
+    // لتحت بس: السحب لفوق مش بيعمل حاجة (النافذة أصلاً واصلة لآخر الشاشة)
+    const dy = Math.max(0, e.touches[0].clientY - d.startY);
+    d.dy = dy;
+    if (!sheetRef.current || !overlayRef.current) return;
+    // بنكتب على الـ DOM مباشرة مش عن طريق state: الحركة دي بتحصل مع كل إطار
+    // وهي الإصبع ماشية، وأي setState هنا معناه إعادة رسم كاملة 60 مرة في الثانية.
+    sheetRef.current.style.transform = `translate3d(0, ${dy}px, 0)`;
+    // الخلفية بتفتح تدريجيًا مع السحب - المستخدم بيشوف إن هو "بيقفل" فعلًا
+    overlayRef.current.style.setProperty('--drag-fade', String(Math.max(0.25, 1 - dy / 380)));
+  }
+
+  function onDragEnd() {
+    const d = drag.current;
+    if (!d.active) return;
+    d.active = false;
+
+    const velocity = d.dy / Math.max(1, Date.now() - d.startedAt);
+    const shouldClose = d.dy > MODAL_DRAG_CLOSE_PX || velocity > MODAL_DRAG_CLOSE_VELOCITY;
+
+    if (!shouldClose) {
+      // رجوع لمكانه: بنشيل الـ inline styles فالانتقال المعرّف في الـ CSS بيشتغل
+      if (sheetRef.current) {
+        sheetRef.current.style.transition = '';
+        sheetRef.current.style.transform = '';
+      }
+      if (overlayRef.current) overlayRef.current.style.removeProperty('--drag-fade');
+      return;
+    }
+
+    if (closingRef.current) return;
+    closingRef.current = true;
+
+    /* الخروج هنا مش بحركة الـ CSS العادية: الشيت واقف دلوقتي عند نقطة إصبع
+       المستخدم، ولو سيبنا الـ keyframe يشتغل هيقفز لأول الشاشة قبل ما ينزل.
+       فبنكمّل من مكانه الحالي بانتقال inline، والـ data-drag بيوقف الـ keyframe. */
+    if (overlayRef.current) {
+      overlayRef.current.setAttribute('data-drag', 'out');
+      overlayRef.current.classList.add('is-closing');
+    }
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = `transform ${MODAL_EXIT_MS}ms cubic-bezier(0.32, 0, 0.67, 0)`;
+      sheetRef.current.style.transform = 'translate3d(0, 100%, 0)';
+    }
+    setTimeout(() => onCloseRef.current(), MODAL_EXIT_MS);
+  }
+
+  /* ---------- الضغط على الخلفية ---------- */
+
+  // بنسجّل مكان بداية الضغطة: من غير كده، لو المستخدم بدأ يعلّم على نص جوه
+  // النافذة وسحب إيده لبرّه، الـ click كان بيتحسب على الخلفية والنافذة تتقفل
+  // وهو بيحاول ينسخ حاجة.
+  const pressStartedOnOverlay = React.useRef(false);
+
+  function onOverlayPointerDown(e) {
+    pressStartedOnOverlay.current = e.target === e.currentTarget;
+  }
+
+  function onOverlayClick(e) {
+    if (e.target === e.currentTarget && pressStartedOnOverlay.current) requestClose();
+  }
+
+  const Shell = onSubmit ? 'form' : 'div';
+  const shellProps = { className: 'modal-shell' };
+  if (onSubmit) shellProps.onSubmit = onSubmit;
+
+  const node = (
+    <div
+      className="modal-overlay"
+      ref={overlayRef}
+      onMouseDown={onOverlayPointerDown}
+      onTouchStart={onOverlayPointerDown}
+      onClick={onOverlayClick}
+    >
       <div
         className="modal"
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
+        aria-describedby={subtitle ? descId : undefined}
+        tabIndex={-1}
+        data-at-top={edges.top ? 'true' : 'false'}
+        data-at-bottom={edges.bottom ? 'true' : 'false'}
       >
-        <div className="modal-header">
-          <h3 id={titleId}>{title}</h3>
-          <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="إغلاق">
-            ×
-          </button>
+        {/* شريط تدرّج الهوية على حرف النافذة العلوي */}
+        <span className="modal-accent" aria-hidden="true" />
+
+        {/* منطقة المسك: المقبض + الهيدر. السحب من هنا بس - مش من جسم الفورم،
+            عشان محدش يقفل النافذة وهو بيحاول يسكرول الحقول اللي جواها. */}
+        <div
+          className="modal-grab"
+          onTouchStart={onDragStart}
+          onTouchMove={onDragMove}
+          onTouchEnd={onDragEnd}
+          onTouchCancel={onDragEnd}
+        >
+          <span className="modal-grip" aria-hidden="true" />
+
+          <div className="modal-header">
+            {icon && (
+              <span className={`icon-chip icon-chip-sm modal-icon tone-${tone}`} aria-hidden="true">
+                <Icon name={icon} size={22} />
+              </span>
+            )}
+            <div className="modal-heading">
+              <h3 className="modal-title" id={titleId}>
+                {title}
+              </h3>
+              {subtitle && (
+                <p className="modal-subtitle" id={descId}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            <button type="button" className="modal-close" onClick={requestClose} aria-label="إغلاق">
+              <Icon name="close" size={21} strokeWidth={2.2} />
+            </button>
+          </div>
         </div>
-        <div className="modal-body">{children}</div>
+
+        <Shell {...shellProps}>
+          <div className="modal-body" ref={bodyRef} onScroll={syncEdges}>
+            {children}
+          </div>
+          {footer && (
+            <div className="modal-footer">
+              {typeof footer === 'function' ? footer(requestClose) : footer}
+            </div>
+          )}
+        </Shell>
       </div>
     </div>
   );
+
+  // برّه شجرة الشاشة خالص - شوف السبب في تعليق المكوّن فوق
+  return ReactDOM.createPortal(node, document.body);
 }
 
 function formatTime(dateStr) {

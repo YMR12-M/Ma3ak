@@ -149,7 +149,24 @@ function ShareLinkModal({ patient, onClose }) {
   }
 
   return (
-    <Modal title={`لينك دخول ${patient.name}`} onClose={onClose}>
+    <Modal
+      icon="link"
+      tone="primary"
+      title={`لينك دخول ${patient.name}`}
+      subtitle="لينك واحد بيدخّل المريض على طول - من غير تسجيل ولا باسورد"
+      onClose={onClose}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close}>
+            تم
+          </Button>
+          <Button onClick={copyLink} variant={copied ? 'accent' : 'primary'}>
+            <Icon name={copied ? 'checkCircle' : 'copy'} size={19} />
+            {copied ? 'اتنسخ' : 'نسخ اللينك'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <p>
         ابعت اللينك ده لـ <strong>{patient.name}</strong> على واتساب أو أي رسالة. أول ما يدوس
         عليه هيدخل على طول جوه التطبيق، وهيلاقي كل حاجة انت جهزتهاله - من غير ما يعمل تسجيل أو
@@ -159,10 +176,6 @@ function ShareLinkModal({ patient, onClose }) {
         <a className="share-link-text" href={link} target="_blank" rel="noopener noreferrer">
           {link}
         </a>
-        <Button onClick={copyLink}>
-          <Icon name={copied ? 'checkCircle' : 'copy'} size={19} />
-          {copied ? 'اتنسخ' : 'نسخ اللينك'}
-        </Button>
         {copyFailed && (
           <p className="copy-hint">
             معرفناش ننسخه تلقائيًا (بيحصل لو بتفتح التطبيق بعنوان مش localhost). دوس مطوّل على
@@ -195,19 +208,37 @@ function AddPatientForm({ onClose, onCreated }) {
   }
 
   return (
-    <Modal title="إضافة مريض جديد" onClose={onClose}>
+    <Modal
+      icon="users"
+      tone="primary"
+      title="إضافة مريض جديد"
+      subtitle="هتاخد لينك دخول تبعتهوله، ويفتحه يلاقي كل حاجة جاهزة"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? 'جاري الإضافة...' : 'إضافة المريض'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <Banner onClose={() => setError('')}>{error}</Banner>
-      <form onSubmit={handleSubmit}>
-        <Field label="اسم المريض">
-          <input required value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label="رقم موبايل المريض (اختياري)">
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01xxxxxxxxx" />
-        </Field>
-        <Button type="submit" loading={saving}>
-          {saving ? 'جاري الإضافة...' : 'إضافة'}
-        </Button>
-      </form>
+      <Field label="اسم المريض">
+        <input required value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Field label="رقم موبايل المريض (اختياري)">
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="01xxxxxxxxx"
+        />
+      </Field>
     </Modal>
   );
 }
@@ -232,22 +263,35 @@ function JoinPatientForm({ onClose, onJoined }) {
   }
 
   return (
-    <Modal title="الانضمام كمتابع لمريض موجود" onClose={onClose}>
-      <p>اطلب كود المشاركة من المتابع اللي ضاف المريض، هتلاقيه تحت كارت المريض.</p>
+    <Modal
+      icon="link"
+      tone="accent"
+      title="الانضمام كمتابع لمريض موجود"
+      subtitle="اطلب كود المشاركة من المتابع اللي ضاف المريض"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={saving}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={saving}>
+            {saving ? 'جاري الانضمام...' : 'انضمام'}
+          </Button>
+        </React.Fragment>
+      )}
+    >
       <Banner onClose={() => setError('')}>{error}</Banner>
-      <form onSubmit={handleSubmit}>
-        <Field label="كود المشاركة">
-          <input
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="مثال: A1B2C3"
-          />
-        </Field>
-        <Button type="submit" loading={saving}>
-          {saving ? 'جاري الانضمام...' : 'انضمام'}
-        </Button>
-      </form>
+      <Field label="كود المشاركة">
+        <input
+          required
+         
+          className="code-input"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="مثال: A1B2C3"
+        />
+      </Field>
     </Modal>
   );
 }

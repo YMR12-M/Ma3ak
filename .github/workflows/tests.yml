@@ -52,3 +52,21 @@ jobs:
       - name: تشغيل كل الاختبارات (باك إند + فرونت إند)
         run: npm run test:all
         working-directory: backend
+
+      # مخرجات frontend/dist/ متسجّلة في git عشان `npm start` يشتغل على أي نسخة
+      # من الريبو من غير خطوة بناء. الخطوة دي بتتأكد إن اللي متسجّل فعلاً هو ناتج
+      # المصدر الحالي - يعني محدش عدّل في js/ أو css/ ونسي يشغّل npm run build.
+      - name: التأكد إن ناتج البناء محدّث
+        run: npm run build
+        working-directory: backend
+
+      - name: فحص فرق ناتج البناء
+        run: |
+          # --porcelain مش git diff: بيمسك الملفات الجديدة اللي البناء طلّعها ومتسجّلتش
+          # كمان، مش بس التعديلات على ملفات موجودة
+          CHANGED=$(git status --porcelain -- frontend/dist)
+          if [ -n "$CHANGED" ]; then
+            echo "::error::frontend/dist مش متطابق مع المصدر - شغّل 'npm run build' من مجلد backend وسجّل الناتج"
+            echo "$CHANGED"
+            exit 1
+          fi
