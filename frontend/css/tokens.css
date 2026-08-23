@@ -62,6 +62,19 @@
   --color-primary-ink: var(--primary-700);
   --color-on-primary: #ffffff;
 
+  /* ---------- شريط التنقّل السفلي ----------
+     الشريط لوح داكن في الوضعين مش سطح فاتح - عشان يقرا كـ "أرضية ثابتة"
+     للتطبيق مهما كان لون الشاشة اللي بتعدّي من تحته، وعشان الدايرة الفاتحة
+     اللي بتطلع منه تبان مقطوعة من جسمه فعلًا. عشان كده قيمه مكتوبة صراحة
+     هنا ومش مشتقّة من --primary-*: التدرّج ده بينقلب في الوضع الداكن
+     (بيفتح) والشريط لازم يعمل العكس - يغمق أكتر. */
+  --nav-base-1: #2a7264;
+  --nav-base-2: #235c51;
+  --nav-base-3: #1b5762;
+  --nav-knob-1: #ffffff;
+  --nav-knob-2: #e7f3ef;
+  --nav-knob-ink: #1f5f53;
+
   /* ---------- الظلال ----------
      كل ظل هنا مركّب من أكتر من طبقة، مش طبقة واحدة. الفكرة مأخوذة من طريقة وقوع
      الضوء الحقيقي: طبقة ملتصقة قوية وضيقة جدًا (خط التلامس مع السطح)، وطبقة
@@ -128,6 +141,15 @@
     --color-primary-hover: #46a08e;
     --color-primary-ink: #8fd8c9;
     --color-on-primary: #ffffff;
+
+    /* الشريط بيغمق لحد ما يقرب من أسود مخضرّ، والدايرة بتقلب لنعناعي فاتح
+       بحبر داكن - نفس التباين العالي بالظبط بس مقلوب */
+    --nav-base-1: #27332f;
+    --nav-base-2: #1e2b29;
+    --nav-base-3: #18272a;
+    --nav-knob-1: #a9e5d7;
+    --nav-knob-2: #7fcdbd;
+    --nav-knob-ink: #0d2a25;
 
     --color-bg: #101615;
     --color-bg-tint: #141c1a;
@@ -204,6 +226,13 @@
   --color-primary-ink: #8fd8c9;
   --color-on-primary: #ffffff;
 
+  --nav-base-1: #27332f;
+  --nav-base-2: #1e2b29;
+  --nav-base-3: #18272a;
+  --nav-knob-1: #a9e5d7;
+  --nav-knob-2: #7fcdbd;
+  --nav-knob-ink: #0d2a25;
+
   --color-bg: #101615;
   --color-bg-tint: #141c1a;
   --color-surface: #1b2220;
@@ -276,6 +305,15 @@
   --grad-accent: linear-gradient(135deg, var(--accent-300) 0%, var(--accent-500) 70%, var(--accent-600) 100%);
   --grad-danger: linear-gradient(135deg, #d4574f 0%, var(--danger-600) 100%);
   --grad-surface: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-tint) 100%);
+
+  /* شريط التنقّل: اللوح الداكن + الدايرة النشطة. الحبر أبيض في الوضعين لأن
+     اللوح داكن في الوضعين - 78% مش 100% عشان التاب النشط يفضل هو الأوضح،
+     ولسه فوق حد التباين المطلوب (5.3:1 على أغمق نقطة في التدرّج). */
+  --nav-surface: linear-gradient(150deg, var(--nav-base-1) 0%, var(--nav-base-2) 46%, var(--nav-base-3) 100%);
+  --nav-knob: linear-gradient(180deg, var(--nav-knob-1) 0%, var(--nav-knob-2) 100%);
+  --nav-ink: rgba(255, 255, 255, 0.78);
+  --nav-ink-strong: #ffffff;
+  --nav-hover: rgba(255, 255, 255, 0.11);
 
   /* لمعة زجاجية بتتحط فوق الأسطح المرتفعة (كارت الجرعة، الزرار الكبير) -
      ضوء خافت جاي من فوق الشمال وبيختفي في النص */

@@ -10,10 +10,14 @@
 
    الملف ده بينقل الترجمة دي لوقت البناء بدل وقت التشغيل:
      dist/vendor.js  = React + ReactDOM (مستضافين عندنا مش من CDN خارجي)
-     dist/app.js     = كل ملفات js/ متُرجمة ومدموجة ومصغّرة في ملف واحد
-     dist/app.css    = كل ملفات css/ مدموجة ومصغّرة في ملف واحد
+     dist/app.js     = كل ملفات js/ متُرجمة من JSX ومدموجة في ملف واحد
+     dist/app.css    = كل ملفات css/ مدموجة في ملف واحد
 
    يعني المتصفح بينزّل 3 ملفات من نفس السيرفر بدل 26 ملف + مترجم، وبيرسم على طول.
+
+   المخرجات مقروءة مش مصغّرة في سطر واحد - قرار مقصود: الملفات دي بتتفتح فعلاً
+   وقت تتبّع مشكلة في المتصفح وبتتراجع في فروقات git، والضغط (gzip من
+   compression() في backend/server.js) بيرجّع أغلب الفرق على السلك.
 
    التشغيل:  npm run build          (من مجلد backend)
              npm run build:watch    (بيعيد البناء مع كل تعديل)
@@ -101,12 +105,17 @@ function kb(text) {
 
 async function buildCss() {
   const source = CSS_FILES.map((f) => `/* ===== ${f} ===== */\n${read(f)}`).join('\n');
-  const { code } = await esbuild.transform(source, {
-    loader: 'css',
-    minify: true,
-    charset: 'utf8',
-  });
-  const out = BANNER + code;
+
+  /* الناتج هنا هو الملفات متلزّقة ورا بعض بالنص بتاعها زي ما هو - مش مخرّج من
+     esbuild. السبب: أي حاجة بتعيد طباعة الـ CSS بترمي التعليقات، وتعليقات
+     css/ هي نص التوثيق بتاع التصميم كله. الدمج بالنص بيوصّلها للناتج كاملة.
+
+     بس ده معناه إن غلطة صيغة في أي ملف مصدر مكانتش هتتمسك غير في المتصفح،
+     فبنعدّي النص على esbuild كخطوة فحص ونرمي ناتجها: لو فيه غلطة بترمي
+     استثناء والبناء بيقف، ولو سليم بنكتب النص الأصلي. */
+  await esbuild.transform(source, { loader: 'css', charset: 'utf8' });
+
+  const out = BANNER + source;
   fs.writeFileSync(path.join(DIST, 'app.css'), out);
   return { name: 'app.css', before: source, after: out };
 }
@@ -119,44 +128,77 @@ async function buildJs() {
       charset: 'utf8',
       sourcefile: file,
     });
-    parts.push(`/* ===== ${file} ===== */\n${code}`);
+    /* علامة التعجب في /*! مش زينة: esbuild بيرمي كل التعليقات وهو بيعيد طباعة
+       الكود، ما عدا "التعليقات القانونية" (اللي بتبدأ بـ /*! أو فيها @license).
+       الفواصل دي هي الدليل الوحيد جوه ملف الـ 120 كيلو على إن السطر ده جاي
+       منين، فبنكتبها بالشكل ده عشان توصل للناتج. */
+    parts.push(`/*! ===== ${file} ===== */\n${code}`);
   }
 
-  /* الملفات كانت بتتحمّل كوسوم <script> منفصلة، يعني كل تعريفاتها كانت بتعيش في
-     النطاق العام. بعد الدمج بنلفّها في دالة تنفّذ نفسها: نفس السلوك بالظبط بالنسبة
-     للكود (كله بيشوف بعضه)، بس من غير ما نلوّث window، وبيسمح للمصغّر إنه يقصّر
-     أسماء الدوال والمتغيرات - وده اللي بيوفّر أكبر نسبة من الحجم. */
-  const wrapped = `(function () {\n${parts.join('\n')}\n})();\n`;
+  const merged = parts.join('\n\n') + '\n';
 
-  const { code } = await esbuild.transform(wrapped, {
+  const { code } = await esbuild.transform(merged, {
     loader: 'js',
-    minify: true,
     charset: 'utf8',
+
+    /* الناتج مقروء مش مصغّر (سطر واحد). الكود ده بيتقرا ويتراجع فعلاً - في
+       المتصفح وقت تتبّع مشكلة، وفي مراجعة الفروقات في git - فقابلية القراية
+       أهم من الكيلوبايتات اللي التصغير بيوفّرها، خصوصًا إن الردود كلها
+       بتتضغط gzip من compression() في backend/server.js أصلاً. */
+    minify: false,
+    /* بيخلي فواصل /*! اللي فوق توصل للناتج بدل ما تتشال مع باقي التعليقات */
+    legalComments: 'inline',
+
     /* es2017 مش أحدث: بيغطي أي متصفح من 2017 وطالع (كروم 55+، سفاري 11+).
        جمهور التطبيق كبار السن، ونسبة معتبرة منهم على أجهزة أندرويد قديمة. */
     target: 'es2017',
-    legalComments: 'none',
+
+    /* الملفات كانت بتتحمّل كوسوم <script> منفصلة، يعني كل تعريفاتها كانت بتعيش
+       في النطاق العام. بعد الدمج بنلفّها في دالة تنفّذ نفسها: نفس السلوك بالظبط
+       بالنسبة للكود (كله بيشوف بعضه)، بس من غير ما نلوّث window.
+
+       التغليف ده لازم يبقى من esbuild نفسه (format) مش بإننا نلف النص بإيدينا
+       قبل ما نبعته: مع target قديم زي es2017، esbuild بيترجم حاجات زي نشر
+       الكائنات ({ ...x }, وهي ES2018) لدوال مساعدة بيحطها في *أول الناتج* -
+       يعني برا أي قوس إحنا كتبناه في المدخلات. النسخة اللي كانت بتلف بالإيد
+       كانت بتطلّع 10 متغيرات بأسماء مقصوصة (kt, wt, $e...) على window فعلًا،
+       وأي حاجة تانية في الصفحة بنفس الاسم كانت هتدهس واحدة منهم. */
+    format: 'iife',
   });
 
   const out = BANNER + code;
   fs.writeFileSync(path.join(DIST, 'app.js'), out);
-  return { name: 'app.js', before: wrapped, after: out };
+  return { name: 'app.js', before: merged, after: out };
 }
 
-function buildVendor() {
+async function buildVendor() {
   const source = VENDOR_FILES.map(([pkg, rel]) =>
     fs.readFileSync(resolveInPackage(pkg, rel), 'utf8')
   ).join('\n;\n');
-  // مصغّرة أصلاً من React نفسها - إعادة تصغيرها مكسب صفر ومخاطرة بلا داعي
-  fs.writeFileSync(path.join(DIST, 'vendor.js'), source);
-  return { name: 'vendor.js', before: source, after: source };
+
+  /* الملفات دي بتتشحن من React مصغّرة أصلاً (react.production.min.js)، فبنعيد
+     طباعتها مفرودة عشان تبقى مقروءة زي باقي ملفات dist/.
+
+     مهم: دي نسخة الإنتاج مفرودة، مش نسخة التطوير (react.development.js).
+     نسخة التطوير حاجة تانية خالص - فيها فحوصات وتحذيرات بتخلي React أبطأ
+     بكتير، وممنوع تروح للمستخدمين. الفرد بيغيّر شكل النص بس، مش سلوكه:
+     الأسماء بتفضل مقصوصة زي ما React سلّمتها لأن التصغير حصل قبل ما توصلنا. */
+  const { code } = await esbuild.transform(source, {
+    loader: 'js',
+    minify: false,
+    charset: 'utf8',
+    legalComments: 'inline', // رخصة React نفسها لازم تفضل في الملف
+  });
+
+  fs.writeFileSync(path.join(DIST, 'vendor.js'), code);
+  return { name: 'vendor.js', before: source, after: code };
 }
 
 async function build() {
   const started = Date.now();
   fs.mkdirSync(DIST, { recursive: true });
 
-  const results = [buildVendor(), await buildCss(), await buildJs()];
+  const results = [await buildVendor(), await buildCss(), await buildJs()];
 
   console.log(`\n📦 اتبنت الواجهة في ${Date.now() - started}ms\n`);
   for (const r of results) {
