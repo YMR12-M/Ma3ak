@@ -409,8 +409,31 @@
 }
 
 /* ============================================
-   شريط التابات السفلي - كبسولة زجاجية عايمة فوق المحتوى
+   شريط التابات السفلي - لوح داكن عايم + دايرة نشطة بتزحف
+   ============================================
+
+   الفكرة: الشريط لوح واحد داكن بلون الهوية، والتاب النشط بيطلع منه لفوق جوه
+   دايرة فاتحة "مقطوعة" من جسم الشريط نفسه - يعني الدايرة مش قاعدة فوق الشريط،
+   الشريط هو اللي متفتح حواليها. القطع ده فتحة حقيقية (mask) مش دايرة بلون
+   الخلفية مرسومة فوقه، عشان المحتوى اللي ماشي تحت الشريط يبان من خلالها زي ما
+   هو - أي حل بيرسم لون ثابت مكان الفتحة بيتفضح أول ما المستخدم يعمل سكرول.
+
+   الحركة كلها متعلّقة بمتغيّر واحد: --tab-active (رقم التاب النشط). الجافاسكريبت
+   بيكتب الرقم ده وخلاص - لا بيقيس عناصر ولا بيحسب مواضع. مكان الدايرة ومكان
+   الفتحة الاتنين محسوبين من نفس الرقم، فلما يتحرك بـ transition الاتنين بيمشوا
+   مع بعض بالظبط ومستحيل يتفكّوا عن بعض.
+
+   عشان الرقم ده يبقى قابل للتحريك أصلًا لازم يبقى متسجّل بـ @property - المتغيّر
+   العادي في CSS بيتبدّل قفزة واحدة. المتصفح القديم اللي مش فاهم @property
+   بيتجاهل التسجيل، فالدايرة بتقفّط لمكانها فورًا من غير زحف - نفس التصميم
+   بالظبط، الحركة بس هي اللي بتروح.
    ============================================ */
+
+@property --tab-active {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
 
 .tab-bar {
   position: fixed;
@@ -419,6 +442,9 @@
   z-index: var(--z-tabbar);
   display: flex;
   justify-content: center;
+  /* الدايرة بتطلع برا حدود الشريط، فالمساحة اللي الـ nav ماخدها أوسع من اللوح
+     نفسه - من غير السطر ده الفراغ اللي حوالين الدايرة بيبلع ضغطات المحتوى */
+  pointer-events: none;
   animation: fade-up var(--dur-4) var(--ease-out) backwards;
 }
 
@@ -428,19 +454,80 @@
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
-  padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
-  /* زجاج مصنفر: محتوى الصفحة بيبان خافت من تحت الشريط */
-  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid color-mix(in srgb, var(--color-surface) 70%, transparent);
+  padding: 12px 6px calc(12px + env(safe-area-inset-bottom, 0px));
+  pointer-events: auto;
+
+  /* ---------- هندسة الدايرة ----------
+     الأيقونة في وضعها العادي مركزها على بعد 34px من حرف الشريط العلوي
+     (12px حشوة + 4px حشوة التاب + 18px نص مربع الأيقونة). التاب النشط بيرفعها
+     30px، يبقى مركزها بيستقر على 4px = --knob-y. الدايرة والفتحة الاتنين
+     متمركزين على نفس النقطة، فالأيقونة بتقع في نص الدايرة بالظبط. */
+  --knob-size: 60px;
+  --knob-lift: 30px;
+  --knob-y: 4px;
+  /* الفتحة أوسع من الدايرة بـ 6px من كل ناحية. الفرق ده هو الحلقة اللي بيبان
+     منها اللي ورا الشريط - وهي اللي بتخلي الدايرة تُقرا كإنها مقطوعة منه */
+  --knob-cut: calc(var(--knob-size) / 2 + 6px);
+
+  /* موضع مركز التاب النشط بالنسبة لعرض الشريط. كل التابات بعرض واحد (flex: 1)،
+     فالمركز = (رقم التاب + نص) × عرض التاب الواحد. */
+  --knob-x: calc((var(--tab-active) + 0.5) * 100% / var(--tab-count, 5));
+  --knob-cut-x: var(--knob-x);
+
+  transition: --tab-active var(--dur-3) var(--ease-emphasized);
+}
+
+/* الـ mask بيتحسب بالاتجاه الفيزيائي (من الشمال دايمًا) مش باتجاه القراية،
+   فلازم نقلب موضع الفتحة بنفسنا في الواجهة العربية. الدايرة نفسها متظبطة
+   بـ inset-inline-start فبتتقلب لوحدها. */
+[dir='rtl'] .tab-bar-inner {
+  --knob-cut-x: calc(100% - var(--knob-x));
+}
+
+/* سطح الشريط طبقة لوحدها تحت التابات - عشان الفتحة تتقص من اللوح بس، من غير
+   ما تقص الأيقونات والكلام اللي فوقه */
+.tab-surface {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* الظل هنا بـ drop-shadow مش box-shadow عمدًا: الـ box-shadow بيترسم على شكل
+     المستطيل الكامل، يعني كان هيفضل مرسوم تحت الفتحة ويفضحها. الـ drop-shadow
+     بيمشي على شكل العنصر بعد القص فالفتحة بتبان مفتوحة فعلًا.
+     والفلتر مركّب على العنصر الأب مش على نفس العنصر اللي عليه الـ mask، لأن
+     الفلتر بيتنفّذ قبل القص - فلو اتحطوا على بعض هيرجع يرسم الظل المستطيل. */
+  filter:
+    drop-shadow(0 2px 4px rgba(20, 30, 28, 0.18))
+    drop-shadow(0 12px 26px rgba(20, 30, 28, 0.22));
+}
+
+.tab-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   border-radius: var(--radius-lg);
-  box-shadow:
-    var(--shadow-inset-top),
-    0 2px 6px rgba(20, 30, 28, 0.08),
-    0 14px 30px rgba(20, 30, 28, 0.16),
-    0 30px 60px rgba(20, 30, 28, 0.12);
-  overflow: hidden; /* شبكة أمان: أي عنصر جوه بيحاول يكبر عن حجمه بيتقص هنا بدل ما يطفح برا الكارت المدوّر */
+  background: var(--nav-surface);
+  box-shadow: var(--shadow-inset-top);
+  /* التدرّج ده كله معتم ما عدا دايرة الفتحة. no-repeat مهمة: من غيرها المتصفح
+     بيكرّر الصورة برا حدود العنصر وبتظهر فتحات وهمية في الظل. */
+  -webkit-mask-image: radial-gradient(circle var(--knob-cut) at var(--knob-cut-x) var(--knob-y), transparent 0 97%, #000 100%);
+  mask-image: radial-gradient(circle var(--knob-cut) at var(--knob-cut-x) var(--knob-y), transparent 0 97%, #000 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* الدايرة اللي التاب النشط بيقعد فيها. مش عنصر جوه التاب - عنصر واحد بيزحف
+   بين التابات، وده اللي بيدّي الإحساس إنها حاجة واحدة بتتنقّل مش دايرة بتظهر
+   وتختفي في كل تاب. */
+.tab-knob {
+  position: absolute;
+  top: calc(var(--knob-y) - var(--knob-size) / 2);
+  inset-inline-start: calc(var(--knob-x) - var(--knob-size) / 2);
+  width: var(--knob-size);
+  height: var(--knob-size);
+  border-radius: 50%;
+  background: var(--nav-knob);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
 }
 
 .tab-bar-item {
@@ -450,14 +537,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-height: 64px;
-  padding: 8px 1px;
+  gap: 2px;
+  min-height: 60px;
+  padding: 4px 1px 0;
   border: none;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--nav-ink);
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -478,13 +564,16 @@
   width: 36px;
   height: 36px;
   overflow: visible;
+  /* الطلوع لجوه الدايرة. الـ spring هنا مقصود: الأيقونة بتعلى شوية عن مكانها
+     وترجع تستقر - الحركة دي هي اللي بتخلي التنقّل يبان "مدفوع" مش منزلق. */
+  transition:
+    transform var(--dur-3) var(--ease-spring),
+    color var(--dur-2) var(--ease-out);
 }
 
 .tab-icon {
-  font-size: var(--font-size-md);
   line-height: 1;
   display: inline-block;
-  transition: transform var(--dur-3) var(--ease-spring);
 }
 
 .tab-label {
@@ -493,60 +582,47 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: font-weight var(--dur-2) var(--ease-out);
+  color: inherit;
+  transition: color var(--dur-2) var(--ease-out);
 }
 
-/* التاب النشط بياخد كارت ملوّن كامل - أوضح للعين من دايرة صغيرة حوالين الأيقونة */
+/* التاب النشط: الأيقونة بتطلع تقعد في الدايرة، والكلمة تحتها بتتقّل وتبيض.
+   الكلمة فاضلة ظاهرة في كل التابات مش النشط بس (على عكس التصميم الأصلي اللي
+   بياخد منه الشكل ده) - جمهور التطبيق كبار السن، وأيقونة من غير كلمة تحتها
+   بتتحوّل لتخمين. الوضوح هنا مقدّم على النضافة البصرية. */
 .tab-bar-item.active {
-  color: var(--color-primary-ink);
-  background: linear-gradient(
-    180deg,
-    var(--color-primary-light) 0%,
-    color-mix(in srgb, var(--color-primary) 15%, var(--color-primary-light)) 100%
-  );
-  box-shadow: var(--shadow-inset-top), 0 2px 8px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--nav-ink-strong);
 }
 
-.tab-bar-item.active .tab-icon {
-  transform: scale(1.14) translateY(-1px);
-  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--color-primary) 40%, transparent));
+.tab-bar-item.active .tab-icon-wrap {
+  transform: translateY(calc(var(--knob-lift) * -1));
+  color: var(--nav-knob-ink);
 }
 
 .tab-bar-item.active .tab-label {
   font-weight: 800;
 }
 
-/* نقطة صغيرة تحت التاب النشط - تلميح إضافي بسيط زي واجهات الموبايل المألوفة */
-.tab-dot {
-  display: none;
-}
-
-.tab-bar-item.active .tab-dot {
-  display: block;
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 60%, transparent);
-  animation: tab-dot-in var(--dur-3) var(--ease-spring) backwards;
-}
-
-@keyframes tab-dot-in {
-  from { opacity: 0; transform: translate(-50%, 6px) scale(0.4); }
-  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
-}
-
 @media (hover: hover) {
   .tab-bar-item:not(.active):hover {
-    color: var(--color-text);
-    background: var(--color-surface-alt);
+    color: var(--nav-ink-strong);
+    background: var(--nav-hover);
   }
 
-  .tab-bar-item:not(.active):hover .tab-icon {
-    transform: translateY(-2px);
+  .tab-bar-item:not(.active):hover .tab-icon-wrap {
+    transform: translateY(-3px);
+  }
+}
+
+/* على الموبايل الضيق التاب الواحد بيبقى عرضه ~50px، والدايرة بحجمها الأصلي
+   كانت هتوصل لأيقونة التاب اللي جنبه. بنصغّرها درجة - ولازم --knob-y يتعدّل
+   معاها بنفس المقدار عشان مركز الدايرة يفضل مطابق لمركز الأيقونة المرفوعة
+   (مركز الأيقونة الأصلي 34px من الحرف العلوي: 34 - 28 = 6). */
+@media (max-width: 480px) {
+  .tab-bar-inner {
+    --knob-size: 54px;
+    --knob-lift: 28px;
+    --knob-y: 6px;
   }
 }
 
@@ -702,7 +778,9 @@
 @media (max-width: 480px) {
   .app-main {
     padding: var(--space-2);
-    padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-2));
+    /* نفس المساحة المحجوزة اللي فوق مش أقل: اللي بيحدّدها هو ارتفاع الشريط
+       زائد الدايرة اللي طالعة منه، وده مبيصغرش على الموبايل */
+    padding-bottom: calc(var(--tap-min) + var(--space-5) + var(--space-3));
   }
 }
 
@@ -737,7 +815,14 @@
     animation: fade-side var(--dur-4) var(--ease-out) backwards;
   }
 
+  /* العمود الجانبي بيفضل سطح فاتح زي باقي الصفحة، مش لوح داكن زي الشريط
+     السفلي: اللوح الداكن معناه إنه "أرضية" التطبيق - في عمود كامل الارتفاع
+     جنب هيدر فاتح بيتحوّل لحيطة سودا في نص الشاشة. القواعد اللي فوق زي ما هي،
+     المتغيّرات بس هي اللي بتتبدّل - مفيش تصميم متكرّر في المكانين. */
   .tab-bar-inner {
+    --nav-ink: var(--color-text-muted);
+    --nav-ink-strong: var(--color-primary-ink);
+    --nav-hover: var(--color-surface-alt);
     flex-direction: column;
     gap: var(--space-0);
     width: 100%;
@@ -745,18 +830,36 @@
     height: 100%;
     margin: 0;
     padding: calc(var(--space-6) + var(--space-2)) var(--space-1) var(--space-3);
-    border: none;
+    overflow-y: auto;
+  }
+
+  /* مفيش دايرة نشطة ولا فتحة في العمود الجانبي - المؤشّر هنا شريط لوني على
+     حرف السطر (تحت)، وهو الأوضح في تخطيط عمودي */
+  .tab-knob {
+    display: none;
+  }
+
+  .tab-surface {
+    /* العمود ملازق حرف الشاشة فمش محتاج ظل عايم - بس حافة وخلفية زجاجية */
+    filter: none;
+  }
+
+  .tab-surface::before {
+    background: color-mix(in srgb, var(--color-surface) 74%, transparent);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
     border-inline-end: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
     border-radius: 0;
-    /* العمود الجانبي ملازق الحرف فمش محتاج ظل عايم - بس حافة وخلفية زجاجية */
     box-shadow: none;
-    overflow-y: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .tab-bar-item {
     flex: none;
     flex-direction: row;
     justify-content: flex-start;
+    align-items: center;
     gap: var(--space-1);
     min-height: 54px;
     padding: 0 var(--space-2);
@@ -798,13 +901,10 @@
     animation: rail-in var(--dur-3) var(--ease-spring) backwards;
   }
 
-  .tab-bar-item.active .tab-icon {
+  /* الأيقونة مبتطلعش لفوق هنا - مفيش دايرة تقعد فيها */
+  .tab-bar-item.active .tab-icon-wrap {
     transform: none;
-  }
-
-  /* النقطة تحت الأيقونة كانت للشريط السفلي - الشريط الجانبي بقى له مؤشّره */
-  .tab-bar-item.active .tab-dot {
-    display: none;
+    color: inherit;
   }
 
   /* مفيش شريط تحت، فالمحتوى مش محتاج المساحة المحجوزة اللي كانت تحته */

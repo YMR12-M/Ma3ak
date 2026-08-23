@@ -32,6 +32,13 @@ function AppLayout({
   const hasPatientSwitcher = user.role === 'caregiver' && patients.length > 0;
   const userInitial = (user.name || '').trim()[0] || '؟';
 
+  /* موقع التاب النشط في الشريط. لو الشاشة المفتوحة مش تاب أصلاً (indexOf = -1)
+     بنرجّع الدايرة لأول تاب بدل ما تطلع برا الشريط. */
+  const activeIndex = Math.max(
+    0,
+    tabs.findIndex((t) => t.key === view)
+  );
+
   return (
     <div className="app-shell ambient">
       <header className="app-header">
@@ -104,7 +111,17 @@ function AppLayout({
       </main>
 
       <nav className="tab-bar" aria-label="التنقل بين شاشات التطبيق">
-        <div className="tab-bar-inner">
+        {/* الرقمين دول هما كل اللي الجافاسكريبت بيقوله للشريط: كام تاب، ومين
+            النشط فيهم. مكان الدايرة الفاتحة ومكان الفتحة اللي تحتها في اللوح
+            الاتنين محسوبين من الرقمين دول في css/layout.css - مفيش أي قياس
+            عناصر ولا حساب مواضع هنا، وبالتالي مفيش حاجة تتفك مع تغيير عرض
+            الشاشة ولا مع زيادة تاب "المرضى" اللي بيبان للمتابع بس. */}
+        <div
+          className="tab-bar-inner"
+          style={{ '--tab-count': String(tabs.length), '--tab-active': String(activeIndex) }}
+        >
+          <span className="tab-surface" aria-hidden="true"></span>
+          <span className="tab-knob" aria-hidden="true"></span>
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -121,7 +138,6 @@ function AppLayout({
                 )}
               </span>
               <span className="tab-label">{t.label}</span>
-              <span className="tab-dot" aria-hidden="true"></span>
             </button>
           ))}
         </div>
