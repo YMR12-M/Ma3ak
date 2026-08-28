@@ -46,6 +46,54 @@ function FieldGroup({ label, children }) {
   );
 }
 
+/* مفتاح تشغيل/إيقاف. كان مكرر بنفس الـ 8 سطور في كل صف إعدادات، وكل نسخة
+   كان لازم تفتكر role="switch" و aria-checked و aria-label - وده بالظبط نوع
+   الحاجة اللي بتتنسى في النسخة الرابعة. دلوقتي مكان واحد. */
+function Toggle({ on, onChange, label, disabled = false }) {
+  return (
+    <button
+      type="button"
+      className={on ? 'toggle-switch on' : 'toggle-switch'}
+      onClick={onChange}
+      disabled={disabled}
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+    >
+      <span className="toggle-thumb"></span>
+    </button>
+  );
+}
+
+/* صورة الدوا. بترسم لوحدها لو فيه صورة، وبترجع null لو مفيش - فالمكان اللي
+   بينادي عليها ما يحتاجش يعرف الفرق ولا يعمل شرط.
+
+   كبار السن بيعرفوا الدوا بشكله ولونه مش باسمه العلمي، فالصورة هنا مش زينة -
+   هي المعلومة الأساسية للمستخدم اللي بيبص على 6 علب متشابهة.
+   alt فاضي عن قصد: الاسم مكتوب جنبها كنص أصلاً، فقارئ الشاشة ما يكررهوش. */
+function MedImage({ medicationId, hasImage, className = '' }) {
+  const [src, setSrc] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!hasImage || !medicationId) {
+      setSrc(null);
+      return undefined;
+    }
+    // الحارس ده بيمنع تحديث حالة مكوّن اتشال - بيحصل لما المريض يسجّل الجرعة
+    // والصورة لسه بتتحمّل
+    let alive = true;
+    getMedImage(medicationId).then((url) => {
+      if (alive) setSrc(url);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [medicationId, hasImage]);
+
+  if (!src) return null;
+  return <img className={`med-image ${className}`} src={src} alt="" />;
+}
+
 function Spinner() {
   return <div className="spinner" role="status" aria-label="جاري التحميل" />;
 }

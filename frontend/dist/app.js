@@ -46,7 +46,34 @@
         if (token) localStorage.setItem("ma3ak_token", token);
         else localStorage.removeItem("ma3ak_token");
       }
-      async function apiRequest(path, { method = "GET", body } = {}) {
+      function getAccessToken() {
+        return localStorage.getItem("ma3ak_access");
+      }
+      function setAccessToken(token) {
+        if (token) localStorage.setItem("ma3ak_access", token);
+        else localStorage.removeItem("ma3ak_access");
+      }
+      let refreshInFlight = null;
+      async function refreshSessionFromAccessLink() {
+        if (refreshInFlight) return refreshInFlight;
+        const accessToken = getAccessToken();
+        if (!accessToken) return null;
+        refreshInFlight = (async () => {
+          try {
+            const data = await rawRequest("/auth/access", { method: "POST", body: { token: accessToken } });
+            setToken(data.token);
+            return data;
+          } catch (e) {
+            setAccessToken(null);
+            setToken(null);
+            return null;
+          } finally {
+            refreshInFlight = null;
+          }
+        })();
+        return refreshInFlight;
+      }
+      async function rawRequest(path, { method = "GET", body } = {}) {
         const headers = { "Content-Type": "application/json" };
         const token = getToken();
         if (token) headers.Authorization = `Bearer ${token}`;
@@ -62,15 +89,29 @@
         }
         if (!res.ok) {
           const message = data && data.error || "حصل خطأ غير متوقع";
-          throw new Error(message);
+          const error = new Error(message);
+          error.status = res.status;
+          throw error;
         }
         return data;
+      }
+      async function apiRequest(path, options = {}) {
+        try {
+          return await rawRequest(path, options);
+        } catch (e) {
+          if (e.status !== 401 || path === "/auth/access" || !getAccessToken()) throw e;
+          const refreshed = await refreshSessionFromAccessLink();
+          if (!refreshed) throw e;
+          return rawRequest(path, options);
+        }
       }
       const api = {
         register: (payload) => apiRequest("/auth/register", { method: "POST", body: payload }),
         login: (identifier, password) => apiRequest("/auth/login", { method: "POST", body: { identifier, password } }),
         accessViaToken: (token) => apiRequest("/auth/access", { method: "POST", body: { token } }),
         me: () => apiRequest("/auth/me"),
+        changePassword: (currentPassword, newPassword) => apiRequest("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } }),
+        recoverPassword: (phone, recoveryCode, newPassword) => apiRequest("/auth/recover", { method: "POST", body: { phone, recoveryCode, newPassword } }),
         createPatient: (payload) => apiRequest("/patients", { method: "POST", body: payload }),
         linkPatient: (code) => apiRequest("/patients/link", { method: "POST", body: { code } }),
         regeneratePatientLink: (id) => apiRequest(`/patients/${id}/regenerate-link`, { method: "POST" }),
@@ -80,12 +121,30 @@
         }),
         getPatients: () => apiRequest("/patients"),
         getCaregivers: (patientId) => apiRequest(`/patients/${patientId}/caregivers`),
+        removeCaregiver: (patientId, caregiverId) => apiRequest(`/patients/${patientId}/caregivers/${caregiverId}`, { method: "DELETE" }),
+        leavePatient: (patientId) => apiRequest(`/patients/${patientId}/link`, { method: "DELETE" }),
+        deletePatient: (patientId) => apiRequest(`/patients/${patientId}`, { method: "DELETE" }),
+        getPatientNotificationStatus: (patientId) => apiRequest(`/patients/${patientId}/notification-status`),
+        testPatientAlarm: (patientId) => apiRequest(`/patients/${patientId}/test-alarm`, { method: "POST" }),
+        getAdherence: (patientId, days) => apiRequest(`/patients/${patientId}/adherence?days=${days || 30}`),
         getMedications: (patientId) => apiRequest(`/medications?patientId=${patientId}`),
         getTodayDoses: (patientId) => apiRequest(`/medications/${patientId}/today`),
         addMedication: (payload) => apiRequest("/medications", { method: "POST", body: payload }),
         updateMedication: (id, payload) => apiRequest(`/medications/${id}`, { method: "PUT", body: payload }),
         deleteMedication: (id) => apiRequest(`/medications/${id}`, { method: "DELETE" }),
         takeDose: (id) => apiRequest(`/doses/${id}/take`, { method: "POST" }),
+        snoozeDose: (id) => apiRequest(`/doses/${id}/snooze`, { method: "POST" }),
+        getDoses: (patientId, from, to) => apiRequest(`/doses?patientId=${patientId}${from ? `&from=${from}` : ""}${to ? `&to=${to}` : ""}`),
+        getMedicationImage: (id) => apiRequest(`/medications/${id}/image`),
+        setMedicationImage: (id, dataUrl) => {
+          const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl || "");
+          if (!match) throw new Error("الصورة مش مقروءة");
+          return apiRequest(`/medications/${id}/image`, {
+            method: "PUT",
+            body: { mime: match[1], data: match[2] }
+          });
+        },
+        deleteMedicationImage: (id) => apiRequest(`/medications/${id}/image`, { method: "DELETE" }),
         getAppointments: (patientId) => apiRequest(`/appointments?patientId=${patientId}`),
         addAppointment: (payload) => apiRequest("/appointments", { method: "POST", body: payload }),
         updateAppointment: (id, payload) => apiRequest(`/appointments/${id}`, { method: "PUT", body: payload }),
@@ -93,12 +152,262 @@
         getVitals: (patientId, type) => apiRequest(`/vitals?patientId=${patientId}${type ? `&type=${type}` : ""}`),
         addVital: (payload) => apiRequest("/vitals", { method: "POST", body: payload }),
         deleteVital: (id) => apiRequest(`/vitals/${id}`, { method: "DELETE" }),
-        getNotifications: () => apiRequest("/notifications"),
+        /* since = آخر إشعار الواجهة شايفاه. بيخلي الرد فاضي في الحالة الطبيعية بدل
+           ما نجيب 50 صف كاملين كل دقيقة لكل مستخدم - فرق حقيقي على بيانات الموبايل
+           البطيئة اللي أغلب مستخدمينا عليها. */
+        getNotifications: (since) => apiRequest(`/notifications${since ? `?since=${since}` : ""}`),
         markNotificationRead: (id) => apiRequest(`/notifications/${id}/read`, { method: "POST" }),
-        markAllNotificationsRead: () => apiRequest("/notifications/read-all", { method: "POST" })
+        markNotificationHandled: (id) => apiRequest(`/notifications/${id}/handled`, { method: "POST" }),
+        markAllNotificationsRead: () => apiRequest("/notifications/read-all", { method: "POST" }),
+        getNotificationPrefs: () => apiRequest("/notifications/prefs"),
+        updateNotificationPrefs: (payload) => apiRequest("/notifications/prefs", { method: "PUT", body: payload }),
+        getPushPublicKey: () => apiRequest("/push/public-key"),
+        subscribePush: (subscription) => apiRequest("/push/subscribe", { method: "POST", body: subscription }),
+        unsubscribePush: (endpoint) => apiRequest("/push/unsubscribe", { method: "POST", body: { endpoint } }),
+        sendTestPush: () => apiRequest("/push/test", { method: "POST" })
       };
+      /*! ===== js/push.js ===== */
+      function urlBase64ToUint8Array(base64String) {
+        const padding = "=".repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const raw = window.atob(base64);
+        const output = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i += 1) output[i] = raw.charCodeAt(i);
+        return output;
+      }
+      function getPushStatus() {
+        const hasApi = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+        if (!hasApi) {
+          if (isIOSDevice() && !isStandaloneDisplay()) return "needs-install";
+          return "unsupported";
+        }
+        if (Notification.permission === "denied") return "blocked";
+        if (Notification.permission === "granted") return "ready";
+        return "off";
+      }
+      async function getCurrentPushSubscription() {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          return await registration.pushManager.getSubscription();
+        } catch (e) {
+          return null;
+        }
+      }
+      async function enablePush() {
+        const status = getPushStatus();
+        if (status === "needs-install") {
+          throw new Error("على الآيفون لازم تضيف التطبيق للشاشة الرئيسية الأول، وتفتحه من هناك");
+        }
+        if (status === "unsupported") {
+          throw new Error("المتصفح ده مش بيدعم التنبيهات");
+        }
+        if (status === "blocked") {
+          throw new Error("التنبيهات موقوفة من إعدادات المتصفح - فعّلها من هناك وارجع تاني");
+        }
+        const { publicKey, enabled } = await api.getPushPublicKey();
+        if (!enabled || !publicKey) {
+          throw new Error("خدمة التنبيهات مش مفعّلة على السيرفر دلوقتي");
+        }
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          throw new Error("لازم تسمح بالتنبيهات عشان التطبيق يفكّرك");
+        }
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) await existing.unsubscribe().catch(() => {
+        });
+        const subscription = await registration.pushManager.subscribe({
+          // إجباري يكون true في كل المتصفحات الحديثة: يعني "كل رسالة هتعرض إشعار
+          // للمستخدم" - ممنوع نستخدم القناة دي في حاجة خفية
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        await api.subscribePush(subscription.toJSON());
+        return subscription;
+      }
+      async function syncPushSubscription() {
+        if (getPushStatus() !== "ready") return;
+        try {
+          const subscription = await getCurrentPushSubscription();
+          if (subscription) await api.subscribePush(subscription.toJSON());
+        } catch (e) {
+        }
+      }
+      /*! ===== js/offline.js ===== */
+      const DOSES_CACHE_KEY = "ma3ak_doses_cache";
+      const TAKE_QUEUE_KEY = "ma3ak_take_queue";
+      const ISSUE_QUEUE_KEY = "ma3ak_issue_queue";
+      const DOSES_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1e3;
+      function readJson(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+      function writeJson(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+        }
+      }
+      function cacheTodayDoses(patientId, doses) {
+        writeJson(DOSES_CACHE_KEY, { patientId, at: Date.now(), doses });
+      }
+      function readCachedTodayDoses(patientId) {
+        const cached = readJson(DOSES_CACHE_KEY, null);
+        if (!cached || cached.patientId !== patientId) return null;
+        if (Date.now() - cached.at > DOSES_CACHE_MAX_AGE_MS) return null;
+        return { doses: cached.doses, at: cached.at };
+      }
+      function readTakeQueue() {
+        const queue = readJson(TAKE_QUEUE_KEY, []);
+        return Array.isArray(queue) ? queue : [];
+      }
+      function queueTake(doseId) {
+        const queue = readTakeQueue();
+        if (queue.some((item) => item.doseId === doseId)) return;
+        queue.push({ doseId, at: Date.now() });
+        writeJson(TAKE_QUEUE_KEY, queue);
+      }
+      async function flushTakeQueue() {
+        const queue = readTakeQueue();
+        if (!queue.length) return 0;
+        const remaining = [];
+        let sent = 0;
+        for (const item of queue) {
+          try {
+            await api.takeDose(item.doseId);
+            sent += 1;
+          } catch (e) {
+            if (e.status === 409 || e.status === 403 || e.status === 404) continue;
+            remaining.push(item);
+          }
+        }
+        writeJson(TAKE_QUEUE_KEY, remaining);
+        return sent;
+      }
+      const ISSUE_QUEUE_MAX_AGE_MS = 6 * 60 * 60 * 1e3;
+      function readIssueQueue() {
+        const queue = readJson(ISSUE_QUEUE_KEY, []);
+        return Array.isArray(queue) ? queue : [];
+      }
+      function queueIssue(patientId, issueType, medicationName) {
+        const queue = readIssueQueue();
+        queue.push({ patientId, issueType, medicationName: medicationName || null, at: Date.now() });
+        writeJson(ISSUE_QUEUE_KEY, queue);
+      }
+      async function flushIssueQueue() {
+        const queue = readIssueQueue();
+        if (!queue.length) return 0;
+        const remaining = [];
+        let sent = 0;
+        for (const item of queue) {
+          if (Date.now() - item.at > ISSUE_QUEUE_MAX_AGE_MS) continue;
+          try {
+            await api.reportIssue(item.patientId, item.issueType, item.medicationName || void 0);
+            sent += 1;
+          } catch (e) {
+            if (e.status && e.status >= 400 && e.status < 500) continue;
+            remaining.push(item);
+          }
+        }
+        writeJson(ISSUE_QUEUE_KEY, remaining);
+        return sent;
+      }
+      async function flushOfflineQueue() {
+        const [takes, issues] = await Promise.all([
+          flushTakeQueue().catch(() => 0),
+          flushIssueQueue().catch(() => 0)
+        ]);
+        return { takes, issues };
+      }
+      /*! ===== js/medImages.js ===== */
+      const MED_IMAGE_PREFIX = "ma3ak_medimg_";
+      const MED_IMAGE_MAX_CACHED = 12;
+      const memoryCache = /* @__PURE__ */ new Map();
+      function storageKey(medicationId) {
+        return MED_IMAGE_PREFIX + medicationId;
+      }
+      function readStored(medicationId) {
+        try {
+          return localStorage.getItem(storageKey(medicationId));
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeStored(medicationId, dataUrl) {
+        try {
+          const keys = Object.keys(localStorage).filter((k) => k.startsWith(MED_IMAGE_PREFIX));
+          if (keys.length >= MED_IMAGE_MAX_CACHED) {
+            keys.slice(0, keys.length - MED_IMAGE_MAX_CACHED + 1).forEach((k) => localStorage.removeItem(k));
+          }
+          localStorage.setItem(storageKey(medicationId), dataUrl);
+        } catch (e) {
+        }
+      }
+      async function getMedImage(medicationId) {
+        if (memoryCache.has(medicationId)) return memoryCache.get(medicationId);
+        const stored = readStored(medicationId);
+        if (stored) {
+          memoryCache.set(medicationId, stored);
+          return stored;
+        }
+        try {
+          const data = await api.getMedicationImage(medicationId);
+          if (data && data.dataUrl) {
+            memoryCache.set(medicationId, data.dataUrl);
+            writeStored(medicationId, data.dataUrl);
+            return data.dataUrl;
+          }
+        } catch (e) {
+        }
+        memoryCache.set(medicationId, null);
+        return null;
+      }
+      function clearMedImage(medicationId) {
+        memoryCache.delete(medicationId);
+        try {
+          localStorage.removeItem(storageKey(medicationId));
+        } catch (e) {
+        }
+      }
+      const MED_IMAGE_MAX_DIMENSION = 640;
+      const MED_IMAGE_QUALITY = 0.75;
+      function resizeImageFile(file) {
+        return new Promise((resolve, reject) => {
+          if (!file || !file.type.startsWith("image/")) {
+            reject(new Error("لازم تختار صورة"));
+            return;
+          }
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("مقدرناش نقرا الصورة"));
+          reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error("الملف ده مش صورة سليمة"));
+            img.onload = () => {
+              const scale = Math.min(1, MED_IMAGE_MAX_DIMENSION / Math.max(img.width, img.height));
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.round(img.width * scale);
+              canvas.height = Math.round(img.height * scale);
+              const ctx = canvas.getContext("2d");
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL("image/jpeg", MED_IMAGE_QUALITY));
+            };
+            img.src = reader.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
       /*! ===== js/doseLogic.js ===== */
       const DOSE_EARLY_MINUTES = 15;
+      const SNOOZE_MINUTES = 10;
+      const MAX_SNOOZES = 3;
+      const DOSE_LATE_TAKE_HOURS = 12;
       const CAIRO_TZ = "Africa/Cairo";
       function parseCairoDatetime(scheduledAt) {
         const [datePart, timePart] = String(scheduledAt).trim().split(/[ T]/);
@@ -128,10 +437,31 @@
       function getDoseAvailability(scheduledAt, now) {
         const scheduled = parseCairoDatetime(scheduledAt);
         const availableFrom = new Date(scheduled.getTime() - DOSE_EARLY_MINUTES * 6e4);
-        return { availableFrom, isEarly: now < availableFrom };
+        const availableUntil = new Date(scheduled.getTime() + DOSE_LATE_TAKE_HOURS * 36e5);
+        return {
+          availableFrom,
+          availableUntil,
+          isEarly: now < availableFrom,
+          isTooLate: now > availableUntil
+        };
+      }
+      function canSnoozeDose(dose) {
+        if (!dose || dose.status !== "pending") return false;
+        if (dose.is_critical) return false;
+        if (dose.snooze_allowed === 0 || dose.snooze_allowed === false) return false;
+        return (dose.snooze_count || 0) < MAX_SNOOZES;
       }
       if (typeof module !== "undefined" && module.exports) {
-        module.exports = { DOSE_EARLY_MINUTES, getDoseAvailability, parseCairoDatetime, cairoOffsetMinutesAt };
+        module.exports = {
+          DOSE_EARLY_MINUTES,
+          DOSE_LATE_TAKE_HOURS,
+          SNOOZE_MINUTES,
+          MAX_SNOOZES,
+          getDoseAvailability,
+          canSnoozeDose,
+          parseCairoDatetime,
+          cairoOffsetMinutesAt
+        };
       }
       /*! ===== js/icons.jsx ===== */
       const ICON_PATHS = {
@@ -163,6 +493,9 @@
         // يعني سُمكه وميلانه بيختلفوا من جهاز للتاني ومبياخدش سُمك الخط بتاع باقي
         // الأيقونات، فكان بيبان أرفع وأصغر من كل حاجة حواليه.
         close: /* @__PURE__ */ React.createElement("path", { d: "M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6" }),
+        /* سهم لأسفل - بيتلف 180 درجة بالـ CSS لما المجموعة تتفتح
+           (شوف .notif-group-chevron في css/screens.css) */
+        chevron: /* @__PURE__ */ React.createElement("path", { d: "M6 9.5 12 15.5 18 9.5" }),
         /* ---------- الحالات ---------- */
         check: /* @__PURE__ */ React.createElement("path", { d: "M4.6 12.6 9.6 17.6 19.4 6.8" }),
         checkCircle: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "8.8" }), /* @__PURE__ */ React.createElement("path", { d: "M8.1 12.3 10.9 15.1 16.2 9.2" })),
@@ -231,6 +564,39 @@
       }
       function FieldGroup({ label, children }) {
         return /* @__PURE__ */ React.createElement("div", { className: "field" }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, label), children);
+      }
+      function Toggle({ on, onChange, label, disabled = false }) {
+        return /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            type: "button",
+            className: on ? "toggle-switch on" : "toggle-switch",
+            onClick: onChange,
+            disabled,
+            role: "switch",
+            "aria-checked": on,
+            "aria-label": label
+          },
+          /* @__PURE__ */ React.createElement("span", { className: "toggle-thumb" })
+        );
+      }
+      function MedImage({ medicationId, hasImage, className = "" }) {
+        const [src, setSrc] = React.useState(null);
+        React.useEffect(() => {
+          if (!hasImage || !medicationId) {
+            setSrc(null);
+            return void 0;
+          }
+          let alive = true;
+          getMedImage(medicationId).then((url) => {
+            if (alive) setSrc(url);
+          });
+          return () => {
+            alive = false;
+          };
+        }, [medicationId, hasImage]);
+        if (!src) return null;
+        return /* @__PURE__ */ React.createElement("img", { className: `med-image ${className}`, src, alt: "" });
       }
       function Spinner() {
         return /* @__PURE__ */ React.createElement("div", { className: "spinner", role: "status", "aria-label": "جاري التحميل" });
@@ -496,6 +862,83 @@
           return false;
         }
       }
+      /*! ===== js/components/Alarm.jsx ===== */
+      const ALARM_RING_INTERVAL_MS = 7e3;
+      const ALARM_MAX_RINGS = 6;
+      function createAlarmRinger() {
+        let timer = null;
+        let rings = 0;
+        function playOnce() {
+          try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              const ctx = new AudioCtx();
+              [0, 0.45, 0.9].forEach((t) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.value = 880;
+                gain.gain.setValueAtTime(1e-4, ctx.currentTime + t);
+                gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + t + 0.04);
+                gain.gain.exponentialRampToValueAtTime(1e-4, ctx.currentTime + t + 0.3);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + t);
+                osc.stop(ctx.currentTime + t + 0.32);
+              });
+              setTimeout(() => ctx.close().catch(() => {
+              }), 2e3);
+            }
+          } catch (e) {
+          }
+          if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+        }
+        return {
+          start() {
+            if (timer) return;
+            rings = 0;
+            playOnce();
+            rings += 1;
+            timer = setInterval(() => {
+              if (rings >= ALARM_MAX_RINGS) {
+                this.stop();
+                return;
+              }
+              playOnce();
+              rings += 1;
+            }, ALARM_RING_INTERVAL_MS);
+          },
+          stop() {
+            if (timer) clearInterval(timer);
+            timer = null;
+            if (navigator.vibrate) navigator.vibrate(0);
+          }
+        };
+      }
+      function AlarmOverlay({ dose, onTake, onSnooze, onDismiss, busy, error, onSpeak }) {
+        const snoozeAllowed = canSnoozeDose(dose);
+        const snoozesLeft = MAX_SNOOZES - (dose.snooze_count || 0);
+        React.useEffect(() => {
+          function onKeyDown(e) {
+            if (e.key === "Escape") onDismiss();
+          }
+          document.addEventListener("keydown", onKeyDown);
+          return () => document.removeEventListener("keydown", onKeyDown);
+        }, [onDismiss]);
+        const node = /* @__PURE__ */ React.createElement("div", { className: "alarm-overlay", role: "alertdialog", "aria-labelledby": "alarm-title", "aria-live": "assertive" }, /* @__PURE__ */ React.createElement("div", { className: `alarm-card${dose.is_critical ? " alarm-card-critical" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "alarm-label" }, dose.is_critical && /* @__PURE__ */ React.createElement("span", { className: "alarm-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 15, strokeWidth: 2.4 }), "دوا مهم"), "وقت الدوا دلوقتي"), dose.has_image ? /* @__PURE__ */ React.createElement("div", { className: "alarm-image-wrap" }, /* @__PURE__ */ React.createElement(
+          MedImage,
+          {
+            medicationId: dose.medication_id,
+            hasImage: dose.has_image,
+            className: "med-image-alarm"
+          }
+        )) : /* @__PURE__ */ React.createElement("div", { className: "alarm-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", { className: "alarm-icon-pulse" }), /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 64, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("h2", { className: "alarm-med-name", id: "alarm-title" }, dose.name), dose.dosage && /* @__PURE__ */ React.createElement("div", { className: "alarm-dosage" }, dose.dosage), /* @__PURE__ */ React.createElement("div", { className: "alarm-time" }, "الساعة ", formatTime(dose.scheduled_at)), dose.notes && /* @__PURE__ */ React.createElement("div", { className: "alarm-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 18, strokeWidth: 2.2 }), dose.notes), onSpeak && /* @__PURE__ */ React.createElement("button", { className: "alarm-speak", onClick: () => onSpeak(dose), "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 21 }), "اسمعه"), /* @__PURE__ */ React.createElement(Banner, { onClose: void 0 }, error), /* @__PURE__ */ React.createElement("button", { className: "alarm-take", onClick: onTake, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 32, strokeWidth: 2.7 }), "خدت الدوا"), snoozeAllowed ? /* @__PURE__ */ React.createElement("button", { className: "alarm-snooze", onClick: onSnooze, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 21 }), "فكّرني بعد ", SNOOZE_MINUTES, " دقايق", snoozesLeft <= 1 && /* @__PURE__ */ React.createElement("span", { className: "alarm-snooze-last" }, " (آخر مرة)")) : (
+          /* السبب بيتقال صراحة. زرار مختفي من غير تفسير بيخلي المستخدم يفتكر
+             إن التطبيق بايظ - والسبب هنا قرار مقصود يستاهل يتشرح. */
+          /* @__PURE__ */ React.createElement("div", { className: "alarm-no-snooze" }, dose.is_critical || !dose.snooze_allowed ? "الدوا ده مواعيده مش بتتأجل" : `أجّلتها ${MAX_SNOOZES} مرات خلاص`)
+        ), /* @__PURE__ */ React.createElement("button", { className: "alarm-dismiss", onClick: onDismiss, disabled: busy }, "إغلاق مؤقت")));
+        return ReactDOM.createPortal(node, document.body);
+      }
       /*! ===== js/components/Settings.jsx ===== */
       function SettingsSheet({
         darkMode,
@@ -506,19 +949,64 @@
         onToggleAutoNightScale,
         alarmEnabled,
         onToggleAlarmEnabled,
-        notifPermission,
-        onRequestNotifPermission,
+        pushStatus,
+        onPushStatusChange,
         showPatientOptions,
         onClose
       }) {
         const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
+        const [prefs, setPrefs] = React.useState(null);
+        const [prefsError, setPrefsError] = React.useState("");
+        const [busy, setBusy] = React.useState(false);
+        const [testResult, setTestResult] = React.useState("");
+        const [showPassword, setShowPassword] = React.useState(false);
+        React.useEffect(() => {
+          api.getNotificationPrefs().then((data) => setPrefs(data.prefs)).catch(() => setPrefsError("مقدرناش نحمّل إعدادات التنبيهات"));
+        }, []);
+        async function savePref(patch) {
+          const previous = prefs;
+          setPrefs(__spreadValues(__spreadValues({}, prefs), patch));
+          setPrefsError("");
+          try {
+            await api.updateNotificationPrefs(patch);
+          } catch (e) {
+            setPrefs(previous);
+            setPrefsError(e.message);
+          }
+        }
+        async function handleEnablePush() {
+          setBusy(true);
+          setPrefsError("");
+          try {
+            await enablePush();
+            onPushStatusChange(getPushStatus());
+          } catch (e) {
+            setPrefsError(e.message);
+            onPushStatusChange(getPushStatus());
+          } finally {
+            setBusy(false);
+          }
+        }
+        async function handleTest() {
+          setBusy(true);
+          setTestResult("");
+          try {
+            await api.sendTestPush();
+            setTestResult("بعتنا تنبيه تجريبي - لو مجاش خلال ثواني، التنبيهات مش شغالة على الجهاز ده");
+          } catch (e) {
+            setTestResult(e.message);
+          } finally {
+            setBusy(false);
+          }
+        }
+        const quietOn = Boolean(prefs && prefs.quiet_start && prefs.quiet_end);
         return /* @__PURE__ */ React.createElement(
           Modal,
           {
             icon: "settings",
             tone: "gray",
             title: "الإعدادات",
-            subtitle: "الاختيارات دي محفوظة على الجهاز ده لوحده",
+            subtitle: "المظهر محفوظ على الجهاز ده، والتنبيهات محفوظة على حسابك",
             onClose,
             footer: (close) => /* @__PURE__ */ React.createElement(Button, { onClick: close }, "تم")
           },
@@ -557,33 +1045,150 @@
             "كبير"
           )),
           showPatientOptions && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "تكبير الخط تلقائيًا بالليل"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "لتحسين الرؤية لشاشة المريض بعد الساعة 7 مساءً")), /* @__PURE__ */ React.createElement(
-            "button",
+            Toggle,
             {
-              className: autoNightScale ? "toggle-switch on" : "toggle-switch",
-              onClick: onToggleAutoNightScale,
-              role: "switch",
-              "aria-checked": autoNightScale,
-              "aria-label": "تكبير الخط تلقائيًا بالليل"
-            },
-            /* @__PURE__ */ React.createElement("span", { className: "toggle-thumb" })
-          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "صوت التذكير بالجرعات"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "رنة وفايبريشن لما ميعاد الدوا ييجي")), /* @__PURE__ */ React.createElement(
-            "button",
-            {
-              className: alarmEnabled ? "toggle-switch on" : "toggle-switch",
-              onClick: onToggleAlarmEnabled,
-              role: "switch",
-              "aria-checked": alarmEnabled,
-              "aria-label": "صوت التذكير بالجرعات"
-            },
-            /* @__PURE__ */ React.createElement("span", { className: "toggle-thumb" })
-          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row settings-row-wrap" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "إشعارات المتصفح"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "تنبيه فوري بمواعيد الدوا")), notifPermission === "granted" ? /* @__PURE__ */ React.createElement("span", { className: "settings-notif-ok" }, /* @__PURE__ */ React.createElement(Icon, { name: "checkCircle", size: 17 }), "مفعّل") : notifPermission === "unsupported" ? /* @__PURE__ */ React.createElement("span", { className: "settings-notif-ok muted" }, "مش متاح") : notifPermission === "denied" ? /* @__PURE__ */ React.createElement(
+              on: autoNightScale,
+              onChange: onToggleAutoNightScale,
+              label: "تكبير الخط تلقائيًا بالليل"
+            }
+          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "صوت المنبه"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "رنة واهتزاز لما ميعاد الدوا ييجي والتطبيق مفتوح")), /* @__PURE__ */ React.createElement(Toggle, { on: alarmEnabled, onChange: onToggleAlarmEnabled, label: "صوت المنبه" }))),
+          !showPatientOptions && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "settings-group-label" }, "الحساب"), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "كلمة المرور"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "غيّرها لو بتشك إن حد شافها")), /* @__PURE__ */ React.createElement("button", { className: "settings-notif-btn", onClick: () => setShowPassword(true) }, "تغيير"))),
+          showPassword && /* @__PURE__ */ React.createElement(ChangePasswordModal, { onClose: () => setShowPassword(false) }),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-group-label" }, "التنبيهات"),
+          /* @__PURE__ */ React.createElement(Banner, { onClose: () => setPrefsError("") }, prefsError),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-row settings-row-wrap" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "تنبيهات الجهاز"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "التنبيه بيوصل حتى والتطبيق مقفول - من غيرها التذكير بيشتغل بس والتطبيق مفتوح")), pushStatus === "ready" ? /* @__PURE__ */ React.createElement("span", { className: "settings-notif-ok" }, /* @__PURE__ */ React.createElement(Icon, { name: "checkCircle", size: 17 }), "مفعّل") : pushStatus === "unsupported" ? /* @__PURE__ */ React.createElement("span", { className: "settings-notif-ok muted" }, "مش متاح في المتصفح ده") : pushStatus === "blocked" || pushStatus === "needs-install" ? /* @__PURE__ */ React.createElement(
             "button",
             {
               className: "settings-notif-btn settings-notif-btn-muted",
               onClick: () => setNotifHelpOpen((v) => !v)
             },
-            "موقوفة - إزاي أفعلها؟"
-          ) : /* @__PURE__ */ React.createElement("button", { className: "settings-notif-btn", onClick: onRequestNotifPermission }, "تفعيل"), notifPermission === "denied" && notifHelpOpen && /* @__PURE__ */ React.createElement("div", { className: "settings-notif-help" }, 'افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع فوق) وفعّل "الإشعارات" من هناك، بعدين ارجع للتطبيق.')))
+            pushStatus === "blocked" ? "موقوفة - إزاي أفعلها؟" : "محتاجة تثبيت - إزاي؟"
+          ) : /* @__PURE__ */ React.createElement("button", { className: "settings-notif-btn", onClick: handleEnablePush, disabled: busy }, busy ? "..." : "تفعيل"), notifHelpOpen && pushStatus === "blocked" && /* @__PURE__ */ React.createElement("div", { className: "settings-notif-help" }, 'افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع فوق) وفعّل "الإشعارات" من هناك، بعدين ارجع للتطبيق.'), notifHelpOpen && pushStatus === "needs-install" && /* @__PURE__ */ React.createElement("div", { className: "settings-notif-help" }, 'على الآيفون، التنبيهات بتشتغل بس لو التطبيق متثبت: دوس على زرار المشاركة تحت في Safari، بعدين "إضافة إلى الشاشة الرئيسية"، وافتح التطبيق من الأيقونة اللي هتظهر.'), pushStatus === "ready" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("button", { className: "settings-notif-btn settings-notif-btn-muted", onClick: handleTest, disabled: busy }, busy ? "..." : "ابعت تنبيه تجريبي"), testResult && /* @__PURE__ */ React.createElement("div", { className: "settings-notif-help" }, testResult))),
+          prefs && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "تنبيهات مواعيد الدوا"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "وقت الجرعة والتذكير اللي بعده")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: Boolean(prefs.pref_dose_due),
+              onChange: () => savePref({ pref_dose_due: !prefs.pref_dose_due }),
+              label: "تنبيهات مواعيد الدوا"
+            }
+          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "تنبيه الجرعة الفايتة"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "لما جرعة تعدي من غير تسجيل")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: Boolean(prefs.pref_missed_dose),
+              onChange: () => savePref({ pref_missed_dose: !prefs.pref_missed_dose }),
+              label: "تنبيه الجرعة الفايتة"
+            }
+          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "تذكير المواعيد الطبية"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "قبل الموعد بـ 24 ساعة")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: Boolean(prefs.pref_appointment),
+              onChange: () => savePref({ pref_appointment: !prefs.pref_appointment }),
+              label: "تذكير المواعيد الطبية"
+            }
+          )), !showPatientOptions && /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "بلاغات المريض"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, 'لما المريض يدوس "حصلت مشكلة؟"')), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: Boolean(prefs.pref_patient_issue),
+              onChange: () => savePref({ pref_patient_issue: !prefs.pref_patient_issue }),
+              label: "بلاغات المريض"
+            }
+          )), /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "ساعات الهدوء"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "التنبيهات العادية بتستنى - أما الحاجات المهمة (دوا حرج فات، بلاغ عاجل) بتعدي في أي وقت")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: quietOn,
+              onChange: () => savePref(
+                quietOn ? { quiet_start: null, quiet_end: null } : { quiet_start: "22:00", quiet_end: "07:00" }
+              ),
+              label: "ساعات الهدوء"
+            }
+          )), quietOn && /* @__PURE__ */ React.createElement("div", { className: "settings-quiet-range" }, /* @__PURE__ */ React.createElement("label", { className: "settings-quiet-field" }, /* @__PURE__ */ React.createElement("span", null, "من"), /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "time",
+              value: prefs.quiet_start,
+              onChange: (e) => savePref({ quiet_start: e.target.value })
+            }
+          )), /* @__PURE__ */ React.createElement("label", { className: "settings-quiet-field" }, /* @__PURE__ */ React.createElement("span", null, "لـ"), /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "time",
+              value: prefs.quiet_end,
+              onChange: (e) => savePref({ quiet_end: e.target.value })
+            }
+          ))), /* @__PURE__ */ React.createElement("div", { className: "settings-row settings-row-danger" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "إيقاف كل التنبيهات"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "هيقفل كل حاجة على كل أجهزتك، حتى التنبيهات المهمة")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: !prefs.push_enabled,
+              onChange: () => savePref({ push_enabled: !prefs.push_enabled }),
+              label: "إيقاف كل التنبيهات"
+            }
+          )))
+        );
+      }
+      function ChangePasswordModal({ onClose }) {
+        const [currentPassword, setCurrentPassword] = React.useState("");
+        const [newPassword, setNewPassword] = React.useState("");
+        const [confirmPassword, setConfirmPassword] = React.useState("");
+        const [saving, setSaving] = React.useState(false);
+        const [error, setError] = React.useState("");
+        const [done, setDone] = React.useState(false);
+        async function handleSubmit(e) {
+          e.preventDefault();
+          if (newPassword !== confirmPassword) {
+            setError("كلمتين المرور مش متطابقتين");
+            return;
+          }
+          setSaving(true);
+          setError("");
+          try {
+            await api.changePassword(currentPassword, newPassword);
+            setDone(true);
+          } catch (err) {
+            setError(err.message);
+            setSaving(false);
+          }
+        }
+        return /* @__PURE__ */ React.createElement(
+          Modal,
+          {
+            icon: "lock",
+            tone: "gray",
+            title: "تغيير كلمة المرور",
+            subtitle: done ? "" : "اكتب الحالية والجديدة",
+            onClose,
+            onSubmit: done ? void 0 : handleSubmit,
+            footer: (close) => done ? /* @__PURE__ */ React.createElement(Button, { onClick: close }, "تم") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { type: "button", variant: "soft", onClick: close, disabled: saving }, "إلغاء"), /* @__PURE__ */ React.createElement(Button, { type: "submit", loading: saving }, "حفظ"))
+          },
+          done ? /* @__PURE__ */ React.createElement("p", { className: "issue-subtitle" }, "تمام، كلمة المرور اتغيّرت.") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), /* @__PURE__ */ React.createElement(Field, { label: "كلمة المرور الحالية" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "password",
+              required: true,
+              autoComplete: "current-password",
+              value: currentPassword,
+              onChange: (e) => setCurrentPassword(e.target.value)
+            }
+          )), /* @__PURE__ */ React.createElement(Field, { label: "كلمة المرور الجديدة" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "password",
+              required: true,
+              minLength: 6,
+              autoComplete: "new-password",
+              value: newPassword,
+              onChange: (e) => setNewPassword(e.target.value)
+            }
+          )), /* @__PURE__ */ React.createElement(Field, { label: "تأكيد كلمة المرور الجديدة" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "password",
+              required: true,
+              minLength: 6,
+              autoComplete: "new-password",
+              value: confirmPassword,
+              onChange: (e) => setConfirmPassword(e.target.value)
+            }
+          )))
         );
       }
       /*! ===== js/components/Auth.jsx ===== */
@@ -595,9 +1200,15 @@
         },
         {
           icon: "bell",
-          title: "تذكير بصوت وإشعار",
-          desc: "رنّة وفايبريشن وإشعار على موبايل المريض أول ما الميعاد ييجي.",
+          title: "منبه بيوصل والتطبيق مقفول",
+          desc: 'إشعار ورنّة أول ما الميعاد ييجي، وزرار "خدته" شغّال من جوّه الإشعار نفسه.',
           tone: "accent"
+        },
+        {
+          icon: "alert",
+          title: "لو الجرعة فاتت، المتابع بيعرف",
+          desc: "تذكير تاني، وبعدها تنبيه للمتابع، وبعدها تصعيد لو المريض مردّش خالص.",
+          tone: "danger"
         },
         {
           icon: "alert",
@@ -644,6 +1255,9 @@
         const [mode, setMode] = React.useState("login");
         const [error, setError] = React.useState(initialError || "");
         const [loading, setLoading] = React.useState(false);
+        const [showRecover, setShowRecover] = React.useState(false);
+        const [recoveryCode, setRecoveryCode] = React.useState(null);
+        const [pendingUser, setPendingUser] = React.useState(null);
         async function handleLogin(identifier, password) {
           setError("");
           setLoading(true);
@@ -663,12 +1277,27 @@
           try {
             const data = await api.register(payload);
             setToken(data.token);
-            await onAuthenticated(data.user);
+            setRecoveryCode(data.recoveryCode);
+            setPendingUser(data.user);
           } catch (e) {
             setError(e.message);
           } finally {
             setLoading(false);
           }
+        }
+        if (recoveryCode) {
+          return /* @__PURE__ */ React.createElement(
+            RecoveryCodeScreen,
+            {
+              code: recoveryCode,
+              onContinue: async () => {
+                const user = pendingUser;
+                setRecoveryCode(null);
+                setPendingUser(null);
+                await onAuthenticated(user);
+              }
+            }
+          );
         }
         return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "auth-mesh", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-grain", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-layout" }, /* @__PURE__ */ React.createElement("section", { className: "auth-panel" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-header" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 38, strokeWidth: 1.8 })), /* @__PURE__ */ React.createElement("h1", { className: "auth-card-title" }, "معاك"), /* @__PURE__ */ React.createElement("p", { className: "auth-card-tag" }, "في كل خطوة، معاك")), /* @__PURE__ */ React.createElement("div", { className: "auth-card-body" }, /* @__PURE__ */ React.createElement("div", { className: "tabs", role: "tablist", "aria-label": "نوع الدخول" }, /* @__PURE__ */ React.createElement(
           "button",
@@ -688,7 +1317,24 @@
             onClick: () => setMode("register")
           },
           "حساب جديد"
-        )), /* @__PURE__ */ React.createElement(Banner, { type: "error", onClose: () => setError("") }, error), mode === "login" ? /* @__PURE__ */ React.createElement(LoginForm, { key: "login", onSubmit: handleLogin, loading }) : /* @__PURE__ */ React.createElement(RegisterForm, { key: "register", onSubmit: handleRegister, loading }), mode === "register" && /* @__PURE__ */ React.createElement("p", { className: "auth-hint" }, "الحساب ده لمتابعة كبير السن (ابن / بنت / ممرض). كبير السن نفسه مش محتاج يسجل — هتضيفه انت من جوه التطبيق وهيدخل بلينك واحد بس.")))), /* @__PURE__ */ React.createElement("section", { className: "auth-showcase" }, /* @__PURE__ */ React.createElement("div", { className: "auth-brand" }, /* @__PURE__ */ React.createElement("div", { className: "auth-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 44, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "auth-title text-gradient" }, "معاك"), /* @__PURE__ */ React.createElement("p", { className: "auth-tagline" }, "في كل خطوة، معاك"))), /* @__PURE__ */ React.createElement("p", { className: "auth-pitch" }, "تطبيق واحد بيخلي متابعة كبير السن أسهل: ", /* @__PURE__ */ React.createElement("strong", null, "إنت"), " بتجهّز الأدوية والمواعيد من موبايلك، و", /* @__PURE__ */ React.createElement("strong", null, "هو"), " بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة."), /* @__PURE__ */ React.createElement("ul", { className: "auth-features stagger" }, APP_FEATURES.map((f) => /* @__PURE__ */ React.createElement("li", { key: f.title, className: "auth-feature" }, /* @__PURE__ */ React.createElement("span", { className: `auth-feature-icon${f.tone ? ` tone-${f.tone}` : ""}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: f.icon, size: 24 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "auth-feature-title" }, f.title), /* @__PURE__ */ React.createElement("div", { className: "auth-feature-desc" }, f.desc))))), /* @__PURE__ */ React.createElement("div", { className: "auth-badges" }, APP_BADGES.map((b) => /* @__PURE__ */ React.createElement("span", { key: b.label, className: "auth-badge" }, /* @__PURE__ */ React.createElement(Icon, { name: b.icon, size: 16 }), b.label))))));
+        )), /* @__PURE__ */ React.createElement(Banner, { type: "error", onClose: () => setError("") }, error), mode === "login" ? /* @__PURE__ */ React.createElement(LoginForm, { key: "login", onSubmit: handleLogin, loading }) : /* @__PURE__ */ React.createElement(RegisterForm, { key: "register", onSubmit: handleRegister, loading }), mode === "login" && /* @__PURE__ */ React.createElement("button", { type: "button", className: "auth-link-btn", onClick: () => setShowRecover(true) }, "نسيت كلمة المرور؟"), mode === "register" && /* @__PURE__ */ React.createElement("p", { className: "auth-hint" }, "الحساب ده لمتابعة كبير السن (ابن / بنت / ممرض). كبير السن نفسه مش محتاج يسجل — هتضيفه انت من جوه التطبيق وهيدخل بلينك واحد بس.")))), showRecover && /* @__PURE__ */ React.createElement(
+          RecoverPasswordModal,
+          {
+            onClose: () => setShowRecover(false),
+            onRecovered: async (data) => {
+              setToken(data.token);
+              try {
+                const me = await api.me();
+                setPendingUser(me.user);
+                setShowRecover(false);
+                setRecoveryCode(data.recoveryCode);
+              } catch (e) {
+                setShowRecover(false);
+                setError("رجّعنا كلمة المرور بس مقدرناش نفتح الحساب - سجّل دخول بالكلمة الجديدة");
+              }
+            }
+          }
+        ), /* @__PURE__ */ React.createElement("section", { className: "auth-showcase" }, /* @__PURE__ */ React.createElement("div", { className: "auth-brand" }, /* @__PURE__ */ React.createElement("div", { className: "auth-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 44, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "auth-title text-gradient" }, "معاك"), /* @__PURE__ */ React.createElement("p", { className: "auth-tagline" }, "في كل خطوة، معاك"))), /* @__PURE__ */ React.createElement("p", { className: "auth-pitch" }, "تطبيق واحد بيخلي متابعة كبير السن أسهل: ", /* @__PURE__ */ React.createElement("strong", null, "إنت"), " بتجهّز الأدوية والمواعيد من موبايلك، و", /* @__PURE__ */ React.createElement("strong", null, "هو"), " بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة."), /* @__PURE__ */ React.createElement("ul", { className: "auth-features stagger" }, APP_FEATURES.map((f) => /* @__PURE__ */ React.createElement("li", { key: f.title, className: "auth-feature" }, /* @__PURE__ */ React.createElement("span", { className: `auth-feature-icon${f.tone ? ` tone-${f.tone}` : ""}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: f.icon, size: 24 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "auth-feature-title" }, f.title), /* @__PURE__ */ React.createElement("div", { className: "auth-feature-desc" }, f.desc))))), /* @__PURE__ */ React.createElement("div", { className: "auth-badges" }, APP_BADGES.map((b) => /* @__PURE__ */ React.createElement("span", { key: b.label, className: "auth-badge" }, /* @__PURE__ */ React.createElement(Icon, { name: b.icon, size: 16 }), b.label))))));
       }
       function LoginForm({ onSubmit, loading }) {
         const [identifier, setIdentifier] = React.useState("");
@@ -766,6 +1412,91 @@
           /* @__PURE__ */ React.createElement(Button, { type: "submit", loading }, loading ? "جاري إنشاء الحساب..." : "إنشاء الحساب")
         );
       }
+      function RecoveryCodeScreen({ code, onContinue }) {
+        const [copied, setCopied] = React.useState(false);
+        const [confirmed, setConfirmed] = React.useState(false);
+        return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "auth-mesh", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-grain", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "recovery-screen" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-card" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "lock", size: 40, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("h1", { className: "recovery-title" }, "احفظ كود الاسترجاع"), /* @__PURE__ */ React.createElement("p", { className: "recovery-desc" }, "لو نسيت كلمة المرور، الكود ده هو الطريقة الوحيدة ترجّع بيها حسابك. مش هنقدر نعرضه تاني بعد الشاشة دي."), /* @__PURE__ */ React.createElement("div", { className: "recovery-code", dir: "ltr" }, code), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: "recovery-copy",
+            onClick: async () => {
+              setCopied(await copyText(code));
+            }
+          },
+          /* @__PURE__ */ React.createElement(Icon, { name: copied ? "check" : "copy", size: 19 }),
+          copied ? "اتنسخ" : "انسخ الكود"
+        ), /* @__PURE__ */ React.createElement("label", { className: "recovery-confirm" }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: confirmed,
+            onChange: (e) => setConfirmed(e.target.checked)
+          }
+        ), /* @__PURE__ */ React.createElement("span", null, "حفظته في مكان آمن")), /* @__PURE__ */ React.createElement(Button, { onClick: onContinue, disabled: !confirmed }, "يلا نبدأ"))));
+      }
+      function RecoverPasswordModal({ onClose, onRecovered }) {
+        const [phone, setPhone] = React.useState("");
+        const [code, setCode] = React.useState("");
+        const [newPassword, setNewPassword] = React.useState("");
+        const [loading, setLoading] = React.useState(false);
+        const [error, setError] = React.useState("");
+        async function handleSubmit(e) {
+          e.preventDefault();
+          setLoading(true);
+          setError("");
+          try {
+            onRecovered(await api.recoverPassword(phone.trim(), code.trim(), newPassword));
+          } catch (err) {
+            setError(err.message);
+            setLoading(false);
+          }
+        }
+        return /* @__PURE__ */ React.createElement(
+          Modal,
+          {
+            icon: "lock",
+            tone: "gray",
+            title: "استرجاع كلمة المرور",
+            subtitle: "بكود الاسترجاع اللي حفظته وقت التسجيل",
+            onClose,
+            onSubmit: handleSubmit,
+            footer: (close) => /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { type: "button", variant: "soft", onClick: close, disabled: loading }, "إلغاء"), /* @__PURE__ */ React.createElement(Button, { type: "submit", loading }, "استرجاع"))
+          },
+          /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error),
+          /* @__PURE__ */ React.createElement(Field, { label: "رقم الموبايل" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              required: true,
+              autoComplete: "username",
+              value: phone,
+              onChange: (e) => setPhone(e.target.value),
+              placeholder: "01xxxxxxxxx"
+            }
+          )),
+          /* @__PURE__ */ React.createElement(Field, { label: "كود الاسترجاع" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              required: true,
+              dir: "ltr",
+              value: code,
+              onChange: (e) => setCode(e.target.value),
+              placeholder: "XXXX-XXXX-XXXX-XXXX"
+            }
+          )),
+          /* @__PURE__ */ React.createElement(Field, { label: "كلمة المرور الجديدة" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "password",
+              required: true,
+              minLength: 6,
+              autoComplete: "new-password",
+              value: newPassword,
+              onChange: (e) => setNewPassword(e.target.value)
+            }
+          )),
+          /* @__PURE__ */ React.createElement("p", { className: "auth-hint" }, "هيتولّد لك كود استرجاع جديد بعد ما ترجّع الحساب - القديم مش هينفع تاني.")
+        );
+      }
       /*! ===== js/components/Layout.jsx ===== */
       function AppLayout({
         user,
@@ -840,7 +1571,7 @@
         return /* @__PURE__ */ React.createElement("div", { className: "issue-alert-stack" }, alerts.map((n) => /* @__PURE__ */ React.createElement("div", { key: n.id, className: "issue-alert" }, /* @__PURE__ */ React.createElement("span", { className: "issue-alert-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 26, strokeWidth: 2.1 })), /* @__PURE__ */ React.createElement("div", { className: "issue-alert-body" }, /* @__PURE__ */ React.createElement("div", { className: "issue-alert-message" }, n.message), /* @__PURE__ */ React.createElement("div", { className: "issue-alert-time" }, formatDateTime(n.created_at))), /* @__PURE__ */ React.createElement("button", { className: "issue-alert-dismiss", onClick: () => onDismiss(n.id) }, "تمام"))));
       }
       /*! ===== js/components/Dashboard.jsx ===== */
-      function TodayView({ patientId }) {
+      function TodayView({ patientId, onOpenAdherence }) {
         const [doses, setDoses] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [error, setError] = React.useState("");
@@ -883,7 +1614,7 @@
           },
           /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 20, strokeWidth: 2.4 }),
           "اتاخد"
-        )))), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "view-subtitle" }, "تم تسجيلها"), /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, done.map((d) => /* @__PURE__ */ React.createElement(Card, { key: d.id, className: "dose-card done" }, /* @__PURE__ */ React.createElement("div", { className: "dose-info" }, /* @__PURE__ */ React.createElement("div", { className: "dose-time" }, formatTime(d.scheduled_at)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "dose-name" }, d.name))), /* @__PURE__ */ React.createElement("span", { className: `status-pill ${d.status}` }, /* @__PURE__ */ React.createElement(Icon, { name: d.status === "taken" ? "checkCircle" : "warning", size: 17 }), d.status === "taken" ? "اتاخدت" : "فاتت"))))));
+        )))), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "view-subtitle" }, "تم تسجيلها"), /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, done.map((d) => /* @__PURE__ */ React.createElement(Card, { key: d.id, className: "dose-card done" }, /* @__PURE__ */ React.createElement("div", { className: "dose-info" }, /* @__PURE__ */ React.createElement("div", { className: "dose-time" }, formatTime(d.scheduled_at)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "dose-name" }, d.name))), /* @__PURE__ */ React.createElement("span", { className: `status-pill ${d.status}` }, /* @__PURE__ */ React.createElement(Icon, { name: d.status === "taken" ? "checkCircle" : "warning", size: 17 }), d.status === "taken" ? "اتاخدت" : "فاتت"))))), onOpenAdherence && /* @__PURE__ */ React.createElement("button", { className: "adherence-entry", onClick: onOpenAdherence }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pulse", size: 22 })), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-body" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-title" }, "تقرير الالتزام"), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-desc" }, "نسبة الجرعات على مدى أسبوع أو شهر، وأنهي ميعاد بيتنسى")), /* @__PURE__ */ React.createElement(Icon, { name: "chevron", size: 18, strokeWidth: 2.2 })));
       }
       function DaySummary({ total, taken, missed, left }) {
         const pct = total > 0 ? Math.round(taken / total * 100) : 0;
@@ -904,6 +1635,14 @@
         ), /* @__PURE__ */ React.createElement("div", { className: "day-summary-body" }, /* @__PURE__ */ React.createElement("div", { className: "day-summary-title" }, allDone ? "خلصت النهارده" : "متابعة اليوم"), /* @__PURE__ */ React.createElement("div", { className: "day-summary-meta" }, meta)), /* @__PURE__ */ React.createElement("div", { className: "day-summary-stats", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-done" }, /* @__PURE__ */ React.createElement(Icon, { name: "checkCircle", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, taken), " اتاخدت"), left > 0 && /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-left" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, left), " مستنية"), missed > 0 && /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-missed" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, missed), " فاتت")));
       }
       /*! ===== js/components/Medications.jsx ===== */
+      const WEEKDAYS = ["الأحد", "الإتنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+      function describeDays(mask) {
+        const m = mask == null ? 127 : Number(mask);
+        if (!Number.isFinite(m) || m <= 0 || m >= 127) return null;
+        const days = WEEKDAYS.filter((_, i) => (m & 1 << i) !== 0);
+        if (days.length === 1) return `كل ${days[0]}`;
+        return days.join("، ");
+      }
       function MedicationsView({ patientId }) {
         const [meds, setMeds] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
@@ -949,7 +1688,7 @@
           "دواء جديد"
         )), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), loading ? /* @__PURE__ */ React.createElement(SkeletonCards, { count: 3 }) : meds.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "pill", text: "مفيش أدوية مسجلة، ضيف أول دواء." }) : /* @__PURE__ */ React.createElement("div", { className: "med-list stagger" }, meds.map((m) => {
           const times = typeof m.times === "string" ? JSON.parse(m.times) : m.times;
-          return /* @__PURE__ */ React.createElement(Card, { key: m.id, className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, m.name), m.dosage && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, m.dosage), /* @__PURE__ */ React.createElement("div", { className: "med-times" }, times.map((t) => /* @__PURE__ */ React.createElement("span", { key: t, className: "chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 15 }), t))), m.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, m.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(
+          return /* @__PURE__ */ React.createElement(Card, { key: m.id, className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, m.name, Boolean(m.is_critical) && /* @__PURE__ */ React.createElement("span", { className: "med-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 13, strokeWidth: 2.4 }), "مواعيده مهمة")), m.dosage && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, m.dosage), /* @__PURE__ */ React.createElement("div", { className: "med-times" }, times.map((t) => /* @__PURE__ */ React.createElement("span", { key: t, className: "chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 15 }), t)), describeDays(m.days_of_week) && /* @__PURE__ */ React.createElement("span", { className: "chip chip-days" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 15 }), describeDays(m.days_of_week)), m.pills_left != null && /* @__PURE__ */ React.createElement("span", { className: `chip${m.pills_left <= times.length * 5 ? " chip-low" : ""}` }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 15 }), "فاضل ", m.pills_left)), m.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, m.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(
             Button,
             {
               variant: "ghost",
@@ -985,8 +1724,51 @@
         const [startDate, setStartDate] = React.useState(
           medication ? medication.start_date : (/* @__PURE__ */ new Date()).toISOString().slice(0, 10)
         );
+        const [isCritical, setIsCritical] = React.useState(
+          medication ? Boolean(medication.is_critical) : false
+        );
+        const [snoozeAllowed, setSnoozeAllowed] = React.useState(
+          medication ? medication.snooze_allowed !== 0 : true
+        );
+        const [daysMask, setDaysMask] = React.useState(
+          medication && medication.days_of_week != null ? Number(medication.days_of_week) : 127
+        );
+        const [pillsLeft, setPillsLeft] = React.useState(
+          medication && medication.pills_left != null ? String(medication.pills_left) : ""
+        );
         const [error, setError] = React.useState("");
         const [saving, setSaving] = React.useState(false);
+        const [imageDataUrl, setImageDataUrl] = React.useState(null);
+        const [imageChanged, setImageChanged] = React.useState(false);
+        const [imageRemoved, setImageRemoved] = React.useState(false);
+        const [imageBusy, setImageBusy] = React.useState(false);
+        const fileInputRef = React.useRef(null);
+        React.useEffect(() => {
+          if (!medication || !medication.has_image) return void 0;
+          let alive = true;
+          getMedImage(medication.id).then((url) => {
+            if (alive && url) setImageDataUrl(url);
+          });
+          return () => {
+            alive = false;
+          };
+        }, [medication]);
+        async function handlePickImage(e) {
+          const file = e.target.files && e.target.files[0];
+          e.target.value = "";
+          if (!file) return;
+          setImageBusy(true);
+          setError("");
+          try {
+            setImageDataUrl(await resizeImageFile(file));
+            setImageChanged(true);
+            setImageRemoved(false);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setImageBusy(false);
+          }
+        }
         function updateTime(i, value) {
           const next = [...times];
           next[i] = value;
@@ -1003,9 +1785,33 @@
           setSaving(true);
           setError("");
           try {
-            const payload = { patientId, name, dosage, notes, times, startDate };
-            if (isEdit) await api.updateMedication(medication.id, payload);
-            else await api.addMedication(payload);
+            const payload = {
+              patientId,
+              name,
+              dosage,
+              notes,
+              times,
+              startDate,
+              isCritical,
+              snoozeAllowed,
+              daysOfWeek: daysMask,
+              // نص فاضي = "مش بتابع الكمية" (null)، مش صفر
+              pillsLeft: pillsLeft === "" ? null : Number(pillsLeft)
+            };
+            const medId = isEdit ? (await api.updateMedication(medication.id, payload), medication.id) : (await api.addMedication(payload)).id;
+            try {
+              if (imageRemoved && isEdit && medication.has_image) {
+                await api.deleteMedicationImage(medId);
+                clearMedImage(medId);
+              } else if (imageChanged && imageDataUrl) {
+                await api.setMedicationImage(medId, imageDataUrl);
+                clearMedImage(medId);
+              }
+            } catch (imgError) {
+              setError(`الدواء اتحفظ، بس الصورة مانفعتش: ${imgError.message}`);
+              setSaving(false);
+              return;
+            }
             onSaved();
           } catch (e2) {
             setError(e2.message);
@@ -1022,7 +1828,7 @@
             subtitle: isEdit ? "التعديل بيسري على جرعات النهارده اللي لسه ميعادها مجاش" : "اكتب اسمه ومواعيده، وإحنا هنفكّر المريض بيه في وقته",
             onClose,
             onSubmit: handleSubmit,
-            footer: (close) => /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { type: "button", variant: "soft", onClick: close, disabled: saving }, "إلغاء"), /* @__PURE__ */ React.createElement(Button, { type: "submit", loading: saving }, saving ? "جاري الحفظ..." : isEdit ? "حفظ التعديل" : "إضافة الدواء"))
+            footer: (close) => /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { type: "button", variant: "soft", onClick: close, disabled: saving }, "إلغاء"), /* @__PURE__ */ React.createElement(Button, { type: "submit", loading: saving, disabled: daysMask === 0 }, saving ? "جاري الحفظ..." : isEdit ? "حفظ التعديل" : "إضافة الدواء"))
           },
           /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error),
           /* @__PURE__ */ React.createElement(Field, { label: "اسم الدواء" }, /* @__PURE__ */ React.createElement("input", { required: true, value: name, onChange: (e) => setName(e.target.value) })),
@@ -1045,7 +1851,92 @@
             },
             /* @__PURE__ */ React.createElement(Icon, { name: "trash", size: 20 })
           ))), /* @__PURE__ */ React.createElement(Button, { type: "button", variant: "ghost", onClick: addTime }, /* @__PURE__ */ React.createElement(Icon, { name: "plus", size: 18, strokeWidth: 2.4 }), "إضافة معاد"))),
+          /* @__PURE__ */ React.createElement(FieldGroup, { label: "أيام الجرعات" }, /* @__PURE__ */ React.createElement("div", { className: "segmented" }, /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: daysMask === 127 ? "segmented-btn active" : "segmented-btn",
+              onClick: () => setDaysMask(127)
+            },
+            "كل يوم"
+          ), /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: daysMask === 127 ? "segmented-btn" : "segmented-btn active",
+              onClick: () => setDaysMask((m) => m === 127 ? 1 << (/* @__PURE__ */ new Date()).getDay() : m)
+            },
+            "أيام محددة"
+          )), daysMask !== 127 && /* @__PURE__ */ React.createElement("div", { className: "weekday-picker" }, WEEKDAYS.map((label, i) => {
+            const on = (daysMask & 1 << i) !== 0;
+            return /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                key: i,
+                type: "button",
+                className: `weekday-btn${on ? " active" : ""}`,
+                "aria-pressed": on,
+                onClick: () => setDaysMask((m) => m ^ 1 << i)
+              },
+              label
+            );
+          })), daysMask !== 127 && daysMask === 0 && /* @__PURE__ */ React.createElement("div", { className: "field-hint field-hint-warn" }, "اختار يوم واحد على الأقل")),
           /* @__PURE__ */ React.createElement(Field, { label: "تاريخ البداية" }, /* @__PURE__ */ React.createElement("input", { type: "date", required: true, value: startDate, onChange: (e) => setStartDate(e.target.value) })),
+          /* @__PURE__ */ React.createElement(Field, { label: "عدد الأقراص الموجودة (اختياري)" }, /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              type: "number",
+              inputMode: "numeric",
+              min: "0",
+              max: "9999",
+              placeholder: "سيبه فاضي لو مش هتتابع الكمية",
+              value: pillsLeft,
+              onChange: (e) => setPillsLeft(e.target.value)
+            }
+          ), /* @__PURE__ */ React.createElement("div", { className: "field-hint" }, "بينقص مع كل جرعة تتسجّل، وهنبعتلك تنبيه قبل ما يخلص بأيام - بدل ما تعرف بعد ما يخلص فعلاً")),
+          /* @__PURE__ */ React.createElement(FieldGroup, { label: "صورة الدوا (اختياري)" }, /* @__PURE__ */ React.createElement("div", { className: "med-image-picker" }, imageDataUrl && !imageRemoved ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("img", { className: "med-image med-image-preview", src: imageDataUrl, alt: "صورة الدواء" }), /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "med-image-remove",
+              onClick: () => {
+                setImageRemoved(true);
+                setImageChanged(false);
+                setImageDataUrl(null);
+              }
+            },
+            /* @__PURE__ */ React.createElement(Icon, { name: "trash", size: 17 }),
+            "شيل الصورة"
+          )) : /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              type: "button",
+              className: "med-image-add",
+              onClick: () => fileInputRef.current && fileInputRef.current.click(),
+              disabled: imageBusy
+            },
+            /* @__PURE__ */ React.createElement(Icon, { name: "plus", size: 22, strokeWidth: 2.2 }),
+            imageBusy ? "بنجهّز الصورة..." : "صوّر الشريط أو اختار صورة"
+          ), /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              ref: fileInputRef,
+              type: "file",
+              accept: "image/*",
+              capture: "environment",
+              onChange: handlePickImage,
+              hidden: true
+            }
+          ))),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, "دوا مواعيده مهمة"), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "زي الأنسولين وأدوية القلب - التنبيه بيوصلك في أي وقت لو فاتت، والمريض مش هيقدر يأجّلها")), /* @__PURE__ */ React.createElement(Toggle, { on: isCritical, onChange: () => setIsCritical((v) => !v), label: "دوا مواعيده مهمة" })),
+          !isCritical && /* @__PURE__ */ React.createElement("div", { className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, 'يسمح بـ "فكّرني بعدين"'), /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, "المريض يقدر يأجّل التنبيه 10 دقايق، بحد أقصى 3 مرات")), /* @__PURE__ */ React.createElement(
+            Toggle,
+            {
+              on: snoozeAllowed,
+              onChange: () => setSnoozeAllowed((v) => !v),
+              label: "يسمح بتأجيل التنبيه"
+            }
+          )),
           /* @__PURE__ */ React.createElement(Field, { label: "ملاحظات" }, /* @__PURE__ */ React.createElement("textarea", { value: notes, onChange: (e) => setNotes(e.target.value) }))
         );
       }
@@ -1372,52 +2263,222 @@
           ))
         );
       }
+      /*! ===== js/components/Adherence.jsx ===== */
+      const ADHERENCE_RANGES = [
+        { days: 7, label: "أسبوع" },
+        { days: 30, label: "شهر" },
+        { days: 90, label: "3 شهور" }
+      ];
+      const GOOD_RATE = 80;
+      function AdherenceView({ patientId, onBack }) {
+        const [days, setDays] = React.useState(30);
+        const [report, setReport] = React.useState(null);
+        const [loading, setLoading] = React.useState(true);
+        const [error, setError] = React.useState("");
+        React.useEffect(() => {
+          if (!patientId) return void 0;
+          let alive = true;
+          setLoading(true);
+          api.getAdherence(patientId, days).then((data) => {
+            if (alive) {
+              setReport(data);
+              setError("");
+            }
+          }).catch((e) => alive && setError(e.message)).finally(() => alive && setLoading(false));
+          return () => {
+            alive = false;
+          };
+        }, [patientId, days]);
+        if (!patientId) {
+          return /* @__PURE__ */ React.createElement(EmptyState, { icon: "user", text: "لسه معندكش مريض مربوط." });
+        }
+        const rate = report && report.rate;
+        const rateTone = rate === null || rate === void 0 ? "muted" : rate >= GOOD_RATE ? "good" : "warn";
+        return /* @__PURE__ */ React.createElement("div", { className: "view" }, /* @__PURE__ */ React.createElement("div", { className: "view-header" }, /* @__PURE__ */ React.createElement("h2", { className: "view-title" }, "تقرير الالتزام"), onBack && /* @__PURE__ */ React.createElement(Button, { variant: "ghost", onClick: onBack }, "رجوع")), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), /* @__PURE__ */ React.createElement("div", { className: "segmented adherence-range" }, ADHERENCE_RANGES.map((r) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: r.days,
+            className: days === r.days ? "segmented-btn active" : "segmented-btn",
+            onClick: () => setDays(r.days)
+          },
+          r.label
+        ))), loading ? /* @__PURE__ */ React.createElement(SkeletonCards, { count: 2 }) : !report || report.total === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "pill", text: "مفيش جرعات متسجّلة في الفترة دي." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Card, { className: "adherence-summary" }, /* @__PURE__ */ React.createElement("div", { className: `adherence-rate adherence-rate-${rateTone}` }, /* @__PURE__ */ React.createElement("span", { className: "adherence-rate-value" }, rate, "%"), /* @__PURE__ */ React.createElement("span", { className: "adherence-rate-label" }, "التزام")), /* @__PURE__ */ React.createElement("div", { className: "adherence-counts" }, /* @__PURE__ */ React.createElement("div", { className: "adherence-count" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-count-value" }, report.taken), /* @__PURE__ */ React.createElement("span", { className: "adherence-count-label" }, "جرعة اتاخدت")), /* @__PURE__ */ React.createElement("div", { className: "adherence-count adherence-count-missed" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-count-value" }, report.missed), /* @__PURE__ */ React.createElement("span", { className: "adherence-count-label" }, "جرعة فاتت")))), report.worstTime && /* @__PURE__ */ React.createElement("div", { className: "adherence-insight" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-insight-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 24 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "adherence-insight-title" }, "جرعة ", report.worstTime.label, " هي أكتر واحدة بتتنسى"), /* @__PURE__ */ React.createElement("div", { className: "adherence-insight-desc" }, "فاتت ", report.worstTime.missed, " مرة من ", report.worstTime.taken + report.worstTime.missed))), /* @__PURE__ */ React.createElement("div", { className: "adherence-section-title" }, "كل يوم"), /* @__PURE__ */ React.createElement(Card, { className: "adherence-days" }, /* @__PURE__ */ React.createElement("div", { className: "adherence-bars" }, report.byDay.map((d) => {
+          const total = d.taken + d.missed;
+          return /* @__PURE__ */ React.createElement(
+            "div",
+            {
+              key: d.day,
+              className: "adherence-bar",
+              title: `${d.day}: ${d.taken} اتاخدت، ${d.missed} فاتت`
+            },
+            /* @__PURE__ */ React.createElement("div", { className: "adherence-bar-track" }, /* @__PURE__ */ React.createElement(
+              "div",
+              {
+                className: "adherence-bar-taken",
+                style: { height: `${total ? d.taken / total * 100 : 0}%` }
+              }
+            )),
+            /* @__PURE__ */ React.createElement("span", { className: "adherence-bar-label" }, d.day.slice(8))
+          );
+        }))), /* @__PURE__ */ React.createElement("div", { className: "adherence-section-title" }, "كل دواء"), /* @__PURE__ */ React.createElement(Card, { className: "adherence-meds" }, report.byMedication.map((m) => {
+          const total = m.taken + m.missed;
+          const medRate = total ? Math.round(m.taken / total * 100) : 0;
+          return /* @__PURE__ */ React.createElement("div", { key: m.id, className: "adherence-med" }, /* @__PURE__ */ React.createElement("div", { className: "adherence-med-head" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-med-name" }, m.name), /* @__PURE__ */ React.createElement("span", { className: medRate >= GOOD_RATE ? "adherence-med-rate" : "adherence-med-rate warn" }, medRate, "%")), /* @__PURE__ */ React.createElement("div", { className: "adherence-med-track" }, /* @__PURE__ */ React.createElement("div", { className: "adherence-med-fill", style: { width: `${medRate}%` } })), /* @__PURE__ */ React.createElement("div", { className: "adherence-med-meta" }, m.taken, " اتاخدت · ", m.missed, " فاتت"));
+        })), report.pendingNotCounted > 0 && /* شفافية مقصودة: من غير السطر ده المتابع ممكن يعدّ الجرعات بنفسه
+        ويلاقي الرقم مش مظبوط ويشك في التقرير كله */
+        /* @__PURE__ */ React.createElement("p", { className: "adherence-note" }, "فيه ", report.pendingNotCounted, " جرعة لسه ميعادها مجاش - مش محسوبة في النسبة.")));
+      }
       /*! ===== js/components/Notifications.jsx ===== */
       const NOTIF_ICONS = {
         missed_dose: "warning",
+        dose_escalation: "alert",
+        dose_due: "pill",
+        dose_reminder: "clock",
         upcoming_appointment: "calendar",
         general: "bell",
         patient_issue: "alert"
       };
+      const ACTIONABLE_TYPES = /* @__PURE__ */ new Set(["patient_issue", "missed_dose", "dose_escalation"]);
+      const GROUP_TITLES = {
+        missed_dose: "جرعات فايتة",
+        dose_due: "تنبيهات دوا",
+        dose_reminder: "تذكيرات دوا",
+        upcoming_appointment: "مواعيد قريبة",
+        patient_issue: "بلاغات",
+        dose_escalation: "تنبيهات مهمة",
+        general: "إشعارات"
+      };
+      const GROUP_MIN = 3;
+      function groupNotifications(notifications) {
+        const groups = /* @__PURE__ */ new Map();
+        const output = [];
+        for (const n of notifications) {
+          if (n.priority === "critical") {
+            output.push({ kind: "single", notification: n, key: `n-${n.id}` });
+            continue;
+          }
+          const day = String(n.created_at).slice(0, 10);
+          const key = `${n.type}|${n.patient_id}|${day}`;
+          if (!groups.has(key)) {
+            const bucket = { kind: "group", key: `g-${key}`, type: n.type, items: [] };
+            groups.set(key, bucket);
+            output.push(bucket);
+          }
+          groups.get(key).items.push(n);
+        }
+        const flattened = [];
+        for (const entry of output) {
+          if (entry.kind === "single" || entry.items.length >= GROUP_MIN) {
+            flattened.push(entry);
+            continue;
+          }
+          for (const n of entry.items) {
+            flattened.push({ kind: "single", notification: n, key: `n-${n.id}` });
+          }
+        }
+        return flattened;
+      }
       function NotificationsView({ notifications, onRefresh }) {
         const [error, setError] = React.useState("");
-        async function handleClick(n) {
+        const [filter, setFilter] = React.useState("all");
+        const [expanded, setExpanded] = React.useState(() => /* @__PURE__ */ new Set());
+        async function run(fn) {
+          try {
+            await fn();
+            onRefresh();
+          } catch (e) {
+            setError(e.message);
+          }
+        }
+        function handleOpen(n) {
           if (n.is_read) return;
-          try {
-            await api.markNotificationRead(n.id);
-            onRefresh();
-          } catch (e) {
-            setError(e.message);
-          }
+          run(() => api.markNotificationRead(n.id));
         }
-        async function handleReadAll() {
-          try {
-            await api.markAllNotificationsRead();
-            onRefresh();
-          } catch (e) {
-            setError(e.message);
-          }
+        function handleHandled(e, n) {
+          e.stopPropagation();
+          run(() => api.markNotificationHandled(n.id));
         }
+        function toggleGroup(key) {
+          setExpanded((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+          });
+        }
+        const visible = filter === "unread" ? notifications.filter((n) => !n.is_read) : notifications;
+        const entries = groupNotifications(visible);
         const hasUnread = notifications.some((n) => !n.is_read);
-        return /* @__PURE__ */ React.createElement("div", { className: "view" }, /* @__PURE__ */ React.createElement("div", { className: "view-header" }, /* @__PURE__ */ React.createElement("h2", { className: "view-title" }, "الإشعارات"), hasUnread && /* @__PURE__ */ React.createElement(Button, { variant: "ghost", onClick: handleReadAll }, "تعليم الكل كمقروء")), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), notifications.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "bell", text: "مفيش إشعارات لسه." }) : /* @__PURE__ */ React.createElement(Card, { className: "notif-list stagger" }, notifications.map((n) => /* @__PURE__ */ React.createElement(
-          "div",
-          {
-            key: n.id,
-            className: n.is_read ? "notif-item" : "notif-item unread",
-            onClick: () => handleClick(n),
-            role: "button",
-            tabIndex: 0,
-            onKeyDown: (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleClick(n);
-              }
+        const unreadCount = notifications.filter((n) => !n.is_read).length;
+        function renderRow(n, inGroup) {
+          const actionable = ACTIONABLE_TYPES.has(n.type) && !n.handled_at;
+          return /* @__PURE__ */ React.createElement(
+            "div",
+            {
+              key: n.id,
+              className: `notif-item notif-${n.priority}` + (n.is_read ? "" : " unread") + (n.handled_at ? " notif-handled" : "") + (inGroup ? " notif-item-nested" : ""),
+              onClick: () => handleOpen(n),
+              role: "button",
+              tabIndex: 0,
+              onKeyDown: (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleOpen(n);
+                }
+              },
+              "aria-label": `${n.is_read ? "" : "غير مقروء: "}${n.priority === "critical" ? "مهم: " : ""}${n.message}، ${formatDateTime(n.created_at)}`
             },
-            "aria-label": `${n.is_read ? "" : "غير مقروء: "}${n.message}، ${formatDateTime(n.created_at)}`
+            /* @__PURE__ */ React.createElement("span", { className: "notif-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: NOTIF_ICONS[n.type] || "bell", size: 23 })),
+            /* @__PURE__ */ React.createElement("div", { className: "notif-body" }, /* @__PURE__ */ React.createElement("div", { className: "notif-message" }, n.message), /* @__PURE__ */ React.createElement("div", { className: "notif-date" }, formatDateTime(n.created_at), n.handled_at && /* @__PURE__ */ React.createElement("span", { className: "notif-handled-tag" }, " · اتعامل معاه"))),
+            actionable && /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                className: "notif-handle-btn",
+                onClick: (e) => handleHandled(e, n),
+                "aria-label": "علّم إن الموضوع خلص"
+              },
+              /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 15, strokeWidth: 2.6 }),
+              "خلصته"
+            )
+          );
+        }
+        return /* @__PURE__ */ React.createElement("div", { className: "view" }, /* @__PURE__ */ React.createElement("div", { className: "view-header" }, /* @__PURE__ */ React.createElement("h2", { className: "view-title" }, "الإشعارات"), hasUnread && /* @__PURE__ */ React.createElement(Button, { variant: "ghost", onClick: () => run(() => api.markAllNotificationsRead()) }, "تعليم الكل كمقروء")), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), notifications.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "segmented notif-filter" }, /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: filter === "all" ? "segmented-btn active" : "segmented-btn",
+            onClick: () => setFilter("all")
           },
-          /* @__PURE__ */ React.createElement("span", { className: "notif-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: NOTIF_ICONS[n.type] || "bell", size: 23 })),
-          /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "notif-message" }, n.message), /* @__PURE__ */ React.createElement("div", { className: "notif-date" }, formatDateTime(n.created_at)))
-        ))));
+          "الكل"
+        ), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: filter === "unread" ? "segmented-btn active" : "segmented-btn",
+            onClick: () => setFilter("unread")
+          },
+          "غير مقروء",
+          unreadCount > 0 && ` (${unreadCount})`
+        )), visible.length === 0 ? /* @__PURE__ */ React.createElement(
+          EmptyState,
+          {
+            icon: "bell",
+            text: filter === "unread" ? "مفيش إشعارات غير مقروءة." : "مفيش إشعارات لسه."
+          }
+        ) : /* @__PURE__ */ React.createElement(Card, { className: "notif-list stagger" }, entries.map((entry) => {
+          if (entry.kind === "single") return renderRow(entry.notification, false);
+          const isOpen = expanded.has(entry.key);
+          const groupUnread = entry.items.filter((n) => !n.is_read).length;
+          return /* @__PURE__ */ React.createElement("div", { key: entry.key, className: "notif-group" }, /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              className: `notif-group-head${groupUnread ? " unread" : ""}`,
+              onClick: () => toggleGroup(entry.key),
+              "aria-expanded": isOpen
+            },
+            /* @__PURE__ */ React.createElement("span", { className: "notif-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: NOTIF_ICONS[entry.type] || "bell", size: 23 })),
+            /* @__PURE__ */ React.createElement("div", { className: "notif-body" }, /* @__PURE__ */ React.createElement("div", { className: "notif-message" }, entry.items.length, " ", GROUP_TITLES[entry.type] || "إشعارات"), /* @__PURE__ */ React.createElement("div", { className: "notif-date" }, formatDateTime(entry.items[0].created_at), groupUnread > 0 && /* @__PURE__ */ React.createElement("span", { className: "notif-handled-tag" }, " · ", groupUnread, " جديد"))),
+            /* @__PURE__ */ React.createElement("span", { className: `notif-group-chevron${isOpen ? " open" : ""}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "chevron", size: 17, strokeWidth: 2.2 }))
+          ), isOpen && /* @__PURE__ */ React.createElement("div", { className: "notif-group-items" }, entry.items.map((n) => renderRow(n, true))));
+        })));
       }
       /*! ===== js/components/Patients.jsx ===== */
       function buildAccessLink(token) {
@@ -1451,8 +2512,32 @@
       }
       function PatientCard({ patient, onError, onChanged }) {
         const [showShare, setShowShare] = React.useState(false);
+        const [showManage, setShowManage] = React.useState(false);
         const [current, setCurrent] = React.useState(patient);
         const [regenerating, setRegenerating] = React.useState(false);
+        const [notifStatus, setNotifStatus] = React.useState(null);
+        const [testing, setTesting] = React.useState(false);
+        const [testResult, setTestResult] = React.useState("");
+        React.useEffect(() => {
+          let alive = true;
+          api.getPatientNotificationStatus(current.id).then((data) => alive && setNotifStatus(data)).catch(() => {
+          });
+          return () => {
+            alive = false;
+          };
+        }, [current.id]);
+        async function handleTestAlarm() {
+          setTesting(true);
+          setTestResult("");
+          try {
+            await api.testPatientAlarm(current.id);
+            setTestResult("بعتنا تنبيه لموبايل المريض - اتأكد إنه وصله");
+          } catch (e) {
+            setTestResult(e.message);
+          } finally {
+            setTesting(false);
+          }
+        }
         async function handleRegenerate() {
           if (!confirm("اللينك القديم هيبقى مش شغال. متأكد؟")) return;
           setRegenerating(true);
@@ -1466,7 +2551,7 @@
             setRegenerating(false);
           }
         }
-        return /* @__PURE__ */ React.createElement(Card, { className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, current.name), current.phone && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, current.phone), current.link_code && /* @__PURE__ */ React.createElement("div", { className: "med-notes share-code-row" }, "كود المشاركة:", /* @__PURE__ */ React.createElement("span", { className: "share-code" }, current.link_code))), /* @__PURE__ */ React.createElement("div", { className: "med-actions patient-link-actions" }, /* @__PURE__ */ React.createElement(Button, { variant: "ghost", "aria-label": `عرض لينك دخول ${current.name}`, onClick: () => setShowShare(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "link", size: 17 }), "لينك الدخول"), /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement(Card, { className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, current.name), current.phone && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, current.phone), current.link_code && /* @__PURE__ */ React.createElement("div", { className: "med-notes share-code-row" }, "كود المشاركة:", /* @__PURE__ */ React.createElement("span", { className: "share-code" }, current.link_code)), notifStatus && /* @__PURE__ */ React.createElement("div", { className: `notif-status notif-status-${notifStatus.ok ? "ok" : "off"}` }, /* @__PURE__ */ React.createElement(Icon, { name: notifStatus.ok ? "bell" : "bellOff", size: 17 }), /* @__PURE__ */ React.createElement("span", null, notifStatus.ok ? `التنبيهات شغالة على ${notifStatus.deviceCount} جهاز` : !notifStatus.serverPushEnabled ? "خدمة التنبيهات مش مفعّلة على السيرفر" : notifStatus.deviceCount === 0 ? "المريض لسه مفعّلش التنبيهات على موبايله" : "المريض قافل التنبيهات من إعداداته"), notifStatus.deviceCount > 0 && /* @__PURE__ */ React.createElement("button", { className: "notif-status-test", onClick: handleTestAlarm, disabled: testing }, testing ? "..." : "جرّب")), testResult && /* @__PURE__ */ React.createElement("div", { className: "notif-status-result" }, testResult)), /* @__PURE__ */ React.createElement("div", { className: "med-actions patient-link-actions" }, /* @__PURE__ */ React.createElement(Button, { variant: "ghost", "aria-label": `عرض لينك دخول ${current.name}`, onClick: () => setShowShare(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "link", size: 17 }), "لينك الدخول"), /* @__PURE__ */ React.createElement(
           Button,
           {
             variant: "ghost",
@@ -1475,7 +2560,108 @@
             disabled: regenerating
           },
           regenerating ? "..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", size: 17 }), "لينك جديد")
-        )), showShare && /* @__PURE__ */ React.createElement(ShareLinkModal, { patient: current, onClose: () => setShowShare(false) }));
+        ), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", "aria-label": `إدارة ${current.name}`, onClick: () => setShowManage(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "settings", size: 17 }), "إدارة")), showShare && /* @__PURE__ */ React.createElement(ShareLinkModal, { patient: current, onClose: () => setShowShare(false) }), showManage && /* @__PURE__ */ React.createElement(
+          ManagePatientModal,
+          {
+            patient: current,
+            onClose: () => setShowManage(false),
+            onChanged,
+            onError
+          }
+        ));
+      }
+      function ManagePatientModal({ patient, onClose, onChanged, onError }) {
+        const [caregivers, setCaregivers] = React.useState([]);
+        const [busy, setBusy] = React.useState(false);
+        const [error, setError] = React.useState("");
+        const [confirmDelete, setConfirmDelete] = React.useState("");
+        const load = React.useCallback(() => {
+          api.getCaregivers(patient.id).then((data) => setCaregivers(data.caregivers || [])).catch((e) => setError(e.message));
+        }, [patient.id]);
+        React.useEffect(load, [load]);
+        async function run(fn, after) {
+          setBusy(true);
+          setError("");
+          try {
+            await fn();
+            if (after) after();
+          } catch (e) {
+            setError(e.message);
+          } finally {
+            setBusy(false);
+          }
+        }
+        const isLastCaregiver = caregivers.length <= 1;
+        return /* @__PURE__ */ React.createElement(
+          Modal,
+          {
+            icon: "users",
+            tone: "gray",
+            title: `إدارة ${patient.name}`,
+            subtitle: "مين بيتابعه، وإزاي تخرج أو تمسح بياناته",
+            onClose,
+            footer: (close) => /* @__PURE__ */ React.createElement(Button, { onClick: close }, "تم")
+          },
+          /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-group-label" }, "المتابعين"),
+          caregivers.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "settings-row" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "settings-row-title" }, c.name), c.phone && /* @__PURE__ */ React.createElement("div", { className: "settings-row-desc" }, c.phone)), /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              variant: "ghost",
+              disabled: busy,
+              "aria-label": `شيل ${c.name} من متابعة ${patient.name}`,
+              onClick: () => {
+                if (!confirm(`تشيل ${c.name} من متابعة ${patient.name}؟`)) return;
+                run(() => api.removeCaregiver(patient.id, c.id), load);
+              }
+            },
+            "شيله"
+          ))),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-group-label" }, "الخروج من المتابعة"),
+          /* @__PURE__ */ React.createElement("p", { className: "settings-row-desc manage-desc" }, isLastCaregiver ? "انت آخر متابع - لو خرجت المريض هيفضل بياخد منبهات ومحدش شايف حالته. لو عايز تشيله بجد استخدم الحذف تحت." : "هتخرج انت بس، وباقي المتابعين هيكملوا عادي."),
+          /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              variant: "soft",
+              disabled: busy || isLastCaregiver,
+              onClick: () => {
+                if (!confirm(`تخرج من متابعة ${patient.name}؟`)) return;
+                run(() => api.leavePatient(patient.id), () => {
+                  onChanged();
+                  onClose();
+                });
+              }
+            },
+            "خروج من المتابعة"
+          ),
+          /* @__PURE__ */ React.createElement("div", { className: "settings-group-label settings-group-danger" }, "حذف المريض نهائيًا"),
+          /* @__PURE__ */ React.createElement("p", { className: "settings-row-desc manage-desc" }, "هيمسح كل أدويته وجرعاته ومواعيده وقياساته - **من غير رجعة**. اكتب اسمه بالظبط عشان تأكد."),
+          /* @__PURE__ */ React.createElement(
+            "input",
+            {
+              className: "manage-confirm-input",
+              type: "text",
+              placeholder: patient.name,
+              value: confirmDelete,
+              onChange: (e) => setConfirmDelete(e.target.value),
+              "aria-label": "اكتب اسم المريض للتأكيد"
+            }
+          ),
+          /* @__PURE__ */ React.createElement(
+            Button,
+            {
+              variant: "danger",
+              disabled: busy || confirmDelete.trim() !== patient.name.trim(),
+              onClick: () => run(() => api.deletePatient(patient.id), () => {
+                onChanged();
+                onClose();
+              })
+            },
+            "احذف ",
+            patient.name,
+            " وكل بياناته"
+          )
+        );
       }
       function ShareLinkModal({ patient, onClose }) {
         const [copied, setCopied] = React.useState(false);
@@ -1593,29 +2779,31 @@
       function formatTimeObj(dateObj) {
         return dateObj.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
       }
-      function ringDoseAlarm() {
-        try {
-          const AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) {
-            const ctx = new AudioCtx();
-            [0, 0.5, 1, 1.5, 2].forEach((t) => {
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.type = "sine";
-              osc.frequency.value = 880;
-              gain.gain.value = 0.3;
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.start(ctx.currentTime + t);
-              osc.stop(ctx.currentTime + t + 0.3);
-            });
-            setTimeout(() => ctx.close(), 3e3);
-          }
-        } catch (e) {
-        }
-        if (navigator.vibrate) {
-          navigator.vibrate([400, 200, 400, 200, 400, 200, 400]);
-        }
+      function describeApptWhen(appointmentAt) {
+        const clock = formatTime(appointmentAt);
+        const cairoDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(d);
+        const dayIndex = (ymd) => {
+          const [y, m, d] = ymd.split("-").map(Number);
+          return Math.floor(Date.UTC(y, m - 1, d) / (24 * 3600 * 1e3));
+        };
+        const days = dayIndex(String(appointmentAt).slice(0, 10)) - dayIndex(cairoDay(/* @__PURE__ */ new Date()));
+        if (days <= 0) return `النهاردة الساعة ${clock}`;
+        if (days === 1) return `بكرة الساعة ${clock}`;
+        if (days === 2) return `بعد بكرة الساعة ${clock}`;
+        return `بعد ${days} أيام - الساعة ${clock}`;
+      }
+      function describePastWhen(recordedAt) {
+        const clock = formatTime(recordedAt);
+        const cairoDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(d);
+        const dayIndex = (ymd) => {
+          const [y, m, d] = ymd.split("-").map(Number);
+          return Math.floor(Date.UTC(y, m - 1, d) / (24 * 3600 * 1e3));
+        };
+        const days = dayIndex(cairoDay(/* @__PURE__ */ new Date())) - dayIndex(String(recordedAt).slice(0, 10));
+        if (days <= 0) return `النهاردة ${clock}`;
+        if (days === 1) return `إمبارح ${clock}`;
+        if (days === 2) return `أول إمبارح ${clock}`;
+        return `من ${days} أيام`;
       }
       const ISSUE_OPTIONS = [
         { key: "forgot_dose", icon: "clock", label: "نسيت آخد جرعة", tone: "blue" },
@@ -1642,38 +2830,61 @@
         const [doses, setDoses] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [error, setError] = React.useState("");
+        const [staleSince, setStaleSince] = React.useState(null);
+        const [appointments, setAppointments] = React.useState([]);
+        const [showVitals, setShowVitals] = React.useState(false);
+        const [showHistory, setShowHistory] = React.useState(false);
         const [showIssue, setShowIssue] = React.useState(false);
         const [showSettings, setShowSettings] = React.useState(false);
         const [caregivers, setCaregivers] = React.useState([]);
         const [now, setNow] = React.useState(() => /* @__PURE__ */ new Date());
-        const [notifPermission, setNotifPermission] = React.useState(
-          "Notification" in window ? Notification.permission : "unsupported"
-        );
         const [notifHelpOpen, setNotifHelpOpen] = React.useState(false);
         const notifiedDoseIds = React.useRef(/* @__PURE__ */ new Set());
         const hasSeededDoses = React.useRef(false);
-        function requestNotifPermission() {
-          if (!("Notification" in window)) return;
-          if (Notification.permission === "denied") {
-            setNotifHelpOpen(true);
+        const [alarmDoseId, setAlarmDoseId] = React.useState(null);
+        const [alarmBusy, setAlarmBusy] = React.useState(false);
+        const [alarmError, setAlarmError] = React.useState("");
+        const ringerRef = React.useRef(null);
+        if (!ringerRef.current) ringerRef.current = createAlarmRinger();
+        const [pushStatus, setPushStatus] = React.useState(() => getPushStatus());
+        const [pushBusy, setPushBusy] = React.useState(false);
+        const [pushError, setPushError] = React.useState("");
+        async function handleEnablePush() {
+          if (pushStatus === "blocked" || pushStatus === "needs-install") {
+            setNotifHelpOpen((v) => !v);
             return;
           }
+          setPushBusy(true);
+          setPushError("");
           try {
-            const result = Notification.requestPermission((perm) => setNotifPermission(perm));
-            if (result && typeof result.then === "function") {
-              result.then(setNotifPermission).catch(() => setNotifPermission(Notification.permission));
-            }
+            await enablePush();
+            setPushStatus(getPushStatus());
           } catch (e) {
-            setNotifPermission(Notification.permission);
+            setPushError(e.message);
+            setPushStatus(getPushStatus());
+          } finally {
+            setPushBusy(false);
           }
         }
         const load = React.useCallback(async () => {
           setLoading(true);
           try {
+            await flushOfflineQueue().catch(() => {
+            });
             const data = await api.getTodayDoses(user.id);
             setDoses(data.doses);
+            cacheTodayDoses(user.id, data.doses);
+            setStaleSince(null);
+            setError("");
           } catch (e) {
-            setError(e.message);
+            const cached = readCachedTodayDoses(user.id);
+            if (cached) {
+              setDoses(cached.doses);
+              setStaleSince(cached.at);
+              setError("");
+            } else {
+              setError(e.message);
+            }
           } finally {
             setLoading(false);
           }
@@ -1682,6 +2893,38 @@
           load();
           const interval = setInterval(load, 6e4);
           return () => clearInterval(interval);
+        }, [load]);
+        React.useEffect(() => {
+          if (!("serviceWorker" in navigator)) return;
+          function onMessage(event) {
+            const data = event.data || {};
+            if (data.type !== "ma3ak:dose-changed" && data.type !== "ma3ak:notification-click") return;
+            load();
+            if (data.doseId) {
+              setAlarmDoseId(Number(data.doseId));
+              setAlarmError("");
+            }
+          }
+          navigator.serviceWorker.addEventListener("message", onMessage);
+          return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+        }, [load]);
+        React.useEffect(() => {
+          const params = new URLSearchParams(window.location.search);
+          const doseId = params.get("dose");
+          if (!doseId) return;
+          window.history.replaceState({}, "", "/");
+          setAlarmDoseId(Number(doseId));
+        }, []);
+        React.useEffect(() => {
+          api.getAppointments(user.id).then((data) => setAppointments(data.appointments || [])).catch(() => {
+          });
+        }, [user.id]);
+        React.useEffect(() => {
+          function onOnline() {
+            load();
+          }
+          window.addEventListener("online", onOnline);
+          return () => window.removeEventListener("online", onOnline);
         }, [load]);
         React.useEffect(() => {
           api.getCaregivers(user.id).then((data) => setCaregivers(data.caregivers || [])).catch(() => {
@@ -1695,26 +2938,66 @@
           const isFirstPass = !hasSeededDoses.current;
           doses.forEach((d) => {
             if (d.status !== "pending") return;
+            if (d.snooze_until && parseCairoDatetime(d.snooze_until) > now) return;
             if (parseCairoDatetime(d.scheduled_at) > now) return;
             if (notifiedDoseIds.current.has(d.id)) return;
             notifiedDoseIds.current.add(d.id);
             if (isFirstPass) return;
-            if ("Notification" in window && Notification.permission === "granted") {
-              new Notification("معاك - وقت الدوا 💊", {
-                body: `وقت ${d.name} دلوقتي`,
-                tag: `dose-${d.id}`
-              });
-            }
-            if (alarmEnabled) ringDoseAlarm();
+            setAlarmDoseId(d.id);
+            setAlarmError("");
+            if (alarmEnabled) ringerRef.current.start();
           });
           if (isFirstPass && doses.length) hasSeededDoses.current = true;
         }, [doses, now, alarmEnabled]);
+        React.useEffect(() => {
+          const ringer = ringerRef.current;
+          return () => ringer.stop();
+        }, []);
+        function closeAlarm() {
+          ringerRef.current.stop();
+          setAlarmDoseId(null);
+          setAlarmError("");
+        }
         async function handleTake(doseId) {
+          setAlarmBusy(true);
           try {
             await api.takeDose(doseId);
+            if (doseId === alarmDoseId) closeAlarm();
             load();
           } catch (e) {
-            setError(e.message);
+            if (!e.status) {
+              queueTake(doseId);
+              markDoseTakenLocally(doseId);
+              if (doseId === alarmDoseId) closeAlarm();
+              setError("مفيش نت دلوقتي - سجّلناها على الجهاز وهتتبعت أول ما النت يرجع");
+            } else if (doseId === alarmDoseId) {
+              setAlarmError(e.message);
+            } else {
+              setError(e.message);
+            }
+          } finally {
+            setAlarmBusy(false);
+          }
+        }
+        function markDoseTakenLocally(doseId) {
+          setDoses((prev) => {
+            const next = prev.map(
+              (d) => d.id === doseId ? __spreadProps(__spreadValues({}, d), { status: "taken", taken_at: (/* @__PURE__ */ new Date()).toISOString() }) : d
+            );
+            cacheTodayDoses(user.id, next);
+            return next;
+          });
+        }
+        async function handleSnooze(doseId) {
+          setAlarmBusy(true);
+          try {
+            await api.snoozeDose(doseId);
+            closeAlarm();
+            load();
+          } catch (e) {
+            setAlarmError(e.message);
+          } finally {
+            setAlarmBusy(false);
           }
         }
         function speak(text) {
@@ -1733,9 +3016,12 @@
         const medicationNames = [...new Set(doses.map((d) => d.name))];
         const firstName = (user.name || "").trim().split(" ")[0] || user.name;
         const dosesWithAvailability = doses.map((d) => {
-          if (d.status !== "pending") return __spreadProps(__spreadValues({}, d), { isOpen: false, isLocked: false });
-          const { isEarly, availableFrom } = getDoseAvailability(d.scheduled_at, now);
-          return __spreadProps(__spreadValues({}, d), { isOpen: !isEarly, isLocked: isEarly, availableFrom });
+          const { isEarly, isTooLate, availableFrom } = getDoseAvailability(d.scheduled_at, now);
+          if (d.status === "taken") return __spreadProps(__spreadValues({}, d), { isOpen: false, isLocked: false, isLate: false });
+          if (d.status === "missed") {
+            return __spreadProps(__spreadValues({}, d), { isOpen: false, isLocked: false, isLate: !isTooLate, availableFrom });
+          }
+          return __spreadProps(__spreadValues({}, d), { isOpen: !isEarly, isLocked: isEarly, isLate: false, availableFrom });
         });
         const openDoses = dosesWithAvailability.filter((d) => d.isOpen);
         const lockedDoses = dosesWithAvailability.filter((d) => d.isLocked);
@@ -1744,10 +3030,24 @@
         const heroKind = heroDose ? "open" : waitingDose ? "waiting" : doses.length > 0 ? "allDone" : "empty";
         const heroId = heroDose ? heroDose.id : waitingDose ? waitingDose.id : null;
         const secondaryDoses = dosesWithAvailability.filter((d) => d.id !== heroId);
+        const APPOINTMENT_HORIZON_DAYS = 7;
+        const nextAppointment = appointments.filter((a) => {
+          const at = parseCairoDatetime(a.appointment_at);
+          return at >= now && at - now <= APPOINTMENT_HORIZON_DAYS * 24 * 3600 * 1e3;
+        }).sort((a, b) => parseCairoDatetime(a.appointment_at) - parseCairoDatetime(b.appointment_at))[0];
+        const alarmDose = alarmDoseId ? dosesWithAvailability.find((d) => d.id === alarmDoseId) : null;
+        React.useEffect(() => {
+          if (alarmDoseId && (!alarmDose || alarmDose.status !== "pending")) closeAlarm();
+        }, [alarmDoseId, alarmDose]);
+        function speakAlarmDose(d) {
+          speak(
+            `وقت ${d.name} دلوقتي` + (d.dosage ? `، الجرعة ${d.dosage}` : "") + (d.notes ? `. ${d.notes}` : "") + ". دوس على زرار خدت الدوا بعد ما تاخده."
+          );
+        }
         function speakDoseInfo() {
           let text;
           if (heroKind === "open") {
-            text = "معاد " + heroDose.name + " دلوقتي" + (heroDose.dosage ? "، الجرعة " + heroDose.dosage : "") + ". دوس على زرار خدت الدوا بعد ما تاخده.";
+            text = "معاد " + heroDose.name + " دلوقتي" + (heroDose.dosage ? "، الجرعة " + heroDose.dosage : "") + (heroDose.notes ? ". " + heroDose.notes : "") + ". دوس على زرار خدت الدوا بعد ما تاخده.";
           } else if (heroKind === "waiting") {
             text = "الجرعة الجاية " + waitingDose.name + " الساعة " + formatTimeObj(waitingDose.availableFrom) + ".";
           } else {
@@ -1783,20 +3083,44 @@
             title: "الإعدادات"
           },
           /* @__PURE__ */ React.createElement(Icon, { name: "settings", size: 22 })
-        ), /* @__PURE__ */ React.createElement("button", { className: "patient-logout", onClick: onLogout }, "خروج"))), /* @__PURE__ */ React.createElement("main", { className: "patient-main" }, /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), /* @__PURE__ */ React.createElement(InstallBanner, { deferredPrompt: installPrompt, onInstalled }), loading ? /* @__PURE__ */ React.createElement(Spinner, null) : doses.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "patient-empty" }, /* @__PURE__ */ React.createElement("div", { className: "patient-empty-icon" }, /* @__PURE__ */ React.createElement(Icon, { name: "inbox", size: 58, strokeWidth: 1.5 })), /* @__PURE__ */ React.createElement("p", null, "معندكش أدوية دلوقتي")) : /* @__PURE__ */ React.createElement("div", { className: "patient-today" }, /* @__PURE__ */ React.createElement("div", { className: "patient-progress-dots" }, dosesWithAvailability.map((d) => /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("button", { className: "patient-logout", onClick: onLogout }, "خروج"))), /* @__PURE__ */ React.createElement("main", { className: "patient-main" }, /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), staleSince && /* @__PURE__ */ React.createElement("div", { className: "patient-offline-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "مفيش نت دلوقتي - دي آخر بيانات وصلتنا ", formatTime(new Date(staleSince).toISOString()))), /* @__PURE__ */ React.createElement(InstallBanner, { deferredPrompt: installPrompt, onInstalled }), loading ? /* @__PURE__ */ React.createElement(Spinner, null) : doses.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "patient-empty" }, /* @__PURE__ */ React.createElement("div", { className: "patient-empty-icon" }, /* @__PURE__ */ React.createElement(Icon, { name: "inbox", size: 58, strokeWidth: 1.5 })), /* @__PURE__ */ React.createElement("p", null, "معندكش أدوية دلوقتي")) : /* @__PURE__ */ React.createElement("div", { className: "patient-today" }, /* @__PURE__ */ React.createElement("div", { className: "patient-progress-dots" }, dosesWithAvailability.map((d) => /* @__PURE__ */ React.createElement(
           "span",
           {
             key: d.id,
             className: `progress-dot progress-dot-${doseDotStatus(d)}${d.id === heroId && heroKind === "open" ? " progress-dot-active" : ""}`
           }
-        ))), /* @__PURE__ */ React.createElement("div", { className: "patient-progress-label" }, done.length, " من ", doses.length, " جرعات خلصت"), heroKind === "open" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-open" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label" }, "دلوقتي"), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 56, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, heroDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "الساعة ", formatTime(heroDose.scheduled_at)), heroDose.dosage && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, heroDose.dosage), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-btn", onClick: () => handleTake(heroDose.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 30, strokeWidth: 2.6 }), "خدت الدوا")), heroKind === "waiting" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-waiting" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label muted" }, "الجرعة الجاية"), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 48, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, waitingDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "هتقدر تأكدها الساعة ", formatTimeObj(waitingDose.availableFrom))), heroKind === "allDone" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-alldone" }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "sparkles", size: 54, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, "خلصت كل جرعات النهارده")), secondaryDoses.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-title" }, "باقي جرعات النهارده"), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-list stagger" }, secondaryDoses.map((d) => /* @__PURE__ */ React.createElement("div", { key: d.id, className: `patient-secondary-row status-${d.status}` }, /* @__PURE__ */ React.createElement("span", { className: "patient-secondary-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: secondaryIcon(d), size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-name" }, d.name), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-meta" }, secondaryMeta(d))), d.isOpen && /* @__PURE__ */ React.createElement("button", { className: "patient-secondary-take", onClick: () => handleTake(d.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 17, strokeWidth: 2.6 }), "خدت")))))), caregivers.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-card" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-label" }, "متابعك"), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-name" }, caregivers[0].name, caregivers.length > 1 && ` +${caregivers.length - 1} كمان`)), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-avatar", "aria-hidden": "true" }, caregivers[0].name.trim()[0] || "م")), isNightBoost && /* @__PURE__ */ React.createElement("div", { className: "patient-night-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "moon", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "وضع الليل: الخط أكبر شوية عشان الرؤية بالليل")), notifPermission !== "granted" && notifPermission !== "unsupported" && /* @__PURE__ */ React.createElement("div", { className: `patient-notif-banner${notifPermission === "denied" ? " patient-notif-banner-denied" : ""}` }, /* @__PURE__ */ React.createElement(Icon, { name: notifPermission === "denied" ? "bellOff" : "bell", size: 26 }), /* @__PURE__ */ React.createElement("div", { className: "patient-notif-text" }, notifPermission === "denied" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, "التنبيهات موقوفة من إعدادات المتصفح"), notifHelpOpen && /* @__PURE__ */ React.createElement("div", { className: "patient-notif-help" }, 'افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع فوق) وفعّل "الإشعارات" من هناك، بعدين ارجع للتطبيق.')) : "فعّل التنبيهات عشان التطبيق يرن ويفكّرك بمواعيد دوائك"), /* @__PURE__ */ React.createElement(
+        ))), /* @__PURE__ */ React.createElement("div", { className: "patient-progress-label" }, done.length, " من ", doses.length, " جرعات خلصت"), heroKind === "open" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-open" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label" }, "دلوقتي"), heroDose.has_image ? /* @__PURE__ */ React.createElement(
+          MedImage,
+          {
+            medicationId: heroDose.medication_id,
+            hasImage: heroDose.has_image,
+            className: "med-image-hero"
+          }
+        ) : /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 56, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, heroDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "الساعة ", formatTime(heroDose.scheduled_at)), heroDose.dosage && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, heroDose.dosage), heroDose.notes && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 17, strokeWidth: 2.2 }), heroDose.notes), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-btn", onClick: () => handleTake(heroDose.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 30, strokeWidth: 2.6 }), "خدت الدوا")), heroKind === "waiting" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-waiting" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label muted" }, "الجرعة الجاية"), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 48, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, waitingDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "هتقدر تأكدها الساعة ", formatTimeObj(waitingDose.availableFrom))), heroKind === "allDone" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-alldone" }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "sparkles", size: 54, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, "خلصت كل جرعات النهارده")), secondaryDoses.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-title" }, "باقي جرعات النهارده"), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-list stagger" }, secondaryDoses.map((d) => /* @__PURE__ */ React.createElement("div", { key: d.id, className: `patient-secondary-row status-${d.status}` }, /* @__PURE__ */ React.createElement("span", { className: "patient-secondary-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: secondaryIcon(d), size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-name" }, d.name), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-meta" }, secondaryMeta(d)), d.notes && /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-notes" }, d.notes)), d.isOpen && /* @__PURE__ */ React.createElement("button", { className: "patient-secondary-take", onClick: () => handleTake(d.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 17, strokeWidth: 2.6 }), "خدت"), d.isLate && /* @__PURE__ */ React.createElement(
           "button",
           {
-            className: "patient-notif-btn",
-            onClick: notifPermission === "denied" ? () => setNotifHelpOpen((v) => !v) : requestNotifPermission
+            className: "patient-secondary-take patient-secondary-take-late",
+            onClick: () => handleTake(d.id)
           },
-          notifPermission === "denied" ? notifHelpOpen ? "تمام" : "إزاي؟" : "تفعيل"
-        ))), /* @__PURE__ */ React.createElement("button", { className: "patient-issue-btn", onClick: () => setShowIssue(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 28, strokeWidth: 2.3 }), "حصلت مشكلة؟"), showIssue && /* @__PURE__ */ React.createElement(
+          /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 17, strokeWidth: 2.6 }),
+          "خدتها"
+        )))))), nextAppointment && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-card" }, /* @__PURE__ */ React.createElement("span", { className: "patient-appt-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 26 })), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-appt-label" }, describeApptWhen(nextAppointment.appointment_at)), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-title" }, nextAppointment.title), nextAppointment.doctor_name && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, "د. ", nextAppointment.doctor_name), nextAppointment.location && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, nextAppointment.location)), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            className: "patient-appt-speak",
+            onClick: () => speak(`عندك ${describeApptWhen(nextAppointment.appointment_at)} ${nextAppointment.title}`),
+            "aria-label": "اسمع الموعد"
+          },
+          /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 20 })
+        )), caregivers.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-card" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-info" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-label" }, "متابعك"), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-name" }, caregivers[0].name)), caregivers[0].phone ? /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call", href: `tel:${caregivers[0].phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 22, strokeWidth: 2.2 }), "اتصل بيه") : /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-avatar", "aria-hidden": "true" }, caregivers[0].name.trim()[0] || "م")), caregivers.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more-label" }, "متابعين تانيين"), caregivers.slice(1).map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "patient-caregiver-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-name" }, c.name), c.phone ? /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call small", href: `tel:${c.phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 18, strokeWidth: 2.2 }), "اتصل") : /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-nophone" }, "مفيش رقم"))))), /* @__PURE__ */ React.createElement("div", { className: "patient-quick-actions" }, /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowHistory(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 20 }), "اللي خدته قبل كده"), /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowVitals(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "stethoscope", size: 20 }), "سجّل قياس")), isNightBoost && /* @__PURE__ */ React.createElement("div", { className: "patient-night-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "moon", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "وضع الليل: الخط أكبر شوية عشان الرؤية بالليل")), pushStatus !== "ready" && pushStatus !== "unsupported" && /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            className: `patient-notif-banner${pushStatus === "blocked" || pushStatus === "needs-install" ? " patient-notif-banner-denied" : ""}`
+          },
+          /* @__PURE__ */ React.createElement(Icon, { name: pushStatus === "blocked" ? "bellOff" : "bell", size: 26 }),
+          /* @__PURE__ */ React.createElement("div", { className: "patient-notif-text" }, pushStatus === "needs-install" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, "عشان التنبيهات تشتغل، ضيف التطبيق لشاشتك الرئيسية"), notifHelpOpen && /* @__PURE__ */ React.createElement("div", { className: "patient-notif-help" }, 'دوس على زرار المشاركة تحت في Safari، بعدين "إضافة إلى الشاشة الرئيسية". بعد كده افتح التطبيق من الأيقونة اللي هتظهر على شاشتك وفعّل التنبيهات من هناك.')) : pushStatus === "blocked" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, "التنبيهات موقوفة من إعدادات المتصفح"), notifHelpOpen && /* @__PURE__ */ React.createElement("div", { className: "patient-notif-help" }, 'افتح إعدادات الموقع من المتصفح (دوس على علامة القفل جنب عنوان الموقع فوق) وفعّل "الإشعارات" من هناك، بعدين ارجع للتطبيق.')) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, "فعّل التنبيهات عشان التطبيق يفكّرك بمواعيد دوائك حتى وهو مقفول"), pushError && /* @__PURE__ */ React.createElement("div", { className: "patient-notif-help" }, pushError))),
+          /* @__PURE__ */ React.createElement("button", { className: "patient-notif-btn", onClick: handleEnablePush, disabled: pushBusy }, pushStatus === "blocked" || pushStatus === "needs-install" ? notifHelpOpen ? "تمام" : "إزاي؟" : pushBusy ? "..." : "تفعيل")
+        )), /* @__PURE__ */ React.createElement("button", { className: "patient-issue-btn", onClick: () => setShowIssue(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 28, strokeWidth: 2.3 }), "حصلت مشكلة؟"), showIssue && /* @__PURE__ */ React.createElement(
           IssueSheet,
           {
             patientId: user.id,
@@ -1814,10 +3138,21 @@
             onToggleAutoNightScale,
             alarmEnabled,
             onToggleAlarmEnabled,
-            notifPermission,
-            onRequestNotifPermission: requestNotifPermission,
+            pushStatus,
+            onPushStatusChange: setPushStatus,
             showPatientOptions: true,
             onClose: () => setShowSettings(false)
+          }
+        ), showVitals && /* @__PURE__ */ React.createElement(PatientVitalsSheet, { patientId: user.id, onClose: () => setShowVitals(false) }), showHistory && /* @__PURE__ */ React.createElement(PatientHistorySheet, { patientId: user.id, onClose: () => setShowHistory(false) }), alarmDose && alarmDose.status === "pending" && /* @__PURE__ */ React.createElement(
+          AlarmOverlay,
+          {
+            dose: alarmDose,
+            busy: alarmBusy,
+            error: alarmError,
+            onTake: () => handleTake(alarmDose.id),
+            onSnooze: () => handleSnooze(alarmDose.id),
+            onDismiss: closeAlarm,
+            onSpeak: speakAlarmDose
           }
         ));
       }
@@ -1825,14 +3160,23 @@
         const [step, setStep] = React.useState("menu");
         const [sending, setSending] = React.useState(false);
         const [error, setError] = React.useState("");
+        const [queued, setQueued] = React.useState(false);
         async function send(issueType, medicationName) {
           setSending(true);
           setError("");
           try {
             await api.reportIssue(patientId, issueType, medicationName);
+            setQueued(false);
             setStep("sent");
             setTimeout(onClose, 2500);
           } catch (e) {
+            if (!e.status) {
+              queueIssue(patientId, issueType, medicationName);
+              setQueued(true);
+              setStep("sent");
+              setTimeout(onClose, 3500);
+              return;
+            }
             setError(e.message);
             setSending(false);
           }
@@ -1844,7 +3188,7 @@
           }
           send(key, key === "med_finished" ? medications[0] : void 0);
         }
-        return /* @__PURE__ */ React.createElement("div", { className: "issue-overlay", onClick: step === "sent" ? void 0 : onClose }, /* @__PURE__ */ React.createElement("div", { className: "issue-sheet", onClick: (e) => e.stopPropagation() }, step !== "sent" && /* @__PURE__ */ React.createElement("div", { className: "issue-sheet-handle", "aria-hidden": "true" }), step === "sent" ? /* @__PURE__ */ React.createElement("div", { className: "issue-sent" }, /* @__PURE__ */ React.createElement("div", { className: "issue-sent-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 46, strokeWidth: 2.6 })), /* @__PURE__ */ React.createElement("p", null, "تمام، وصل خبر لـ اللي بيتابعك")) : step === "pick-med" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "issue-title" }, "أنهي دوا خلص؟"), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), /* @__PURE__ */ React.createElement("div", { className: "issue-grid" }, medications.map((m) => /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("div", { className: "issue-overlay", onClick: step === "sent" ? void 0 : onClose }, /* @__PURE__ */ React.createElement("div", { className: "issue-sheet", onClick: (e) => e.stopPropagation() }, step !== "sent" && /* @__PURE__ */ React.createElement("div", { className: "issue-sheet-handle", "aria-hidden": "true" }), step === "sent" ? /* @__PURE__ */ React.createElement("div", { className: "issue-sent" }, /* @__PURE__ */ React.createElement("div", { className: "issue-sent-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: queued ? "refresh" : "check", size: 46, strokeWidth: 2.6 })), /* @__PURE__ */ React.createElement("p", null, queued ? "مفيش نت دلوقتي - سجّلنا البلاغ على الجهاز وهيوصل لمتابعك أول ما النت يرجع" : "تمام، وصل خبر لـ اللي بيتابعك")) : step === "pick-med" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "issue-title" }, "أنهي دوا خلص؟"), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), /* @__PURE__ */ React.createElement("div", { className: "issue-grid" }, medications.map((m) => /* @__PURE__ */ React.createElement(
           "button",
           {
             key: m,
@@ -1865,6 +3209,116 @@
           /* @__PURE__ */ React.createElement("span", { className: `issue-option-icon tone-${opt.tone}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: opt.icon, size: 30, strokeWidth: 1.8 })),
           /* @__PURE__ */ React.createElement("span", null, opt.label)
         ))), /* @__PURE__ */ React.createElement("button", { className: "issue-close", onClick: onClose, disabled: sending }, "إلغاء"))));
+      }
+      const PATIENT_VITAL_TYPES = [
+        { key: "blood_pressure", label: "الضغط", icon: "pulse", tone: "rose" },
+        { key: "blood_sugar", label: "السكر", icon: "droplet", tone: "blue" },
+        { key: "weight", label: "الوزن", icon: "scale", tone: "purple" },
+        { key: "heart_rate", label: "النبض", icon: "heart", tone: "danger" },
+        { key: "temperature", label: "الحرارة", icon: "thermometer", tone: "amber" }
+      ];
+      const PATIENT_VITAL_HISTORY = 5;
+      function formatVitalValue(vital) {
+        const v = typeof vital.value_json === "string" ? JSON.parse(vital.value_json) : vital.value_json;
+        if (vital.type === "blood_pressure") return `${v.systolic}/${v.diastolic}`;
+        return String(v.value);
+      }
+      function PatientVitalsSheet({ patientId, onClose }) {
+        const [type, setType] = React.useState(null);
+        const [systolic, setSystolic] = React.useState("");
+        const [diastolic, setDiastolic] = React.useState("");
+        const [value, setValue] = React.useState("");
+        const [saving, setSaving] = React.useState(false);
+        const [error, setError] = React.useState("");
+        const [done, setDone] = React.useState(false);
+        const [history, setHistory] = React.useState(null);
+        const [alert, setAlert] = React.useState(null);
+        React.useEffect(() => {
+          if (!type) return void 0;
+          let alive = true;
+          setHistory(null);
+          api.getVitals(patientId, type.key).then((data) => {
+            if (alive) setHistory((data.vitals || []).slice(0, PATIENT_VITAL_HISTORY));
+          }).catch(() => {
+            if (alive) setHistory([]);
+          });
+          return () => {
+            alive = false;
+          };
+        }, [patientId, type]);
+        async function save() {
+          setSaving(true);
+          setError("");
+          try {
+            const payload = type.key === "blood_pressure" ? { systolic: Number(systolic), diastolic: Number(diastolic) } : { value: Number(value) };
+            const res = await api.addVital({ patientId, type: type.key, value: payload });
+            setAlert(res && res.alert ? res.alert : null);
+            setDone(true);
+            setTimeout(onClose, res && res.alert ? 4e3 : 1800);
+          } catch (e) {
+            setError(e.message);
+            setSaving(false);
+          }
+        }
+        const canSave = type && (type.key === "blood_pressure" ? systolic !== "" && diastolic !== "" : value !== "");
+        return /* @__PURE__ */ React.createElement("div", { className: "issue-overlay", onClick: done ? void 0 : onClose }, /* @__PURE__ */ React.createElement("div", { className: "issue-sheet", onClick: (e) => e.stopPropagation() }, !done && /* @__PURE__ */ React.createElement("div", { className: "issue-sheet-handle", "aria-hidden": "true" }), done ? /* @__PURE__ */ React.createElement("div", { className: "issue-sent" }, /* @__PURE__ */ React.createElement("div", { className: `issue-sent-icon${alert ? " issue-sent-icon-alert" : ""}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: alert ? "alert" : "check", size: 46, strokeWidth: 2.6 })), /* @__PURE__ */ React.createElement("p", null, alert ? `سجّلنا القياس - ${alert}. بلّغنا متابعك عشان يطمن عليك.` : "تمام، سجّلنا القياس")) : !type ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "issue-title" }, "هتسجّل إيه؟"), /* @__PURE__ */ React.createElement("div", { className: "issue-grid stagger" }, PATIENT_VITAL_TYPES.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.key, className: "issue-option", onClick: () => setType(t) }, /* @__PURE__ */ React.createElement("span", { className: `issue-option-icon tone-${t.tone}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: t.icon, size: 30, strokeWidth: 1.8 })), /* @__PURE__ */ React.createElement("span", null, t.label)))), /* @__PURE__ */ React.createElement("button", { className: "issue-close", onClick: onClose }, "إلغاء")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "issue-title" }, type.label), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), type.key === "blood_pressure" ? /* @__PURE__ */ React.createElement("div", { className: "patient-vital-pair" }, /* @__PURE__ */ React.createElement("label", { className: "patient-vital-field" }, /* @__PURE__ */ React.createElement("span", null, "الرقم الكبير"), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "number",
+            inputMode: "numeric",
+            value: systolic,
+            onChange: (e) => setSystolic(e.target.value),
+            autoFocus: true
+          }
+        )), /* @__PURE__ */ React.createElement("label", { className: "patient-vital-field" }, /* @__PURE__ */ React.createElement("span", null, "الرقم الصغير"), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "number",
+            inputMode: "numeric",
+            value: diastolic,
+            onChange: (e) => setDiastolic(e.target.value)
+          }
+        ))) : /* @__PURE__ */ React.createElement("label", { className: "patient-vital-field patient-vital-single" }, /* @__PURE__ */ React.createElement("span", null, "الرقم"), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "number",
+            inputMode: "decimal",
+            value,
+            onChange: (e) => setValue(e.target.value),
+            autoFocus: true
+          }
+        )), /* @__PURE__ */ React.createElement("button", { className: "patient-vital-save", onClick: save, disabled: !canSave || saving }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 26, strokeWidth: 2.6 }), saving ? "بنسجّل..." : "سجّل"), history && history.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history" }, /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history-title" }, "آخر قراءات ", type.label), history.map((v) => /* @__PURE__ */ React.createElement("div", { key: v.id, className: "patient-vital-history-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-value" }, formatVitalValue(v)), /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-when" }, describePastWhen(v.recorded_at))))), /* @__PURE__ */ React.createElement("button", { className: "issue-back", onClick: () => setType(null), disabled: saving }, "رجوع"))));
+      }
+      const PATIENT_HISTORY_DAYS = 7;
+      function PatientHistorySheet({ patientId, onClose }) {
+        const [days, setDays] = React.useState(null);
+        const [error, setError] = React.useState("");
+        React.useEffect(() => {
+          const to = /* @__PURE__ */ new Date();
+          const from = new Date(to.getTime() - (PATIENT_HISTORY_DAYS - 1) * 24 * 3600 * 1e3);
+          const fmt = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(d);
+          api.getDoses(patientId, fmt(from), fmt(to)).then((data) => {
+            const counted = data.doses.filter((d) => d.status !== "pending");
+            const byDay = /* @__PURE__ */ new Map();
+            for (const d of counted) {
+              const day = String(d.scheduled_at).slice(0, 10);
+              if (!byDay.has(day)) byDay.set(day, { day, taken: 0, missed: 0 });
+              byDay.get(day)[d.status === "taken" ? "taken" : "missed"] += 1;
+            }
+            setDays([...byDay.values()].sort((a, b) => b.day.localeCompare(a.day)));
+          }).catch((e) => setError(e.message));
+        }, [patientId]);
+        function dayLabel(day) {
+          const cairoDay = (date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(date);
+          if (day === cairoDay(/* @__PURE__ */ new Date())) return "النهاردة";
+          if (day === cairoDay(new Date(Date.now() - 24 * 3600 * 1e3))) return "إمبارح";
+          return (/* @__PURE__ */ new Date(`${day}T12:00:00`)).toLocaleDateString("ar-EG", {
+            weekday: "long",
+            day: "numeric",
+            month: "long"
+          });
+        }
+        return /* @__PURE__ */ React.createElement("div", { className: "issue-overlay", onClick: onClose }, /* @__PURE__ */ React.createElement("div", { className: "issue-sheet", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "issue-sheet-handle", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("h3", { className: "issue-title" }, "اللي خدته قبل كده"), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), !days ? /* @__PURE__ */ React.createElement(Spinner, null) : days.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "issue-subtitle" }, "مفيش جرعات متسجّلة في آخر ", PATIENT_HISTORY_DAYS, " أيام") : /* @__PURE__ */ React.createElement("div", { className: "patient-history-list" }, days.map((d) => /* @__PURE__ */ React.createElement("div", { key: d.day, className: "patient-history-row" }, /* @__PURE__ */ React.createElement("div", { className: "patient-history-day" }, dayLabel(d.day)), /* @__PURE__ */ React.createElement("div", { className: "patient-history-counts" }, d.taken > 0 && /* @__PURE__ */ React.createElement("span", { className: "patient-history-taken" }, /* @__PURE__ */ React.createElement(Icon, { name: "checkCircle", size: 18 }), d.taken), d.missed > 0 && /* @__PURE__ */ React.createElement("span", { className: "patient-history-missed" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", size: 18 }), d.missed))))), /* @__PURE__ */ React.createElement("button", { className: "issue-close", onClick: onClose }, "تمام")));
       }
       /*! ===== js/app.jsx ===== */
       document.addEventListener(
@@ -1906,11 +3360,9 @@
         const [activePatientId, setActivePatientId] = React.useState(null);
         const [view, setView] = React.useState("today");
         const [notifications, setNotifications] = React.useState([]);
+        const [unreadCount, setUnreadCount] = React.useState(0);
         const [accessError, setAccessError] = React.useState("");
-        const notifiedDoseIds = React.useRef(/* @__PURE__ */ new Set());
-        const hasSeededDosesRef = React.useRef(false);
-        const notifiedIssueIds = React.useRef(/* @__PURE__ */ new Set());
-        const hasSeededIssues = React.useRef(false);
+        const latestNotificationId = React.useRef(0);
         const [installPrompt, setInstallPrompt] = React.useState(null);
         React.useEffect(() => {
           function onBeforeInstallPrompt(e) {
@@ -1928,6 +3380,7 @@
           };
         }, []);
         const [showSettings, setShowSettings] = React.useState(false);
+        const [pushStatus, setPushStatus] = React.useState(() => getPushStatus());
         const [darkMode, setDarkMode] = React.useState(
           () => readBoolPref("ma3ak_dark", window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches)
         );
@@ -1952,16 +3405,18 @@
               try {
                 const data = await api.accessViaToken(accessMatch[1]);
                 setToken(data.token);
+                setAccessToken(accessMatch[1]);
                 await onAuthenticated(data.user);
               } catch (e) {
                 setToken(null);
+                setAccessToken(null);
                 setAccessError(e.message || "اللينك ده مش شغال");
               }
               setBooting(false);
               return;
             }
             const token = getToken();
-            if (!token) {
+            if (!token && !getAccessToken()) {
               setBooting(false);
               return;
             }
@@ -1970,6 +3425,10 @@
               await onAuthenticated(data.user);
             } catch (e) {
               setToken(null);
+              if (getAccessToken()) {
+                setAccessToken(null);
+                setAccessError("لينك الدخول بتاعك اتغيّر - اطلب لينك جديد من اللي بيتابعك");
+              }
             } finally {
               setBooting(false);
             }
@@ -1987,86 +3446,70 @@
         }
         function handleLogout() {
           setToken(null);
+          setAccessToken(null);
           setUser(null);
           setPatients([]);
           setActivePatientId(null);
           setNotifications([]);
+          setUnreadCount(0);
+          latestNotificationId.current = 0;
           setView("today");
         }
         const refreshPatients = React.useCallback(async () => {
           const data = await api.getPatients();
           setPatients(data.patients);
-          if (data.patients.length && !activePatientId) {
-            setActivePatientId(data.patients[0].id);
+          const stillThere = data.patients.some((p) => p.id === activePatientId);
+          if (!stillThere) {
+            setActivePatientId(data.patients.length ? data.patients[0].id : null);
           }
           return data.patients;
         }, [activePatientId]);
-        const refreshNotifications = React.useCallback(async () => {
-          if (!user) return;
-          try {
-            const data = await api.getNotifications();
-            const unreadIssues = data.notifications.filter(
-              (n) => n.type === "patient_issue" && !n.is_read
-            );
-            if (!hasSeededIssues.current) {
-              unreadIssues.forEach((n) => notifiedIssueIds.current.add(n.id));
-              hasSeededIssues.current = true;
-            } else {
-              unreadIssues.forEach((n) => {
-                if (notifiedIssueIds.current.has(n.id)) return;
-                notifiedIssueIds.current.add(n.id);
-                if ("Notification" in window && Notification.permission === "granted") {
-                  new Notification("معاك - مشكلة من مريض", { body: n.message });
-                }
-              });
+        const refreshNotifications = React.useCallback(
+          async (forceFull = false) => {
+            if (!user) return;
+            try {
+              const since = forceFull ? 0 : latestNotificationId.current;
+              const data = await api.getNotifications(since);
+              setUnreadCount(data.unread_count);
+              if (forceFull || !since) {
+                setNotifications(data.notifications);
+              } else if (data.notifications.length) {
+                setNotifications((prev) => [...data.notifications, ...prev].slice(0, 100));
+              }
+              if (data.latest_id) latestNotificationId.current = data.latest_id;
+            } catch (e) {
             }
-            setNotifications(data.notifications);
-          } catch (e) {
-          }
-        }, [user]);
+          },
+          [user]
+        );
         React.useEffect(() => {
           if (!user) return;
-          refreshNotifications();
-          const interval = setInterval(refreshNotifications, 6e4);
+          refreshNotifications(true);
+          const interval = setInterval(() => refreshNotifications(), 6e4);
           return () => clearInterval(interval);
+        }, [user, refreshNotifications]);
+        React.useEffect(() => {
+          if (!user || !("serviceWorker" in navigator)) return;
+          function onMessage(event) {
+            const data = event.data || {};
+            if (data.type === "ma3ak:notification-click" || data.type === "ma3ak:dose-changed") {
+              refreshNotifications(true);
+            }
+          }
+          navigator.serviceWorker.addEventListener("message", onMessage);
+          return () => navigator.serviceWorker.removeEventListener("message", onMessage);
         }, [user, refreshNotifications]);
         async function handleDismissIssue(id) {
           try {
-            await api.markNotificationRead(id);
-            refreshNotifications();
+            await api.markNotificationHandled(id);
+            refreshNotifications(true);
           } catch (e) {
           }
         }
         React.useEffect(() => {
-          if (!user || !activePatientId) return;
-          if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
-          }
-          hasSeededDosesRef.current = false;
-          const check = async () => {
-            try {
-              const data = await api.getTodayDoses(activePatientId);
-              const now = /* @__PURE__ */ new Date();
-              const isFirstPass = !hasSeededDosesRef.current;
-              data.doses.forEach((d) => {
-                if (d.status !== "pending") return;
-                const scheduled = parseCairoDatetime(d.scheduled_at);
-                if (scheduled <= now && !notifiedDoseIds.current.has(d.id)) {
-                  notifiedDoseIds.current.add(d.id);
-                  if (isFirstPass) return;
-                  if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("معاك - معاد دوا", { body: `معاد ${d.name} دلوقتي` });
-                  }
-                }
-              });
-              if (isFirstPass && data.doses.length) hasSeededDosesRef.current = true;
-            } catch (e) {
-            }
-          };
-          check();
-          const interval = setInterval(check, 6e4);
-          return () => clearInterval(interval);
-        }, [user, activePatientId]);
+          if (!user) return;
+          syncPushSubscription();
+        }, [user]);
         if (booting) {
           return /* @__PURE__ */ React.createElement("div", { className: "boot-screen" }, /* @__PURE__ */ React.createElement("div", { className: "boot-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 46, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "boot-name" }, "معاك"), /* @__PURE__ */ React.createElement(Spinner, null));
         }
@@ -2092,15 +3535,19 @@
             }
           );
         }
-        const unreadCount = notifications.filter((n) => !n.is_read).length;
-        const issueAlerts = notifications.filter((n) => n.type === "patient_issue" && !n.is_read);
+        const issueAlerts = notifications.filter(
+          (n) => (n.type === "patient_issue" || n.type === "dose_escalation") && !n.handled_at && !n.is_read
+        );
         let content;
-        if (view === "today") content = /* @__PURE__ */ React.createElement(TodayView, { patientId: activePatientId });
+        if (view === "today")
+          content = /* @__PURE__ */ React.createElement(TodayView, { patientId: activePatientId, onOpenAdherence: () => setView("adherence") });
+        else if (view === "adherence")
+          content = /* @__PURE__ */ React.createElement(AdherenceView, { patientId: activePatientId, onBack: () => setView("today") });
         else if (view === "medications") content = /* @__PURE__ */ React.createElement(MedicationsView, { patientId: activePatientId });
         else if (view === "appointments") content = /* @__PURE__ */ React.createElement(AppointmentsView, { patientId: activePatientId });
         else if (view === "vitals") content = /* @__PURE__ */ React.createElement(VitalsView, { patientId: activePatientId });
         else if (view === "notifications")
-          content = /* @__PURE__ */ React.createElement(NotificationsView, { notifications, onRefresh: refreshNotifications });
+          content = /* @__PURE__ */ React.createElement(NotificationsView, { notifications, onRefresh: () => refreshNotifications(true) });
         else if (view === "patients")
           content = /* @__PURE__ */ React.createElement(PatientsView, { patients, onChanged: refreshPatients });
         return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
@@ -2127,6 +3574,8 @@
             onSetDarkMode: setDarkMode,
             fontLarge,
             onSetFontLarge: setFontLarge,
+            pushStatus,
+            onPushStatusChange: setPushStatus,
             showPatientOptions: false,
             onClose: () => setShowSettings(false)
           }

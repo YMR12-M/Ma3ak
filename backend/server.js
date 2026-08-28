@@ -2,6 +2,7 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const compression = require('compression');
+const helmet = require('helmet');
 
 // من غير JWT_SECRET حقيقي وطويل، أي توكن ممكن يتزور. نوقف السيرفر بدل ما يشتغل بمفتاح ضعيف من غير ما نحس.
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
@@ -19,6 +20,7 @@ const dosesRoutes = require('./routes/doses');
 const appointmentsRoutes = require('./routes/appointments');
 const vitalsRoutes = require('./routes/vitals');
 const notificationsRoutes = require('./routes/notifications');
+const pushRoutes = require('./routes/push');
 const { errorHandler } = require('./middleware/errors');
 const { startScheduler } = require('./scheduler');
 
@@ -31,6 +33,78 @@ const app = express();
    بروكسي قدامي بس" - مش أكتر، عشان محدش يقدر يزوّر X-Forwarded-For ويتهرب من الحد. */
 app.set('trust proxy', 1);
 
+/* هيدرات الأمان. التطبيق بيعرض بيانات مرضى وبيخزّن توكن الدخول في
+   localStorage، فأي XSS بيتحوّل لاستيلاء كامل على الحساب - والـ CSP هي الطبقة
+   اللي بتمنع ده حتى لو ثغرة عدّت.
+
+   كل أصول الواجهة مستضافة عندنا (الخطوط جوه /fonts، مفيش CDN)، فالسياسة
+   بتقدر تبقى ضيقة من غير أي عناء:
+     - default-src 'self'  → مفيش أي حاجة من برّه أصلاً
+     - script-src 'self' + hashes → شوف INLINE_SCRIPT_HASHES تحت
+     - img-src بيسمح بـ data: عشان صور الأدوية بتيجي كـ data URL جوه JSON
+     - connect-src 'self'  → الـ API بس، ولا حتى الـ Service Worker بيكلّم برّه
+     - frame-ancestors 'none' → التطبيق ما ينفعش يتحط جوه iframe (clickjacking)
+
+   crossOriginEmbedderPolicy مقفولة: بتكسر تحميل بعض الموارد من غير أي مكسب هنا.
+   HSTS شغّالة بالافتراضي وRender بيقدّم HTTPS، فمفيش حاجة تتظبط. */
+
+/* في index.html سكريبتين inline مالهمش بديل حقيقي: واحد بيحدد المظهر **قبل أول
+   رسم** (من غيره المستخدم اللي مختار الوضع الداكن بيشوف ومضة بيضا)، وواحد
+   بيسجّل الـ Service Worker. نقلهم لملف خارجي بيلغي فايدة الأول بالكامل - لازم
+   يتنفّذ قبل أي تحميل شبكة.
+
+   فبدل ما نفتح 'unsafe-inline' (اللي بيلغي أهم حماية في الـ CSP كلها)، بنحسب
+   بصمة SHA-256 لكل سكريبت منهم وقت الإقلاع ونضيفها للسياسة. الحساب من الملف
+   نفسه مش رقم مكتوب بالإيد، فأي تعديل في السكريبتات دي بيشتغل لوحده من غير ما
+   حد يفتكر يحدّث حاجة - ومستحيل تفضل بصمة قديمة تسمح بكود اتغيّر. */
+function inlineScriptHashes() {
+  try {
+    const html = require('fs').readFileSync(
+      path.join(__dirname, '../frontend/index.html'),
+      'utf8'
+    );
+    const hashes = [];
+    // بيمسك محتوى أي <script> من غير src
+    const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+    let match;
+    while ((match = re.exec(html)) !== null) {
+      const digest = require('crypto').createHash('sha256').update(match[1], 'utf8').digest('base64');
+      hashes.push(`'sha256-${digest}'`);
+    }
+    return hashes;
+  } catch (e) {
+    console.error('⚠️ مقدرناش نقرا index.html لحساب بصمات السكريبتات:', e.message);
+    return [];
+  }
+}
+
+const INLINE_SCRIPT_HASHES = inlineScriptHashes();
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", ...INLINE_SCRIPT_HASHES],
+        // 'unsafe-inline' للـ style بس: React بيكتب style مباشرة على العناصر
+        // (زي --progress في حلقة التقدّم)، وده مبيتعملوش nonce
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        manifestSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'same-origin' },
+  })
+);
+
 /* ضغط الردود (gzip/brotli حسب اللي المتصفح بيقبله).
    الواجهة كلها نصوص: CSS مبني 184 كيلو، وجافاسكريبت 370 كيلو - والنص بيتضغط
    لحوالي رُبع حجمه. الملفات دي مكتوبة مقروءة مش مصغّرة، يعني الضغط هنا مش
@@ -39,8 +113,23 @@ app.set('trust proxy', 1);
    أغلب مستخدمينا عليها. */
 app.use(compression());
 
-// حد أقصى لحجم الطلب - من غيره حد يقدر يبعت ميجابايتات ويستهلك ذاكرة السيرفر
-app.use(express.json({ limit: '100kb' }));
+/* حد أقصى لحجم الطلب - من غيره حد يقدر يبعت ميجابايتات ويستهلك ذاكرة السيرفر.
+
+   الاستثناء الوحيد: رفع صورة الدوا. الصورة أكبر من أي جسم طلب تاني في التطبيق
+   بمراحل، وليها محلّل خاص بحد أوسع في routes/medications.js. من غير التخطي ده
+   المحلّل العام كان هيرفضها هنا **قبل** ما توصل للـ route أصلاً - والرسالة
+   اللي المستخدم هيشوفها هتبقى "البيانات المبعوتة مش بصيغة صحيحة" بدل
+   "الصورة كبيرة أوي"، وده خطأ بيوّدي في اتجاه غلط تمامًا.
+
+   الاستثناء ضيق عن قصد: مسار واحد بالظبط وميثود واحدة - مش نمط واسع يفتح
+   الباب لأي حاجة تانية تعدّي بحجم كبير من غير ما حد ياخد باله. */
+const parseSmallJson = express.json({ limit: '100kb' });
+const MEDICATION_IMAGE_PATH = /^\/api\/medications\/\d+\/image$/;
+
+app.use((req, res, next) => {
+  if (req.method === 'PUT' && MEDICATION_IMAGE_PATH.test(req.path)) return next();
+  parseSmallJson(req, res, next);
+});
 
 /* الملفات الثابتة. الافتراضي في express.static إن كل ملف بيتراجع مع السيرفر
    في كل زيارة (طلب بيرجع 304 فاضي) - ده أمان زيادة عن اللزوم لملفات زي
@@ -76,6 +165,7 @@ app.use('/api/doses', dosesRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/vitals', vitalsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/push', pushRoutes);
 
 // أي مسار API مش موجود
 app.use('/api', (req, res) => {

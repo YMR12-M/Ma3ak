@@ -73,8 +73,45 @@ function PatientsView({ patients, onChanged }) {
 
 function PatientCard({ patient, onError, onChanged }) {
   const [showShare, setShowShare] = React.useState(false);
+  const [showManage, setShowManage] = React.useState(false);
   const [current, setCurrent] = React.useState(patient);
   const [regenerating, setRegenerating] = React.useState(false);
+
+  /* حالة تنبيهات المريض.
+
+     دي كانت أكبر فجوة منطقية في النظام كله: المتابع بيجهّز كل حاجة، والتنبيه
+     بيروح **لجهاز مش في إيده**. مكانش عنده أي مؤشر إن موبايل المريض مسجّل
+     اشتراك أصلاً - فكان مطمّن إن النظام شغال، ويكتشف العكس يوم ما جرعة مهمة
+     تفوت من غير ما حد يعرف. وده بالظبط الفشل اللي التطبيق موجود عشان يمنعه. */
+  const [notifStatus, setNotifStatus] = React.useState(null);
+  const [testing, setTesting] = React.useState(false);
+  const [testResult, setTestResult] = React.useState('');
+
+  React.useEffect(() => {
+    let alive = true;
+    api
+      .getPatientNotificationStatus(current.id)
+      .then((data) => alive && setNotifStatus(data))
+      .catch(() => {
+        /* صامت - الشارة ببساطة مش هتبان */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [current.id]);
+
+  async function handleTestAlarm() {
+    setTesting(true);
+    setTestResult('');
+    try {
+      await api.testPatientAlarm(current.id);
+      setTestResult('بعتنا تنبيه لموبايل المريض - اتأكد إنه وصله');
+    } catch (e) {
+      setTestResult(e.message);
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function handleRegenerate() {
     if (!confirm('اللينك القديم هيبقى مش شغال. متأكد؟')) return;
@@ -101,6 +138,27 @@ function PatientCard({ patient, onError, onChanged }) {
             <span className="share-code">{current.link_code}</span>
           </div>
         )}
+
+        {notifStatus && (
+          <div className={`notif-status notif-status-${notifStatus.ok ? 'ok' : 'off'}`}>
+            <Icon name={notifStatus.ok ? 'bell' : 'bellOff'} size={17} />
+            <span>
+              {notifStatus.ok
+                ? `التنبيهات شغالة على ${notifStatus.deviceCount} جهاز`
+                : !notifStatus.serverPushEnabled
+                  ? 'خدمة التنبيهات مش مفعّلة على السيرفر'
+                  : notifStatus.deviceCount === 0
+                    ? 'المريض لسه مفعّلش التنبيهات على موبايله'
+                    : 'المريض قافل التنبيهات من إعداداته'}
+            </span>
+            {notifStatus.deviceCount > 0 && (
+              <button className="notif-status-test" onClick={handleTestAlarm} disabled={testing}>
+                {testing ? '...' : 'جرّب'}
+              </button>
+            )}
+          </div>
+        )}
+        {testResult && <div className="notif-status-result">{testResult}</div>}
       </div>
       {/* كلاس تاني (patient-link-actions) بس لتصغير الحشو/الخط شوية هنا - الزرارين كانوا
           بيتلفوا على سطرين على موبايل ضيق لأن نصهم أطول من "تعديل"/"إيقاف" العادية */}
@@ -124,11 +182,142 @@ function PatientCard({ patient, onError, onChanged }) {
             </React.Fragment>
           )}
         </Button>
+        <Button variant="ghost" aria-label={`إدارة ${current.name}`} onClick={() => setShowManage(true)}>
+          <Icon name="settings" size={17} />
+          إدارة
+        </Button>
       </div>
-      {showShare && (
-        <ShareLinkModal patient={current} onClose={() => setShowShare(false)} />
+      {showShare && <ShareLinkModal patient={current} onClose={() => setShowShare(false)} />}
+      {showManage && (
+        <ManagePatientModal
+          patient={current}
+          onClose={() => setShowManage(false)}
+          onChanged={onChanged}
+          onError={onError}
+        />
       )}
     </Card>
+  );
+}
+
+/* ============================================
+   إدارة المريض: المتابعين، الخروج، والحذف
+
+   مكانش فيه أي طريقة تشيل مريض ولا متابع. غير إنها فجوة في الاستخدام العادي
+   (متابع انضم بالغلط، مريض توفّى)، دي كمان **فجوة أمنية**: بعد ما حد ينضم
+   بكود المشاركة، مكانش قدامك أي طريقة تخرجه.
+   ============================================ */
+
+function ManagePatientModal({ patient, onClose, onChanged, onError }) {
+  const [caregivers, setCaregivers] = React.useState([]);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [confirmDelete, setConfirmDelete] = React.useState('');
+
+  const load = React.useCallback(() => {
+    api
+      .getCaregivers(patient.id)
+      .then((data) => setCaregivers(data.caregivers || []))
+      .catch((e) => setError(e.message));
+  }, [patient.id]);
+
+  React.useEffect(load, [load]);
+
+  async function run(fn, after) {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+      if (after) after();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isLastCaregiver = caregivers.length <= 1;
+
+  return (
+    <Modal
+      icon="users"
+      tone="gray"
+      title={`إدارة ${patient.name}`}
+      subtitle="مين بيتابعه، وإزاي تخرج أو تمسح بياناته"
+      onClose={onClose}
+      footer={(close) => <Button onClick={close}>تم</Button>}
+    >
+      <Banner onClose={() => setError('')}>{error}</Banner>
+
+      <div className="settings-group-label">المتابعين</div>
+      {caregivers.map((c) => (
+        <div key={c.id} className="settings-row">
+          <div>
+            <div className="settings-row-title">{c.name}</div>
+            {c.phone && <div className="settings-row-desc">{c.phone}</div>}
+          </div>
+          <Button
+            variant="ghost"
+            disabled={busy}
+            aria-label={`شيل ${c.name} من متابعة ${patient.name}`}
+            onClick={() => {
+              if (!confirm(`تشيل ${c.name} من متابعة ${patient.name}؟`)) return;
+              run(() => api.removeCaregiver(patient.id, c.id), load);
+            }}
+          >
+            شيله
+          </Button>
+        </div>
+      ))}
+
+      <div className="settings-group-label">الخروج من المتابعة</div>
+      <p className="settings-row-desc manage-desc">
+        {isLastCaregiver
+          ? 'انت آخر متابع - لو خرجت المريض هيفضل بياخد منبهات ومحدش شايف حالته. لو عايز تشيله بجد استخدم الحذف تحت.'
+          : 'هتخرج انت بس، وباقي المتابعين هيكملوا عادي.'}
+      </p>
+      <Button
+        variant="soft"
+        disabled={busy || isLastCaregiver}
+        onClick={() => {
+          if (!confirm(`تخرج من متابعة ${patient.name}؟`)) return;
+          run(() => api.leavePatient(patient.id), () => {
+            onChanged();
+            onClose();
+          });
+        }}
+      >
+        خروج من المتابعة
+      </Button>
+
+      <div className="settings-group-label settings-group-danger">حذف المريض نهائيًا</div>
+      <p className="settings-row-desc manage-desc">
+        هيمسح كل أدويته وجرعاته ومواعيده وقياساته - **من غير رجعة**. اكتب اسمه بالظبط عشان
+        تأكد.
+      </p>
+      {/* كتابة الاسم مش تعقيد زيادة: زرار حذف ورا confirm عادي بيتداس بالغلط،
+          والغلط هنا بيمسح تاريخ طبي كامل من غير أي طريقة استرجاع. */}
+      <input
+        className="manage-confirm-input"
+        type="text"
+        placeholder={patient.name}
+        value={confirmDelete}
+        onChange={(e) => setConfirmDelete(e.target.value)}
+        aria-label="اكتب اسم المريض للتأكيد"
+      />
+      <Button
+        variant="danger"
+        disabled={busy || confirmDelete.trim() !== patient.name.trim()}
+        onClick={() =>
+          run(() => api.deletePatient(patient.id), () => {
+            onChanged();
+            onClose();
+          })
+        }
+      >
+        احذف {patient.name} وكل بياناته
+      </Button>
+    </Modal>
   );
 }
 

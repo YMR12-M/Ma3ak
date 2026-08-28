@@ -43,6 +43,13 @@ function cairoNowString() {
   return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}`;
 }
 
+// "HH:MM" - الساعة دلوقتي بتوقيت مصر بنظام 24 ساعة. بتستخدم في مقارنة
+// "ساعات الهدوء" (notification_prefs.quiet_start/quiet_end) - المقارنة لازم
+// تكون بساعة المستخدم الحقيقية، مش ساعة السيرفر.
+function cairoClockNow() {
+  return cairoNowString().slice(11, 16);
+}
+
 // "YYYY-MM-DD" - "النهاردة" الحقيقي بتوقيت مصر (بديل CURDATE() اللي بيرجع
 // تاريخ مضيف قاعدة البيانات، ممكن يكون لسه على "إمبارح" أو "بكرة" بالفعل)
 function cairoToday() {
@@ -71,6 +78,27 @@ function cairoNowPlusMinutes(minutesOffset) {
   return `${civil.getUTCFullYear()}-${pad(civil.getUTCMonth() + 1)}-${pad(civil.getUTCDate())} ${pad(
     civil.getUTCHours()
   )}:${pad(civil.getUTCMinutes())}:${pad(civil.getUTCSeconds())}`;
+}
+
+/* رقم اليوم في الأسبوع لتاريخ "YYYY-MM-DD" (0 = الأحد ... 6 = السبت).
+
+   بيستخدم في جدولة الأدوية الأسبوعية (medications.days_of_week كقناع 7 بت).
+   بنحسبه من النص نفسه بـ Date.UTC مش من new Date(str) العادية: التانية بتفسّر
+   النص بتوقيت الجهاز، وده كان ممكن يزحلق اليوم يوم كامل لقدام أو لورا على
+   سيرفر شغال UTC - يعني جرعة الجمعة تتولّد يوم الخميس. */
+function dayOfWeekIndex(dateString) {
+  const [y, m, d] = String(dateString).slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/* هل اليوم ده مفعّل في قناع أيام الأسبوع؟
+   القناع TINYINT: بت 0 = الأحد ... بت 6 = السبت، و127 = كل الأيام.
+   أي قيمة فاضية/صفر بتتعامل كـ"كل الأيام" - دواء من غير أي يوم مفعّل مالوش
+   معنى، والافتراض الآمن إنه يتولّد مش إنه يختفي في صمت. */
+function isDayEnabled(daysMask, dateString) {
+  const mask = Number(daysMask);
+  if (!Number.isFinite(mask) || mask <= 0 || mask >= 127) return true;
+  return (mask & (1 << dayOfWeekIndex(dateString))) !== 0;
 }
 
 /* بيحوّل "YYYY-MM-DD HH:MM:SS" لساعة بصيغة عربية مقروءة زي "8:00 م".
@@ -102,9 +130,12 @@ function describeCairoWhen(datetimeString) {
 module.exports = {
   CAIRO_TZ,
   cairoNowString,
+  cairoClockNow,
   cairoToday,
   cairoDateWithOffset,
   cairoNowPlusMinutes,
   formatCairoClock,
   describeCairoWhen,
+  dayOfWeekIndex,
+  isDayEnabled,
 };

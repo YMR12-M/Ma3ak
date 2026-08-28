@@ -62,4 +62,28 @@ const linkPatientLimiter = rateLimit({
   message: { error: 'حاولت تنضم بكود غلط مرات كتير، استنى شوية وجرب تاني' },
 });
 
-module.exports = { loginLimiter, accessLimiter, registerLimiter, linkPatientLimiter };
+/* الإشعار التجريبي - المسارين اللي بيبعتوا دفع بطلب مباشر من المستخدم
+   (/push/test لنفسه، و/patients/:id/test-alarm لموبايل المريض).
+
+   كانوا مفتوحين من غير أي حد خالص، يعني متابع مربوط يقدر يقصف موبايل المريض
+   بإشعارات بلا سقف - وكبير السن اللي موبايله بيرنّ من غير سبب بيقفل إشعارات
+   التطبيق كلها، وساعتها تذكير الجرعة نفسه مش هيوصله.
+
+   الحد على حساب المستخدم زي linkPatientLimiter: المسارين محميين بـ authRequired
+   أصلاً، فتغيير الـ IP مش هيهرّب حد من العدّاد. والاستخدام الطبيعي مرة أو
+   مرتين وقت الإعداد، فـ 6 في الساعة مش هتزعج حد حقيقي. */
+const pushTestLimiter = rateLimit({
+  ...common,
+  windowMs: 60 * 60 * 1000, // ساعة
+  limit: 6,
+  keyGenerator: (req) => (req.user ? `user:${req.user.id}` : ipKeyGenerator(req.ip)),
+  message: { error: 'بعتّ تنبيهات تجريبية كتير - استنى شوية وجرّب تاني' },
+});
+
+module.exports = {
+  loginLimiter,
+  accessLimiter,
+  registerLimiter,
+  linkPatientLimiter,
+  pushTestLimiter,
+};

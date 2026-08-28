@@ -23,6 +23,7 @@ const LIMITS = {
   notes: 2000, // أعمدة TEXT بتستحمل أكتر بكتير، بس مفيش داعي لملاحظات أطول من كده
   password: 200, // bcrypt بيتعامل مع أول 72 بايت بس - أي حاجة أطول مالهاش معنى أمني
   maxTimesPerMed: 12, // 12 جرعة في اليوم سقف منطقي جدًا لأي دواء
+  maxPillsLeft: 9999, // medications.pills_left SMALLINT UNSIGNED - عبوة أكبر من كده مالهاش معنى
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/; // "HH:MM" بنظام 24 ساعة
@@ -81,6 +82,43 @@ function validateTimes(times) {
   return null;
 }
 
+/* قناع أيام الأسبوع (medications.days_of_week): 7 بت، بت 0 = الأحد ... بت 6 = السبت.
+   بيقبل رقم جاهز أو مصفوفة أرقام أيام زي [0,3] (اللي الواجهة أسهل ليها تبعتها).
+   بيرجع { mask } أو { error } - وبيرفض القناع الفاضي: دواء من غير أي يوم مفعّل
+   مبيتولّدش ليه أي جرعة أبدًا، فبيبقى دواء مسجّل ومش شغّال من غير ما حد ياخد باله. */
+function parseDaysOfWeek(value) {
+  if (value === undefined || value === null || value === '') return { mask: 127 };
+
+  let mask;
+  if (Array.isArray(value)) {
+    mask = 0;
+    for (const day of value) {
+      const d = Number(day);
+      if (!Number.isInteger(d) || d < 0 || d > 6) return { error: 'أيام الأسبوع مش مكتوبة صح' };
+      mask |= 1 << d;
+    }
+  } else {
+    mask = Number(value);
+  }
+
+  if (!Number.isInteger(mask) || mask < 0 || mask > 127) {
+    return { error: 'أيام الأسبوع مش مكتوبة صح' };
+  }
+  if (mask === 0) return { error: 'لازم تختار يوم واحد على الأقل في الأسبوع' };
+  return { mask };
+}
+
+/* كمية الدوا الفاضلة (medications.pills_left).
+   null/'' = المتابع مش بيتابع الكمية للدوا ده، وده الافتراضي. */
+function parsePillsLeft(value) {
+  if (value === undefined || value === null || value === '') return { pills: null };
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0 || n > LIMITS.maxPillsLeft) {
+    return { error: `عدد الأقراص لازم يكون رقم صحيح من 0 لـ ${LIMITS.maxPillsLeft}` };
+  }
+  return { pills: n };
+}
+
 module.exports = {
   LIMITS,
   isNonEmptyString,
@@ -90,4 +128,6 @@ module.exports = {
   isValidDateTime,
   normalizeDateTime,
   validateTimes,
+  parseDaysOfWeek,
+  parsePillsLeft,
 };

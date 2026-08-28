@@ -30,3 +30,15 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
+      # مفاتيح الـ Web Push. من غيرها التطبيق بيشتغل عادي، بس التذكير مش هيوصل
+      # لحد والتطبيق مقفول - يعني الميزة الأساسية معطّلة.
+      # ولّدهم مرة واحدة بـ: npx web-push generate-vapid-keys
+      # sync: false يعني Render هيسألك تدخلهم بنفسك (المفتاح الخاص سر).
+      # ⚠️ متغيّرهمش بعد النشر - كل الاشتراكات القديمة بتبطل وكل مستخدم
+      #    هيحتاج يفعّل التنبيهات من الأول.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false

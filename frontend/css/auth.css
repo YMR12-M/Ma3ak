@@ -454,3 +454,112 @@
     font-size: var(--font-size-lg);
   }
 }
+
+/* ============================================
+   كود الاسترجاع
+
+   شاشة كاملة مش سطر في الفورم: ده الشيء الوحيد اللي بيقف بين المتابع وفقدان
+   وصوله لبيانات مريضه للأبد، ومفيش أي طريقة نعرضه بيها تاني (متخزّن مهشّور).
+   ============================================ */
+
+.auth-link-btn {
+  display: block;
+  margin: var(--space-2) auto 0;
+  padding: 0.4em;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.recovery-screen {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-3);
+}
+
+.recovery-card {
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+}
+
+.recovery-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.recovery-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+}
+
+.recovery-desc {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+/* الكود نفسه: خط ثابت العرض ومسافات واسعة عشان يتقرا حرف حرف من غير لبس -
+   المستخدم غالبًا هينقله بإيده على ورقة */
+.recovery-code {
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface-alt);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.recovery-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--tap-min);
+  margin-bottom: var(--space-4);
+  padding: 0.5em 1.2em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.recovery-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  margin-bottom: var(--space-3);
+  cursor: pointer;
+}
+
+.recovery-confirm input {
+  width: 1.3rem;
+  height: 1.3rem;
+  accent-color: var(--color-primary);
+}

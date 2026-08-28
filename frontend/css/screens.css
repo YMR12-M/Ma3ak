@@ -116,6 +116,22 @@
   font-size: var(--font-size-md);
 }
 
+/* شارة "مواعيده مهمة" جنب اسم الدوا - المتابع لازم يعرف بنظرة أنهي دوا
+   بيتعامل معاه التطبيق بجدية مختلفة (تنبيه حرج + غفوة مقفولة) */
+.med-critical-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-inline-start: 0.5em;
+  padding: 0.1em 0.55em;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 .med-dosage {
   color: var(--color-text-muted);
 }
@@ -341,6 +357,154 @@
   margin-top: var(--space-0);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* ---------- الأولوية ----------
+   الفرق البصري هنا هو كل الفايدة من نظام الأولويات: لما "موعد بكرة" و"دوا
+   حرج فات" يبانوا بنفس الشكل، المتابع بيتعوّد يعدّي على القايمة بسرعة -
+   وساعتها المهم بيضيع وسط العادي. */
+
+.notif-body {
+  min-width: 0; /* بيخلي النص الطويل يلف بدل ما يوسّع الصف ويطلّع سكرول أفقي */
+  flex: 1;
+}
+
+.notif-item.notif-critical {
+  background: var(--color-danger-light);
+  border-inline-start: 5px solid var(--color-danger);
+}
+
+.notif-item.notif-critical .notif-icon {
+  color: var(--color-danger);
+}
+
+.notif-item.notif-critical .notif-message {
+  font-weight: 700;
+}
+
+/* الإشعار المعلوماتي (موعد قريب) بيتنطّ بصريًا لورا شوية - موجود لو حد دوّر
+   عليه، مش شادّ الانتباه */
+.notif-item.notif-info .notif-icon {
+  color: var(--color-text-muted);
+}
+
+/* اتعامل معاه: بيهدى تمامًا بس ما بيختفيش - السجل لازم يفضل كامل */
+.notif-item.notif-handled {
+  opacity: 0.62;
+}
+
+.notif-item.notif-handled.notif-critical {
+  background: none;
+  border-inline-start-color: var(--color-border);
+}
+
+.notif-handled-tag {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+/* ---------- زرار "خلصته" ---------- */
+
+.notif-handle-btn {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  min-height: var(--tap-min);
+  padding: 0.4em 0.9em;
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-success);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .notif-handle-btn:hover {
+    background: var(--color-success-light);
+  }
+}
+
+/* ---------- الفلتر ---------- */
+
+.notif-filter {
+  margin-bottom: var(--space-3);
+}
+
+/* ---------- المجموعات ----------
+   3 جرعات فايتة في يوم بيبقوا صف واحد. متابع بيتابع أكتر من مريض بيتغرق
+   بسرعة، والإغراق بيخلي الشاشة كلها تتجاهل. */
+
+.notif-group {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.notif-group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .notif-group-head:hover {
+    background: var(--color-surface-alt);
+  }
+}
+
+.notif-group-head.unread {
+  border-inline-start: 5px solid var(--color-accent);
+  background: var(--color-warning-light);
+}
+
+.notif-group-chevron {
+  flex-shrink: 0;
+  display: flex;
+  color: var(--color-text-muted);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.notif-group-chevron.open {
+  transform: rotate(180deg);
+}
+
+.notif-group-items {
+  padding-inline-start: var(--space-3);
+  animation: notif-group-open var(--dur-3) var(--ease-out) both;
+}
+
+@keyframes notif-group-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* الصف اللي جوه مجموعة أهدى: المجموعة نفسها هي الوحدة، والصفوف تفاصيلها */
+.notif-item-nested {
+  background: none;
+}
+
+.notif-item-nested.unread {
+  background: none;
+  border-inline-start-width: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-group-items { animation: none; }
+  .notif-group-chevron { transition: none; }
 }
 
 /* ============================================
@@ -575,6 +739,40 @@
   color: var(--color-text-muted);
 }
 
+/* ---------- ساعات الهدوء ---------- */
+
+.settings-quiet-range {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 var(--space-1) var(--space-2);
+}
+
+.settings-quiet-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.settings-quiet-field input {
+  flex: 1;
+  min-height: var(--tap-min);
+  padding: 0.4em 0.6em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* المفتاح اللي بيقفل كل حاجة (حتى الحرج) بياخد لون تحذير: القرار ده له نتيجة
+   حقيقية على مريض، فالمفروض ما يتداسش بالغلط وهو باين زي أي مفتاح تاني */
+.settings-row-danger .settings-row-title {
+  color: var(--color-danger);
+}
+
 /* كود المشاركة - رقم قصير المفروض المتابع يقراه لحد تاني بالتليفون، فبيستاهل
    يبان كشريحة واضحة مش نص عادي وسط سطر بيتلف */
 .share-code-row {
@@ -737,4 +935,114 @@
     margin-inline-start: auto;
     flex-wrap: nowrap;
   }
+}
+
+/* ============================================
+   حالة تنبيهات المريض (في كارت المريض عند المتابع)
+
+   الشارة دي بتقفل أكبر فجوة منطقية كانت في النظام: المتابع بيجهّز كل حاجة،
+   والتنبيه بيروح لجهاز مش في إيده - ومكانش عنده أي مؤشر إنه شغال.
+   ============================================ */
+
+.notif-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+  padding: 0.4em 0.8em;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.notif-status-ok {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.notif-status-off {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.notif-status-test {
+  margin-inline-start: auto;
+  padding: 0.15em 0.7em;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.notif-status-result {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+/* ---------- إدارة المريض ---------- */
+
+.manage-desc {
+  margin: var(--space-1) 0 var(--space-2);
+  line-height: 1.6;
+}
+
+.settings-group-danger {
+  color: var(--color-danger);
+}
+
+/* حقل تأكيد الحذف بالاسم. زرار حذف ورا confirm عادي بيتداس بالغلط، والغلط
+   هنا بيمسح تاريخ طبي كامل من غير أي طريقة استرجاع. */
+.manage-confirm-input {
+  width: 100%;
+  min-height: var(--tap-min);
+  margin-bottom: var(--space-2);
+  padding: 0.5em 0.8em;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* ---------- اختيار صورة الدوا (فورم المتابع) ---------- */
+
+.med-image-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.med-image-preview {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+}
+
+.med-image-add,
+.med-image-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--tap-min);
+  padding: 0.5em 1em;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.med-image-remove {
+  border-style: solid;
+  color: var(--color-danger);
 }
