@@ -25,6 +25,28 @@ function generateShortCode() {
   return code;
 }
 
+/* كود استرجاع كلمة المرور - أطول بكتير من كود المشاركة (4 مجموعات × 4 حروف)
+   لأن ده بديل كامل للباسورد، مش مجرد دعوة. بيتقسّم بشرطات عشان المستخدم يقدر
+   ينسخه أو يكتبه من غير غلط.
+
+   نفس الأبجدية بتاعت كود المشاركة (من غير الحروف اللي بتتلخبط)، بس بمساحة
+   أكبر بكتير: 31^16 ≈ 10^23 احتمال - مستحيل يتخمّن حتى من غير حد المحاولات.
+   وبرغم كده المسار محمي بـ loginLimiter برضه، لأن الحماية بطبقة واحدة مش حماية. */
+const RECOVERY_GROUPS = 4;
+const RECOVERY_GROUP_LENGTH = 4;
+
+function generateRecoveryCode() {
+  const groups = [];
+  for (let g = 0; g < RECOVERY_GROUPS; g += 1) {
+    let group = '';
+    for (let i = 0; i < RECOVERY_GROUP_LENGTH; i += 1) {
+      group += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+    }
+    groups.push(group);
+  }
+  return groups.join('-');
+}
+
 // توكن طويل وعشوائي - بيتحط جوه "لينك الدخول" بتاع المريض، وهو بديل الباسورد بالكامل
 function generateAccessToken() {
   return crypto.randomBytes(24).toString('hex');
@@ -48,4 +70,10 @@ async function generateUniqueAccessToken() {
   return generateUnique(generateAccessToken, 'access_token');
 }
 
-module.exports = { generateUniqueLinkCode, generateUniqueAccessToken, CODE_ALPHABET, CODE_LENGTH };
+module.exports = {
+  generateUniqueLinkCode,
+  generateUniqueAccessToken,
+  generateRecoveryCode,
+  CODE_ALPHABET,
+  CODE_LENGTH,
+};

@@ -12,6 +12,8 @@ const {
   validateTimes,
   isNonEmptyString,
   isTooLong,
+  parseDaysOfWeek,
+  parsePillsLeft,
   LIMITS,
 } = require('../utils/validate');
 
@@ -70,4 +72,63 @@ test('isNonEmptyString: مسافات لوحدها مش اسم', () => {
 test('isTooLong: الحدود مطابقة لأعمدة قاعدة البيانات', () => {
   assert.equal(isTooLong('ا'.repeat(LIMITS.medName), LIMITS.medName), false); // بالظبط الحد
   assert.equal(isTooLong('ا'.repeat(LIMITS.medName + 1), LIMITS.medName), true); // حرف زيادة
+});
+
+/* ---------- أيام الأسبوع ----------
+   قناع 7 بت: بت 0 = الأحد ... بت 6 = السبت. الواجهة بتبعت مصفوفة أرقام أيام،
+   والقيمة اللي بتتخزن رقم واحد - فالتحويل ده لازم يبقى مضبوط في الاتجاهين. */
+
+test('parseDaysOfWeek: مصفوفة أيام بتتحول لقناع بت صح', () => {
+  assert.equal(parseDaysOfWeek([0]).mask, 1); // الأحد
+  assert.equal(parseDaysOfWeek([6]).mask, 64); // السبت
+  assert.equal(parseDaysOfWeek([5]).mask, 32); // الجمعة
+  assert.equal(parseDaysOfWeek([0, 1, 2, 3, 4, 5, 6]).mask, 127); // كل الأيام
+  assert.equal(parseDaysOfWeek([1, 3]).mask, 10); // الإتنين + الأربعاء
+});
+
+test('parseDaysOfWeek: الافتراضي كل الأيام - الأدوية القديمة متتأثرش', () => {
+  assert.equal(parseDaysOfWeek(undefined).mask, 127);
+  assert.equal(parseDaysOfWeek(null).mask, 127);
+  assert.equal(parseDaysOfWeek('').mask, 127);
+});
+
+test('parseDaysOfWeek: بيقبل قناع رقمي جاهز', () => {
+  assert.equal(parseDaysOfWeek(32).mask, 32);
+  assert.equal(parseDaysOfWeek(127).mask, 127);
+});
+
+test('parseDaysOfWeek: القناع الفاضي مرفوض', () => {
+  /* دواء من غير أي يوم مفعّل مبيتولّدش ليه أي جرعة أبدًا - يعني دواء مسجّل
+     ومش شغّال من غير ما حد ياخد باله. ده أسوأ من رسالة خطأ. */
+  assert.ok(parseDaysOfWeek([]).error);
+  assert.ok(parseDaysOfWeek(0).error);
+});
+
+test('parseDaysOfWeek: بيرفض الأيام والأقنعة الغلط', () => {
+  for (const bad of [[7], [-1], [1.5], 128, -5, 'أيام']) {
+    assert.ok(parseDaysOfWeek(bad).error, `${JSON.stringify(bad)} المفروض يترفض`);
+  }
+});
+
+/* ---------- كمية الدوا ---------- */
+
+test('parsePillsLeft: فاضي معناه "مش بتابع الكمية" مش صفر', () => {
+  /* الفرق مش شكلي: null معناه مفيش تتبّع خالص، وصفر معناه الدوا خلص فعلاً
+     والمتابع المفروض ياخد تنبيه. */
+  assert.equal(parsePillsLeft(undefined).pills, null);
+  assert.equal(parsePillsLeft(null).pills, null);
+  assert.equal(parsePillsLeft('').pills, null);
+  assert.equal(parsePillsLeft(0).pills, 0);
+});
+
+test('parsePillsLeft: بيقبل الأرقام الصحيحة جوه الحد', () => {
+  assert.equal(parsePillsLeft(30).pills, 30);
+  assert.equal(parsePillsLeft('30').pills, 30);
+  assert.equal(parsePillsLeft(LIMITS.maxPillsLeft).pills, LIMITS.maxPillsLeft);
+});
+
+test('parsePillsLeft: بيرفض السالب والكسور واللي فوق الحد', () => {
+  for (const bad of [-1, 2.5, LIMITS.maxPillsLeft + 1, 'كتير']) {
+    assert.ok(parsePillsLeft(bad).error, `${bad} المفروض يترفض`);
+  }
 });

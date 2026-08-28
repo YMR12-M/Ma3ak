@@ -2,7 +2,7 @@
    MA3ak (معاك) - شاشة "اليوم": جرعات الدوا النهارده
    ============================================ */
 
-function TodayView({ patientId }) {
+function TodayView({ patientId, onOpenAdherence }) {
   const [doses, setDoses] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -97,6 +97,24 @@ function TodayView({ patientId }) {
             ))}
           </div>
         </React.Fragment>
+      )}
+
+      {/* مدخل تقرير الالتزام من المكان اللي المتابع بيبص فيه أصلاً.
+
+          مبقاش تاب لوحده عن قصد: الشريط السفلي فيه 6 تابات بالفعل، والسابع
+          كان هيخلي كل الأسامي تتقص على شاشة موبايل عادية - وده بيضر كل تاب
+          مش بس الجديد. */}
+      {onOpenAdherence && (
+        <button className="adherence-entry" onClick={onOpenAdherence}>
+          <span className="adherence-entry-icon" aria-hidden="true">
+            <Icon name="pulse" size={22} />
+          </span>
+          <span className="adherence-entry-body">
+            <span className="adherence-entry-title">تقرير الالتزام</span>
+            <span className="adherence-entry-desc">نسبة الجرعات على مدى أسبوع أو شهر، وأنهي ميعاد بيتنسى</span>
+          </span>
+          <Icon name="chevron" size={18} strokeWidth={2.2} />
+        </button>
       )}
     </div>
   );

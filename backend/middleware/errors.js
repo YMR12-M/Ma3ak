@@ -52,6 +52,13 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: 'البيانات المبعوتة مش بصيغة صحيحة' });
   }
 
+  /* جسم الطلب أكبر من الحد. كان بيقع في سلة الـ 500 العامة ويطلّع "حصل خطأ
+     غير متوقع" - وهو خطأ متوقع تمامًا وله سبب واضح المستخدم يقدر يتصرف بناءً
+     عليه (صورة كبيرة، ملاحظات طويلة أوي). */
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: 'البيانات المبعوتة كبيرة أوي' });
+  }
+
   const mapped = DB_ERROR_MAP[err.code];
   if (mapped) {
     console.warn(`[400] ${req.method} ${req.originalUrl} - ${err.code}: ${err.sqlMessage || err.message}`);

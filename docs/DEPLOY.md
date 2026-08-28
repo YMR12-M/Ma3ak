@@ -1,6 +1,6 @@
 # النشر على Render
 
-المشروع سيرفر Express تقليدي (عملية واحدة فاضلة شغالة طول الوقت، فيها scheduler بيشتغل كل 5 دقايق) - ده بالظبط اللي Render مبني له، بعكس Vercel (serverless - راجع [ARCHITECTURE.md](ARCHITECTURE.md) لو حابب تفهم الفرق). يعني عمليًا **مفيش أي تعديل كود مطلوب** - بس محتاج تجهّز 3 حاجات مش موجودة في الكود نفسه: حساب Render، قاعدة بيانات خارجية، ومتغيرات البيئة.
+المشروع سيرفر Express تقليدي (عملية واحدة فاضلة شغالة طول الوقت، فيها scheduler بيشتغل كل دقيقة) - ده بالظبط اللي Render مبني له، بعكس Vercel (serverless - راجع [ARCHITECTURE.md](ARCHITECTURE.md) لو حابب تفهم الفرق). يعني عمليًا **مفيش أي تعديل كود مطلوب** - بس محتاج تجهّز 3 حاجات مش موجودة في الكود نفسه: حساب Render، قاعدة بيانات خارجية، ومتغيرات البيئة.
 
 ## القيد الوحيد المهم: Render مبيوفرش MySQL
 
@@ -24,6 +24,14 @@ Render بيوفّر PostgreSQL وRedis كخدمات مُدارة - **مش MySQL*
 mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/schema.sql
 ```
 
+**لو عندك قاعدة شغالة من قبل نظام الإشعارات الجديد**، شغّل الترقية بدل السكيما الكاملة:
+
+```bash
+mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/migration_4_notifications.sql
+mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/migration_5_gaps.sql
+mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/migration_6_schedule_stock_vitals.sql
+```
+
 (بعض المزودين بيدّوك واجهة ويب أو CLI خاصة بيهم للاتصال - اتبع تعليماتهم لو الأمر ده مايشتغلش مباشرة.)
 
 ## النشر على Render
@@ -38,7 +46,28 @@ mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/schema.s
 4. هيسألك تدخل المتغيرات دي (مش موجودة في الملف عمدًا - أسرار):
    - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - من قاعدة البيانات اللي جهّزتها فوق.
    - `JWT_SECRET` - Render هيولّده تلقائيًا (`generateValue: true` في الملف)، مش لازم تعمل حاجة.
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` - شوف القسم اللي تحت.
 5. **Deploy**.
+
+### مفاتيح الإشعارات (VAPID) - مطلوبة
+
+من غيرها التطبيق بيشتغل، بس **التذكير مش هيوصل لحد والتطبيق مقفول** - يعني الميزة الأساسية معطّلة على الإنتاج.
+
+ولّد الزوج مرة واحدة على جهازك:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+وحطهم في **Environment** على Render:
+
+| المتغير | القيمة |
+|---|---|
+| `VAPID_PUBLIC_KEY` | المفتاح العام من الأمر فوق |
+| `VAPID_PRIVATE_KEY` | المفتاح الخاص - **سر، متحطهوش في الريبو** |
+| `VAPID_SUBJECT` | `mailto:` بإيميلك (خدمات الدفع بتطلبه في المواصفة) |
+
+> ⚠️ **متغيّرش المفاتيح دي بعد النشر.** كل الاشتراكات القديمة هتبطل وكل مستخدم هيحتاج يفعّل التنبيهات من الأول - وأغلبهم مش هيلاحظ إنها بطّلت أصلاً، هيلاحظ يوم ما تنبيه مهم ميوصلش. لو اضطريت، بلّغ المستخدمين قبلها.
 
 ### أو يدويًا (من غير Blueprint)
 
@@ -49,7 +78,7 @@ mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/schema.s
    devDependencies - يعني esbuild أداة بناء الواجهة مكانتش هتتسطّب. لو حصلت مشكلة هنا،
    `npm install && npm start` لوحدهم بيشتغلوا برضه لأن ناتج البناء متسجّل في الريبو.)
 4. **Start Command**: `npm start`
-5. في **Environment**: ضيف `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, و`JWT_SECRET` (قيمة عشوائية طويلة - تقدر تولّدها بـ `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
+5. في **Environment**: ضيف `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET` (قيمة عشوائية طويلة - تقدر تولّدها بـ `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)، و`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`.
 
 `PORT` مش لازم تحطه - Render بيحطه تلقائيًا والسيرفر (`server.js`) بيقراه من `process.env.PORT` أصلاً.
 
@@ -63,3 +92,7 @@ mysql -h <DB_HOST> -P <DB_PORT> -u <DB_USER> -p <DB_NAME> < backend/sql/schema.s
 خطة Render المجانية **بتوقف السيرفر بعد 15 دقيقة من غير طلبات** (spin down)، وبيرجع يشتغل تلقائي أول ما حد يفتح الموقع تاني - بس ده بياخد كام ثانية (cold start)، **ولحد ما حد يفتح الموقع، الـ scheduler (`scheduler.js`) بيبقى واقف تمامًا** - يعني تذكير الجرعات الفايتة ومواعيد الغد مش هيشتغلوا بانتظام لو مفيش حد بيستخدم التطبيق فعليًا في اللحظة دي.
 
 لتطبيق بيعتمد عليه ناس حقيقية في تذكير دوا كبار السن، الخطة المدفوعة (**Starter**) اللي بتخلي السيرفر شغال طول الوقت من غير spin-down هي الأنسب فعليًا - مش رفاهية.
+
+**والقيد ده بقى أهم بكتير مع نظام المنبه.** كل التنبيهات (منبه الجرعة، التذكير، التصعيد) بتتبعت من الـ scheduler على السيرفر - مش من متصفح المستخدم. سيرفر نايم = صفر تنبيهات، مهما كان المستخدم مفعّل كل حاجة عنده.
+
+التصميم بيقلل الضرر قدر الإمكان: كل حالة "اتبعت ولا لأ" متخزّنة في قاعدة البيانات مش في ذاكرة السيرفر، فإعادة التشغيل مبتعيدش إرسال التنبيهات ولا بتضيّعها. وفيه سقف كمان (`DUE_ALARM_MAX_LATE_MINUTES` في `scheduler.js`) بيمنع إن السيرفر لما يصحى بعد ساعتين يبعت دفعة منبهات لجرعات فات وقتها أصلاً. بس ده تخفيف للضرر - **مش بديل عن سيرفر شغال**.

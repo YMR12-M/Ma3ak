@@ -556,6 +556,16 @@
   transform: scale(0.95);
 }
 
+/* الجرعة اللي فاتت بس لسه ينفع تتسجّل: زرار محايد مش بلون الهوية.
+   السبب: المريض لازم يفهم إنه بيسجّل حاجة متأخرة، مش بيلغي إنها فاتت -
+   ولو الزرار شكله زي زرار الجرعة اللي في وقتها، الفرق ده بيضيع. */
+.patient-secondary-take-late {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: none;
+}
+
 /* ============================================
    كارت "متابعك" - المريض يعرف مين شايف حالته
    ============================================ */
@@ -1006,4 +1016,405 @@
   .patient-issue-btn {
     width: calc(100% - (var(--space-2) * 2));
   }
+}
+
+/* ============================================
+   إضافات فحص المشروع: الصورة، الملاحظات، الموعد، الاتصال، والأوفلاين
+   ============================================ */
+
+/* ---------- صورة الدوا ----------
+   كبار السن بيعرفوا الدوا بشكله ولونه مش باسمه العلمي، فالصورة هنا معلومة
+   أساسية مش زينة. object-fit: cover عشان أي نسبة أبعاد تملى المربع من غير
+   ما تتشوّه. */
+.med-image {
+  display: block;
+  object-fit: cover;
+  background: var(--color-surface-alt);
+}
+
+.med-image-hero {
+  width: 8.5rem;
+  height: 8.5rem;
+  margin: 0 auto var(--space-3);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.med-image-alarm {
+  width: 10rem;
+  height: 10rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.alarm-image-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+/* ---------- تعليمات الدكتور ----------
+   لونها مختلف عن باقي السطور عن قصد: دي مش تفصيلة عن الجرعة، دي شرط على
+   طريقة أخدها ("بعد الأكل"، "متاخدهوش مع اللبن"). */
+.patient-hero-notes,
+.alarm-notes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  margin: var(--space-2) auto 0;
+  padding: 0.55em 1em;
+  max-width: 26rem;
+  border-radius: var(--radius);
+  background: var(--color-warning-light);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.alarm-notes {
+  margin-bottom: var(--space-3);
+}
+
+.patient-secondary-notes {
+  margin-top: 2px;
+  color: var(--color-warning);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+/* ---------- بانر "مفيش نت" ---------- */
+
+.patient-offline-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ---------- كارت الموعد الطبي ---------- */
+
+.patient-appt-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  border-inline-start: 4px solid var(--color-accent);
+}
+
+.patient-appt-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--color-accent-light);
+  color: var(--color-accent-dark);
+}
+
+.patient-appt-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-appt-label {
+  color: var(--color-accent-dark);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.patient-appt-title {
+  margin-top: 2px;
+  font-size: var(--font-size-md);
+  font-weight: 700;
+}
+
+.patient-appt-meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.patient-appt-speak {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* ---------- زرار الاتصال بالمتابع ----------
+   الكارت كان بيعرض اسم المتابع وخلاص، فكبير السن اللي حاسس بتعب كان قدامه
+   بلاغ يبعته ويستنى - مش زرار يرن بيه على ابنه. */
+.patient-caregiver-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.patient-caregiver-call {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--tap-min);
+  padding: 0.6em 1.1em;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  text-decoration: none;
+  box-shadow: var(--shadow-primary);
+}
+
+.patient-caregiver-call:active {
+  transform: scale(0.97);
+}
+
+/* ---------- الأزرار الثانوية ----------
+   صغيرة عن قصد: مهمة بس مش هي الغرض من الشاشة، والجرعة لازم تفضل هي الحاجة
+   الوحيدة الواضحة فوق. */
+.patient-quick-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.patient-quick-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  min-height: var(--tap-min);
+  padding: 0.6em 0.8em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---------- تسجيل قياس ---------- */
+
+.patient-vital-pair {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.patient-vital-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+}
+
+.patient-vital-field input {
+  /* حقل أكبر بكتير من العادي: الرقم بيتكتب بإصبع مرتعش أحيانًا، والخط الكبير
+     بيخلي المستخدم يراجع اللي كتبه من غير ما يقرّب الشاشة */
+  min-height: 4rem;
+  padding: 0.4em 0.6em;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  text-align: center;
+}
+
+.patient-vital-single {
+  max-width: 12rem;
+  margin: 0 auto;
+}
+
+.patient-vital-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  width: 100%;
+  min-height: 3.6rem;
+  margin-top: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--grad-brand);
+  color: var(--color-on-primary);
+  font: inherit;
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.patient-vital-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- "اللي خدته قبل كده" ---------- */
+
+.patient-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+}
+
+.patient-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-surface-alt);
+}
+
+.patient-history-day {
+  font-weight: 700;
+}
+
+.patient-history-counts {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.patient-history-taken,
+.patient-history-missed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-weight: 700;
+}
+
+.patient-history-taken { color: var(--color-success); }
+.patient-history-missed { color: var(--color-danger); }
+
+/* ---------- باقي المتابعين ----------
+   الكارت الأساسي بيعرض المتابع الأول بزرار اتصال كبير. القايمة دي هي الباقيين -
+   قبل كده كان مكتوب "+2 كمان" من غير أي طريقة توصلهم، يعني لو الأول مش رادّ
+   (وده بالظبط الوقت اللي الزرار موجود عشانه) مفيش بديل قدام المريض. */
+.patient-caregiver-more {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-start: 10px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.patient-caregiver-more-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.patient-caregiver-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap-min);
+}
+
+.patient-caregiver-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.patient-caregiver-row-nophone {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
+}
+
+/* نفس زرار الاتصال الأساسي بمقاس أصغر - الأول بيفضل هو الأوضح بصريًا */
+.patient-caregiver-call.small {
+  min-height: 48px;
+  padding: 0.45em 0.95em;
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-primary-ink);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  box-shadow: none;
+}
+
+/* ---------- آخر قراءات القياس ----------
+   المريض كان بيسجّل قياساته ومبيشوفهاش أبدًا. "ضغطي كان كام امبارح؟" سؤال
+   بيتسأل كل يوم زي "خدت الدوا ولا لأ" بالظبط. */
+.patient-vital-history {
+  margin-block-start: 18px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.patient-vital-history-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-block-end: 6px;
+}
+
+.patient-vital-history-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 8px;
+  border-block-end: 1px solid var(--color-border);
+}
+
+.patient-vital-history-row:last-child {
+  border-block-end: 0;
+}
+
+.patient-vital-history-value {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-vital-history-when {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* القراءة الخطرة: نفس أيقونة التأكيد بلون مختلف - المريض لازم يعرف إن حاجة
+   حصلت وإن متابعه اتنبّه، مش يفتكر إنها اتسجّلت عادي */
+.issue-sent-icon-alert {
+  background: var(--danger-100);
+  color: var(--danger-600);
+  /* لازم يتلغي كمان، مش الخلفية بس: ظل أخضر حوالين دايرة حمرا بيبان غلط */
+  box-shadow: var(--shadow-inset-top);
 }

@@ -54,15 +54,21 @@ const CSS_FILES = [
   'css/auth.css',
   'css/screens.css',
   'css/patient.css',
+  'css/alarm.css',
+  'css/adherence.css',
 ];
 
 // ملفات التطبيق: الأدوات الأول، بعدين الأيقونات (كل المكوّنات بتستخدمها)،
 // بعدين المكوّنات، وapp.jsx آخر حاجة لأنه بيستدعي ReactDOM.createRoot
 const JS_FILES = [
   'js/api.js',
+  'js/push.js',
+  'js/offline.js',
+  'js/medImages.js',
   'js/doseLogic.js',
   'js/icons.jsx',
   'js/components/Common.jsx',
+  'js/components/Alarm.jsx',
   'js/components/Settings.jsx',
   'js/components/Auth.jsx',
   'js/components/Layout.jsx',
@@ -70,6 +76,7 @@ const JS_FILES = [
   'js/components/Medications.jsx',
   'js/components/Appointments.jsx',
   'js/components/Vitals.jsx',
+  'js/components/Adherence.jsx',
   'js/components/Notifications.jsx',
   'js/components/Patients.jsx',
   'js/components/PatientHome.jsx',

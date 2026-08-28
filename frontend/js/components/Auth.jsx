@@ -20,9 +20,15 @@ const APP_FEATURES = [
   },
   {
     icon: 'bell',
-    title: 'تذكير بصوت وإشعار',
-    desc: 'رنّة وفايبريشن وإشعار على موبايل المريض أول ما الميعاد ييجي.',
+    title: 'منبه بيوصل والتطبيق مقفول',
+    desc: 'إشعار ورنّة أول ما الميعاد ييجي، وزرار "خدته" شغّال من جوّه الإشعار نفسه.',
     tone: 'accent',
+  },
+  {
+    icon: 'alert',
+    title: 'لو الجرعة فاتت، المتابع بيعرف',
+    desc: 'تذكير تاني، وبعدها تنبيه للمتابع، وبعدها تصعيد لو المريض مردّش خالص.',
+    tone: 'danger',
   },
   {
     icon: 'alert',
@@ -71,6 +77,14 @@ function AuthScreen({ onAuthenticated, initialError }) {
   const [mode, setMode] = React.useState('login');
   const [error, setError] = React.useState(initialError || '');
   const [loading, setLoading] = React.useState(false);
+  const [showRecover, setShowRecover] = React.useState(false);
+
+  /* كود الاسترجاع بيتعرض **مرة واحدة بس** بعد التسجيل، وبعد كده مفيش أي طريقة
+     يتعرض تاني (متخزّن مهشّور زي الباسورد). فلازم يقف قدام المستخدم كخطوة
+     مستقلة، مش سطر صغير جنب زرار "تمام" - وإلا هيعدّي عليه ويكتشف إنه ضاع
+     يوم ما ينسى الباسورد فعلاً. */
+  const [recoveryCode, setRecoveryCode] = React.useState(null);
+  const [pendingUser, setPendingUser] = React.useState(null);
 
   async function handleLogin(identifier, password) {
     setError('');
@@ -92,12 +106,28 @@ function AuthScreen({ onAuthenticated, initialError }) {
     try {
       const data = await api.register(payload);
       setToken(data.token);
-      await onAuthenticated(data.user);
+      // بندخّله بعد ما يشوف كود الاسترجاع، مش قبله
+      setRecoveryCode(data.recoveryCode);
+      setPendingUser(data.user);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (recoveryCode) {
+    return (
+      <RecoveryCodeScreen
+        code={recoveryCode}
+        onContinue={async () => {
+          const user = pendingUser;
+          setRecoveryCode(null);
+          setPendingUser(null);
+          await onAuthenticated(user);
+        }}
+      />
+    );
   }
 
   return (
@@ -151,6 +181,12 @@ function AuthScreen({ onAuthenticated, initialError }) {
                 <RegisterForm key="register" onSubmit={handleRegister} loading={loading} />
               )}
 
+              {mode === 'login' && (
+                <button type="button" className="auth-link-btn" onClick={() => setShowRecover(true)}>
+                  نسيت كلمة المرور؟
+                </button>
+              )}
+
               {mode === 'register' && (
                 <p className="auth-hint">
                   الحساب ده لمتابعة كبير السن (ابن / بنت / ممرض). كبير السن نفسه مش محتاج يسجل —
@@ -160,6 +196,27 @@ function AuthScreen({ onAuthenticated, initialError }) {
             </div>
           </div>
         </section>
+
+        {showRecover && (
+          <RecoverPasswordModal
+            onClose={() => setShowRecover(false)}
+            onRecovered={async (data) => {
+              setToken(data.token);
+              /* بنجيب بيانات المستخدم **قبل** ما نعرض شاشة الكود، مش بعدها:
+                 لو عرضناها الأول والمستخدم داس "يلا نبدأ" بسرعة، كنا هنودّي
+                 onAuthenticated قيمة فاضية. */
+              try {
+                const me = await api.me();
+                setPendingUser(me.user);
+                setShowRecover(false);
+                setRecoveryCode(data.recoveryCode);
+              } catch (e) {
+                setShowRecover(false);
+                setError('رجّعنا كلمة المرور بس مقدرناش نفتح الحساب - سجّل دخول بالكلمة الجديدة');
+              }
+            }}
+          />
+        )}
 
         <section className="auth-showcase">
           <div className="auth-brand">
@@ -288,5 +345,146 @@ function RegisterForm({ onSubmit, loading }) {
         {loading ? 'جاري إنشاء الحساب...' : 'إنشاء الحساب'}
       </Button>
     </form>
+  );
+}
+
+/* ============================================
+   كود الاسترجاع
+
+   ليه شاشة كاملة مش سطر في الفورم: ده الشيء الوحيد اللي بيقف بين المتابع
+   وفقدان وصوله لبيانات مريضه للأبد. مفيش إيميل ولا SMS في المشروع، فمفيش أي
+   طريقة تانية نوصّله بيها الكود ده تاني - والنسخة اللي عندنا مهشّورة زي
+   الباسورد بالظبط، يعني إحنا نفسنا مش قادرين نقراه.
+   ============================================ */
+
+function RecoveryCodeScreen({ code, onContinue }) {
+  const [copied, setCopied] = React.useState(false);
+  const [confirmed, setConfirmed] = React.useState(false);
+
+  return (
+    <div className="auth-screen">
+      <div className="auth-mesh" aria-hidden="true" />
+      <div className="auth-grain" aria-hidden="true" />
+
+      <div className="recovery-screen">
+        <div className="recovery-card">
+          <div className="recovery-icon" aria-hidden="true">
+            <Icon name="lock" size={40} strokeWidth={1.7} />
+          </div>
+          <h1 className="recovery-title">احفظ كود الاسترجاع</h1>
+          <p className="recovery-desc">
+            لو نسيت كلمة المرور، الكود ده هو الطريقة الوحيدة ترجّع بيها حسابك. مش هنقدر
+            نعرضه تاني بعد الشاشة دي.
+          </p>
+
+          <div className="recovery-code" dir="ltr">
+            {code}
+          </div>
+
+          <button
+            className="recovery-copy"
+            onClick={async () => {
+              setCopied(await copyText(code));
+            }}
+          >
+            <Icon name={copied ? 'check' : 'copy'} size={19} />
+            {copied ? 'اتنسخ' : 'انسخ الكود'}
+          </button>
+
+          <label className="recovery-confirm">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+            />
+            <span>حفظته في مكان آمن</span>
+          </label>
+
+          {/* الزرار مقفول لحد ما يأكد. خطوة احتكاك مقصودة: المستخدم اللي
+              بيعدّي بسرعة هنا هو اللي هيدفع التمن بعد شهور. */}
+          <Button onClick={onContinue} disabled={!confirmed}>
+            يلا نبدأ
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecoverPasswordModal({ onClose, onRecovered }) {
+  const [phone, setPhone] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      onRecovered(await api.recoverPassword(phone.trim(), code.trim(), newPassword));
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Modal
+      icon="lock"
+      tone="gray"
+      title="استرجاع كلمة المرور"
+      subtitle="بكود الاسترجاع اللي حفظته وقت التسجيل"
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(close) => (
+        <React.Fragment>
+          <Button type="button" variant="soft" onClick={close} disabled={loading}>
+            إلغاء
+          </Button>
+          <Button type="submit" loading={loading}>
+            استرجاع
+          </Button>
+        </React.Fragment>
+      )}
+    >
+      <Banner onClose={() => setError('')}>{error}</Banner>
+
+      <Field label="رقم الموبايل">
+        <input
+          required
+          autoComplete="username"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="01xxxxxxxxx"
+        />
+      </Field>
+      <Field label="كود الاسترجاع">
+        {/* dir=ltr لأن الكود حروف وأرقام لاتينية - من غيرها الشرطات بتتقلب
+            في العرض والمستخدم يفتكر إنه كتبه غلط */}
+        <input
+          required
+          dir="ltr"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="XXXX-XXXX-XXXX-XXXX"
+        />
+      </Field>
+      <Field label="كلمة المرور الجديدة">
+        <input
+          type="password"
+          required
+          minLength={6}
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+      </Field>
+
+      <p className="auth-hint">
+        هيتولّد لك كود استرجاع جديد بعد ما ترجّع الحساب - القديم مش هينفع تاني.
+      </p>
+    </Modal>
   );
 }

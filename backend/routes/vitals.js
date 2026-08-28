@@ -3,8 +3,9 @@ const pool = require('../db');
 const { authRequired } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errors');
 const { canAccessPatient } = require('../utils/access');
-const { cairoNowString } = require('../utils/time');
+const { cairoNowString, formatCairoClock } = require('../utils/time');
 const { isValidDateTime, normalizeDateTime } = require('../utils/validate');
+const { notifyUsers, getCaregiverIds } = require('../utils/notify');
 
 const router = express.Router();
 
@@ -48,6 +49,54 @@ function validateVitalValue(type, value) {
     return 'قيمة القياس مش منطقية، راجع الرقم';
   }
   return null;
+}
+
+/* ---------------------------------------------------------------------------
+   القراءة الخطرة
+
+   RANGES فوق بتتأكد إن الرقم **منطقي** (مش 900) - مش إنه **خطر**. وده كان
+   أوضح فجوة في التطبيق: المريض عنده زرار "سجّل قياس" في شاشته، ويسجّل ضغط
+   200/130، والتطبيق يقبله في صمت - والمتابع عمره ما هيعرف إلا لو فتح تاب
+   القياسات بنفسه وبص.
+
+   القراءة الخطرة أوضح إشارة إنذار في التطبيق كله، وكانت الوحيدة اللي مبتولّدش
+   أي تنبيه.
+
+   ⚠️ العتبات دي **مش تشخيص طبي** - هي حدود "طمّن عليه دلوقتي" المتعارف عليها
+   عمومًا لكبار السن. الغرض منها إن حد يبص، مش إنها تقول إيه المشكلة.
+   --------------------------------------------------------------------------- */
+const CRITICAL_LIMITS = {
+  systolic: { low: 90, high: 180 },
+  diastolic: { low: 50, high: 120 },
+  blood_sugar: { low: 70, high: 300 },
+  heart_rate: { low: 45, high: 130 },
+  temperature: { low: 35, high: 39 },
+  // الوزن مالوش عتبة لحظية - تغيّره بيتقاس على مدى أيام مش في قراءة واحدة
+};
+
+// بيرجع نص الوصف لو القراءة خطرة، أو null
+function describeCriticalVital(type, value) {
+  const outside = (n, limit) => (n < limit.low ? 'منخفض' : n > limit.high ? 'مرتفع' : null);
+
+  if (type === 'blood_pressure') {
+    const sys = outside(Number(value.systolic), CRITICAL_LIMITS.systolic);
+    const dia = outside(Number(value.diastolic), CRITICAL_LIMITS.diastolic);
+    if (!sys && !dia) return null;
+    return `ضغط ${sys || dia}: ${Number(value.systolic)}/${Number(value.diastolic)}`;
+  }
+
+  const limit = CRITICAL_LIMITS[type];
+  if (!limit) return null;
+  const state = outside(Number(value.value), limit);
+  if (!state) return null;
+
+  const labels = {
+    blood_sugar: ['سكر', 'mg/dL'],
+    heart_rate: ['نبض', 'نبضة/دقيقة'],
+    temperature: ['حرارة', '°'],
+  };
+  const [label, unit] = labels[type];
+  return `${label} ${state}: ${Number(value.value)} ${unit}`;
 }
 
 router.get(
@@ -107,7 +156,36 @@ router.post(
       'INSERT INTO vitals (patient_id, type, value_json, recorded_at) VALUES (?, ?, ?, ?)',
       [patientId, type, JSON.stringify(value), at]
     );
-    res.status(201).json({ id: result.insertId });
+
+    /* قراءة خطرة → تنبيه حرج للمتابعين فورًا.
+
+       أولويته critical عن قصد: بيخترق ساعات الهدوء وتفضيلات النوع، زي الجرعة
+       الحرجة الفايتة بالظبط. ضغط 200/130 الساعة 2 بالليل مش هيستنى الصبح -
+       وده بالظبط الفرق اللي utils/notify.js متبني عليه بين "مفكّرة" و"شبكة أمان". */
+    const alert = describeCriticalVital(type, value);
+    if (alert) {
+      const [patientRows] = await pool.query('SELECT name FROM users WHERE id = ?', [patientId]);
+      const patientName = patientRows.length ? patientRows[0].name : 'المريض';
+      const message = `قراءة محتاجة انتباه لـ ${patientName} - ${alert} (الساعة ${formatCairoClock(at)})`;
+
+      /* مفيش dedupeKey: كل قراءة خطرة حدث مستقل، ودمج التانية في الأولى معناه
+         إن المتابع ميعرفش إن الحالة اتكررت أو اتغيّرت. */
+      await notifyUsers(await getCaregiverIds(patientId), {
+        patientId,
+        type: 'patient_issue',
+        priority: 'critical',
+        relatedId: result.insertId,
+        message,
+        push: {
+          title: '🩺 قراءة محتاجة انتباه',
+          body: message,
+          tag: `vital-${result.insertId}`,
+          url: '/',
+        },
+      });
+    }
+
+    res.status(201).json({ id: result.insertId, alert: alert || null });
   })
 );
 

@@ -51,11 +51,10 @@ function App() {
   const [activePatientId, setActivePatientId] = React.useState(null);
   const [view, setView] = React.useState('today');
   const [notifications, setNotifications] = React.useState([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
   const [accessError, setAccessError] = React.useState('');
-  const notifiedDoseIds = React.useRef(new Set());
-  const hasSeededDosesRef = React.useRef(false);
-  const notifiedIssueIds = React.useRef(new Set());
-  const hasSeededIssues = React.useRef(false);
+  // آخر id الواجهة شايفاه - بيتبعت للسيرفر كـ since عشان يرجّع الجديد بس
+  const latestNotificationId = React.useRef(0);
 
   // لقطة حدث "قابل للتثبيت" (Chrome/Edge بس - Safari/iOS مالوش الـ API ده خالص).
   // لازم نلقطه ونمنع سلوكه الافتراضي فور ما يحصل، عشان نقدر نعرضه من زرارنا إحنا
@@ -78,6 +77,7 @@ function App() {
   }, []);
 
   const [showSettings, setShowSettings] = React.useState(false);
+  const [pushStatus, setPushStatus] = React.useState(() => getPushStatus());
   const [darkMode, setDarkMode] = React.useState(() =>
     readBoolPref('ma3ak_dark', window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
@@ -107,9 +107,17 @@ function App() {
         try {
           const data = await api.accessViaToken(accessMatch[1]);
           setToken(data.token);
+          /* بنحتفظ باللينك نفسه على الجهاز، مش بتوكن الجلسة بس.
+
+             قبل كده كان بيتمسح من شريط العنوان وبيضيع، فأول ما الجلسة تنتهي
+             المريض كان بيلاقي شاشة تسجيل دخول بتطلب موبايل وباسورد **مالوش أي
+             معنى بالنسبة له** - ومفيش قدامه غير إنه يكلّم ابنه يبعتله اللينك
+             من الأول. دلوقتي الجلسة بتتجدّد منه في صمت (شوف js/api.js). */
+          setAccessToken(accessMatch[1]);
           await onAuthenticated(data.user);
         } catch (e) {
           setToken(null);
+          setAccessToken(null);
           setAccessError(e.message || 'اللينك ده مش شغال');
         }
         setBooting(false);
@@ -117,7 +125,9 @@ function App() {
       }
 
       const token = getToken();
-      if (!token) {
+      // مفيش توكن جلسة بس فيه لينك دخول محفوظ = مريض رجع بعد ما جلسته انتهت.
+      // api.me() هتجدّد لوحدها من اللينك المحفوظ (js/api.js)، فبنكمّل عادي.
+      if (!token && !getAccessToken()) {
         setBooting(false);
         return;
       }
@@ -126,6 +136,13 @@ function App() {
         await onAuthenticated(data.user);
       } catch (e) {
         setToken(null);
+        /* اللينك المحفوظ مبقاش شغال (المتابع ولّد لينك جديد) - ده إلغاء
+           متعمّد، فالمريض لازم يعرف إنه محتاج لينك جديد بدل ما يبص على فورم
+           دخول مالوش أي علاقة بيه. */
+        if (getAccessToken()) {
+          setAccessToken(null);
+          setAccessError('لينك الدخول بتاعك اتغيّر - اطلب لينك جديد من اللي بيتابعك');
+        }
       } finally {
         setBooting(false);
       }
@@ -146,106 +163,114 @@ function App() {
 
   function handleLogout() {
     setToken(null);
+    // الخروج المتعمّد بيمسح اللينك المحفوظ كمان - وإلا التطبيق كان هيدخّل
+    // المريض تاني على طول وكأن الزرار مش شغال
+    setAccessToken(null);
     setUser(null);
     setPatients([]);
     setActivePatientId(null);
     setNotifications([]);
+    setUnreadCount(0);
+    latestNotificationId.current = 0;
     setView('today');
   }
 
   const refreshPatients = React.useCallback(async () => {
     const data = await api.getPatients();
     setPatients(data.patients);
-    if (data.patients.length && !activePatientId) {
-      setActivePatientId(data.patients[0].id);
+
+    /* المريض النشط ممكن ميكونش موجود في القايمة الجديدة - بيحصل لما المتابع
+       يمسحه أو يخرج من متابعته. من غير التصحيح ده كل الشاشات بتفضل بتطلب
+       بيانات مريض مش موجود وبترجّع 403، والمتابع بيشوف رسايل خطأ من غير ما
+       يفهم إن اللي حصل هو نتيجة الحذف اللي هو نفسه عمله. */
+    const stillThere = data.patients.some((p) => p.id === activePatientId);
+    if (!stillThere) {
+      setActivePatientId(data.patients.length ? data.patients[0].id : null);
     }
     return data.patients;
   }, [activePatientId]);
 
-  const refreshNotifications = React.useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await api.getNotifications();
-      const unreadIssues = data.notifications.filter(
-        (n) => n.type === 'patient_issue' && !n.is_read
-      );
+  /* بيجيب الجديد بس (since = آخر id شفناه) بدل 50 صف كاملين كل دقيقة.
+     في الحالة الطبيعية (مفيش جديد) الرد بيبقى العدادات بس - فرق حقيقي على
+     بيانات الموبايل البطيئة اللي أغلب مستخدمينا عليها.
 
-      // أول تحميل: نسجل المشاكل الموجودة من غير ما نزعج المتصفح بإشعارات لحاجات قديمة.
-      // أي تحديث بعد كده: أي مشكلة جديدة تستاهل إشعار متصفح فوري.
-      if (!hasSeededIssues.current) {
-        unreadIssues.forEach((n) => notifiedIssueIds.current.add(n.id));
-        hasSeededIssues.current = true;
-      } else {
-        unreadIssues.forEach((n) => {
-          if (notifiedIssueIds.current.has(n.id)) return;
-          notifiedIssueIds.current.add(n.id);
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('معاك - مشكلة من مريض', { body: n.message });
-          }
-        });
+     ملحوظة: مبقاش فيه new Notification(...) هنا. الإشعارات دلوقتي بتتبعت من
+     السيرفر عن طريق Web Push، فالـ Service Worker هو اللي بيعرضها - سواء
+     التطبيق مفتوح أو مقفول. لو خلّينا الصفحة تعرضها كمان، المستخدم كان
+     هياخد نفس الإشعار مرتين.
+
+     forceFull بيتستخدم بعد أي فعل بيغيّر حالة إشعار موجود (قراية، "خلصته") -
+     since بيجيب الجديد بس، فمكانش هيشوف تغيير على صف قديم. */
+  const refreshNotifications = React.useCallback(
+    async (forceFull = false) => {
+      if (!user) return;
+      try {
+        const since = forceFull ? 0 : latestNotificationId.current;
+        const data = await api.getNotifications(since);
+        setUnreadCount(data.unread_count);
+
+        if (forceFull || !since) {
+          setNotifications(data.notifications);
+        } else if (data.notifications.length) {
+          // الجديد بيتحط فوق، والقايمة بتتقص عشان ما تكبرش بلا نهاية في جلسة طويلة
+          setNotifications((prev) => [...data.notifications, ...prev].slice(0, 100));
+        }
+        if (data.latest_id) latestNotificationId.current = data.latest_id;
+      } catch (e) {
+        /* صامت - مش لازم نزعج المستخدم بخطأ خلفي */
       }
-
-      setNotifications(data.notifications);
-    } catch (e) {
-      /* صامت - مش لازم نزعج المستخدم بخطأ خلفي */
-    }
-  }, [user]);
+    },
+    [user]
+  );
 
   React.useEffect(() => {
     if (!user) return;
-    refreshNotifications();
-    const interval = setInterval(refreshNotifications, 60000);
+    refreshNotifications(true);
+    const interval = setInterval(() => refreshNotifications(), 60000);
     return () => clearInterval(interval);
+  }, [user, refreshNotifications]);
+
+  /* الـ Service Worker بيبعت رسالة لما المستخدم يدوس على إشعار أو ينفّذ فعل
+     من جوّه. من غير ده، الصفحة اللي كانت مفتوحة في الخلفية بتفضل عارضة حالة
+     قديمة لحد دورة التحديث الجاية - يعني المريض يدوس "خدته" من الإشعار،
+     يفتح التطبيق، ويلاقي الجرعة لسه مستنية. */
+  React.useEffect(() => {
+    if (!user || !('serviceWorker' in navigator)) return;
+    function onMessage(event) {
+      const data = event.data || {};
+      if (data.type === 'ma3ak:notification-click' || data.type === 'ma3ak:dose-changed') {
+        refreshNotifications(true);
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, [user, refreshNotifications]);
 
   async function handleDismissIssue(id) {
     try {
-      await api.markNotificationRead(id);
-      refreshNotifications();
+      await api.markNotificationHandled(id);
+      refreshNotifications(true);
     } catch (e) {
       /* صامت */
     }
   }
 
-  // تنبيه المتصفح لحظة ما ميعاد الجرعة ييجي (لو المستخدم سامح بالإشعارات)
+  /* ملحوظة: كان فيه هنا effect بيبعت إشعار متصفح للمتابع مع كل جرعة يوصل
+     ميعادها. اتشال عن قصد لسببين:
+
+     1. **التوصيل**: كان بيشتغل بس والتاب مفتوح، وده مش الوضع الطبيعي.
+        Web Push بقى بيعمل الشغلانة دي صح، من السيرفر، والتطبيق مقفول.
+     2. **الضجيج**: المتابع مش محتاج يترن عليه في كل جرعة - هو مش اللي
+        بياخدها. متابع بيترن عليه 6 مرات في اليوم بيقفل الإشعارات خلال يومين،
+        وساعتها التنبيه المهم فعلاً (جرعة فاتت، بلاغ عاجل) مش هيوصله.
+        دلوقتي المريض هو اللي بياخد تنبيه الجرعة، والمتابع بياخد اللي يستاهل. */
+
+  // مزامنة اشتراك التنبيهات بعد الدخول - عناوين الاشتراك بتتغيّر من نفسها،
+  // والجهاز الواحد ممكن يتنقل بين حسابات. التفاصيل في js/push.js
   React.useEffect(() => {
-    if (!user || !activePatientId) return;
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-    // كل ما المتابع يبدّل لمريض تاني بنبدأ التسجيل من أول وجديد - من غير كده أول
-    // تحميل لجرعات المريض الجديد كان هيتحسب "تغيير" ويطلّع إشعارات لجرعات قديمة
-    hasSeededDosesRef.current = false;
-    const check = async () => {
-      try {
-        const data = await api.getTodayDoses(activePatientId);
-        const now = new Date();
-        // أول مرور بيتسجّل من غير إشعارات - عشان فتح التطبيق ما يفجّرش دفعة
-        // إشعارات لجرعات ميعادها عدى من ساعات (نفس أسلوب hasSeededIssues تحت)
-        const isFirstPass = !hasSeededDosesRef.current;
-
-        data.doses.forEach((d) => {
-          if (d.status !== 'pending') return;
-          // بنقرا الميعاد كتوقيت مصر دايمًا، مش بتوقيت جهاز المتابع
-          const scheduled = parseCairoDatetime(d.scheduled_at);
-          if (scheduled <= now && !notifiedDoseIds.current.has(d.id)) {
-            notifiedDoseIds.current.add(d.id);
-            if (isFirstPass) return;
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('معاك - معاد دوا', { body: `معاد ${d.name} دلوقتي` });
-            }
-          }
-        });
-
-        if (isFirstPass && data.doses.length) hasSeededDosesRef.current = true;
-      } catch (e) {
-        /* صامت */
-      }
-    };
-    check();
-    const interval = setInterval(check, 60000);
-    return () => clearInterval(interval);
-  }, [user, activePatientId]);
+    if (!user) return;
+    syncPushSubscription();
+  }, [user]);
 
   if (booting) {
     return (
@@ -285,16 +310,25 @@ function App() {
     );
   }
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const issueAlerts = notifications.filter((n) => n.type === 'patient_issue' && !n.is_read);
+  /* البانر البارز فوق أي تاب: الحاجات اللي محتاجة تصرّف دلوقتي - بلاغ من
+     المريض، أو تصعيد (جرعة فاتت ومحدش رد على التنبيهات). الاتنين حرجين
+     ومحدش قفلهم لسه. */
+  const issueAlerts = notifications.filter(
+    (n) => (n.type === 'patient_issue' || n.type === 'dose_escalation') && !n.handled_at && !n.is_read
+  );
 
   let content;
-  if (view === 'today') content = <TodayView patientId={activePatientId} />;
+  if (view === 'today')
+    content = <TodayView patientId={activePatientId} onOpenAdherence={() => setView('adherence')} />;
+  else if (view === 'adherence')
+    content = <AdherenceView patientId={activePatientId} onBack={() => setView('today')} />;
   else if (view === 'medications') content = <MedicationsView patientId={activePatientId} />;
   else if (view === 'appointments') content = <AppointmentsView patientId={activePatientId} />;
   else if (view === 'vitals') content = <VitalsView patientId={activePatientId} />;
   else if (view === 'notifications')
-    content = <NotificationsView notifications={notifications} onRefresh={refreshNotifications} />;
+    content = (
+      <NotificationsView notifications={notifications} onRefresh={() => refreshNotifications(true)} />
+    );
   else if (view === 'patients')
     content = <PatientsView patients={patients} onChanged={refreshPatients} />;
 
@@ -322,6 +356,8 @@ function App() {
           onSetDarkMode={setDarkMode}
           fontLarge={fontLarge}
           onSetFontLarge={setFontLarge}
+          pushStatus={pushStatus}
+          onPushStatusChange={setPushStatus}
           showPatientOptions={false}
           onClose={() => setShowSettings(false)}
         />

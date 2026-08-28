@@ -710,3 +710,72 @@ select {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 20%, transparent);
   animation: pop-in var(--dur-3) var(--ease-spring) backwards;
 }
+
+/* ---------- منتقي أيام الأسبوع ----------
+   بيبان بس لما المتابع يختار "أيام محددة". أزرار مربعة كبيرة بدل قايمة
+   منسدلة أو checkboxes: الاختيار المتعدد بيتقرا أوضح كشبكة، وكل زرار مساحة
+   لمس كاملة. */
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+  margin-block-start: 10px;
+}
+
+.weekday-btn {
+  min-height: var(--tap-min);
+  padding: 0.5em 0.3em;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease-out), color var(--dur-2) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+.weekday-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.weekday-btn.active {
+  background: var(--grad-brand);
+  border-color: transparent;
+  color: var(--color-on-primary);
+  box-shadow: var(--shadow-primary);
+}
+
+.weekday-btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------- تلميح تحت الحقل ----------
+   شرح قصير للحقول اللي معناها مش واضح من اسمها لوحده (زي كمية الدوا). */
+.field-hint {
+  margin-block-start: 6px;
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.field-hint-warn {
+  color: var(--danger-600);
+  font-weight: 700;
+}
+
+/* شارة الأيام على كارت الدواء - لون محايد عشان تفرق عن شارات المواعيد */
+.chip-days {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border-color: var(--color-border-strong);
+}
+
+/* الكمية قربت تخلص */
+.chip-low {
+  background: var(--danger-100);
+  color: var(--danger-600);
+  border-color: color-mix(in srgb, var(--danger-500) 35%, transparent);
+}
