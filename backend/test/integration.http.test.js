@@ -764,13 +764,24 @@ test('حالة تنبيهات المريض بتبان للمتابع', async (t)
   assert.equal(status.body.deviceCount, 0);
   assert.equal(status.body.ok, false); // مريض جديد لسه مفعّلش حاجة
 
-  const test = await api(baseUrl, `/api/patients/${patientId}/test-alarm`, {
+  const alarm = await api(baseUrl, `/api/patients/${patientId}/test-alarm`, {
     method: 'POST',
     token: caregiver.token,
   });
-  // مفيش أجهزة مسجّلة - الرسالة لازم تقول السبب بالظبط مش "حصل خطأ"
-  assert.equal(test.status, 404);
-  assert.match(test.body.error, /التنبيهات/);
+
+  /* الرد بيختلف حسب إعداد السيرفر نفسه، والاتنين صح:
+       503 → السيرفر من غير مفاتيح VAPID (زي بيئة CI - الـ workflow بيكتب .env
+             فيه بيانات قاعدة البيانات و JWT_SECRET بس)
+       404 → الدفع مفعّل على السيرفر، بس موبايل المريض لسه مسجّلش أي اشتراك
+
+     التيست بيتأكد من اللي يهم فعلاً في الحالتين: **الرسالة بتقول السبب بالظبط**
+     مش "حصل خطأ غير متوقع". الزرار ده موجود عشان المتابع يشخّص المشكلة، ورسالة
+     عامة بتخليه يجرب نفس الحاجة تاني بدل ما يعرف يعمل إيه.
+
+     (قبل كده التيست كان بيفترض إن مفاتيح VAPID موجودة - فكان بينجح على جهاز
+     المطوّر وبيفشل على CI.) */
+  assert.ok([404, 503].includes(alarm.status), `رد غير متوقع: ${alarm.status}`);
+  assert.match(alarm.body.error, alarm.status === 503 ? /مش مفعّلة/ : /التنبيهات/);
 });
 
 test('تقرير الالتزام: بيحسب النسبة وبيتجاهل اللي لسه ميعاده مجاش', async (t) => {
