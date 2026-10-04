@@ -4,14 +4,20 @@
 
    فلسفة الحركة هنا (مهمة، لأن الجمهور كبار السن):
    1. كل حركة ليها معنى: بتقول "الحاجة دي جديدة"، "ده اتسجّل"، "ده وقته دلوقتي".
-      مفيش حركة للزينة بس.
-   2. الدخول من تحت لفوق بمسافة صغيرة (6-14px) وسرعة 200-480ms - محسوسة بس
-      مش بتأخّر حد عن الوصول للزرار.
-   3. ممنوع أي حاجة بتلمع/بترقص بسرعة أو بتغيّر مكان عنصر قابل للضغط بعد ما
-      المستخدم يكون مدّ إيده عليه.
-   4. أي مستخدم مفعّل "تقليل الحركة" في نظامه بياخد التطبيق ساكن تمامًا -
+      مفيش حركة للزينة بس. ولذلك اتشالت: الطفو البطيء، تحرّك خلفية الألوان،
+      تنفّس الظل الملوّن، ولمعة الزرار - كلها كانت بتقول "أنا مصقول" مش "حصل
+      حاجة".
+   2. حركات التطبيق دلوقتي بتيجي من العالم الفعلي: ختم بينزل على ورقة، فقاعة
+      شريط دوا بتتفرقع، جرس منبه بيهتز، كبسولتين بيتقابلوا. كل واحدة منهم
+      بتحصل في الحياة ومعناها معروف قبل ما تتعلّمه.
+   3. الدخول من تحت لفوق بمسافة صغيرة (6-14px) وسرعة 200-480ms - محسوس بس
+      مش بيأخّر حد عن الوصول للزرار.
+   4. ممنوع أي حاجة بتلمع/بترقص بسرعة أو بتغيّر مكان عنصر قابل للضغط بعد ما
+      المستخدم يكون مدّ إيده عليه. ومفيش blur في أي حركة دخول: التشويش كان
+      بيخلّي الكارت يبان "بيتحمّل" وهو لسه قدام العين.
+   5. أي مستخدم مفعّل "تقليل الحركة" في نظامه بياخد التطبيق ساكن تمامًا -
       الحارس العام في آخر الملف.
-   5. كل حركات الدخول بتستخدم fill-mode: backwards مش both - وده مقصود ومهم:
+   6. كل حركات الدخول بتستخدم fill-mode: backwards مش both - وده مقصود ومهم:
       both بيسيب transform شغّال على العنصر للأبد بعد ما الحركة تخلص، وأي عنصر
       عليه transform بيبقى "containing block" لأي عنصر position:fixed جواه.
       يعني نافذة (modal) جوه .view كانت بتتموضع بالنسبة لـ .view مش بالنسبة
@@ -72,10 +78,10 @@
   to   { opacity: 0; transform: translateY(100%); }
 }
 
-/* نظير focus-in: النافذة بتبعد عن العين وبتتشوّش وهي رايحة */
+/* نظير focus-in: النافذة بتصغّر شوية وهي رايحة */
 @keyframes focus-out {
-  from { opacity: 1; transform: scale(1); filter: blur(0); }
-  to   { opacity: 0; transform: scale(0.96); filter: blur(5px); }
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
 }
 
 @keyframes zoom-in {
@@ -89,48 +95,19 @@
   to { transform: rotate(360deg); }
 }
 
-/* حلقة بتتوسّع وتختفي - بتلف حوالين الحاجة اللي "وقتها دلوقتي" (جرعة وصل ميعادها) */
+/* حلقة بتتوسّع وتختفي - بتلف حوالين الحاجة اللي "وقتها دلوقتي" (جرعة وصل
+   ميعادها). محجوزة للحالة دي ولبلاغ المريض بس. */
 @keyframes pulse-ring {
   0%   { transform: scale(1); opacity: 0.55; }
   70%  { transform: scale(1.12); opacity: 0; }
   100% { transform: scale(1.12); opacity: 0; }
 }
 
-/* نبض خفيف جدًا في الحجم - للعنصر نفسه مش للحلقة */
-@keyframes soft-beat {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.04); }
-}
-
-/* طفو بطيء لأيقونات العرض في شاشة الدخول */
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-9px); }
-}
-
-/* لمعة بتعدي على سطح رمادي - للتحميل (skeleton). بتتحرك من اليمين للشمال لأن الصفحة RTL */
+/* تحميل (skeleton): خط لمعة بسيط بيعدّي على الورقة. بيتحرك من اليمين للشمال
+   لأن الصفحة RTL. */
 @keyframes shimmer {
   from { background-position: -160% 0; }
   to   { background-position: 160% 0; }
-}
-
-/* تحرّك بطيء جدًا للخلفية اللونية في شاشة الدخول - 24 ثانية، محسوس بالكاد */
-@keyframes mesh-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  50%  { transform: translate3d(-1.5%, 1.5%, 0) scale(1.06); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-
-/* الظل الملوّن تحت الزرار الأساسي بيتنفّس - تلميح إن ده الزرار الرئيسي في الشاشة */
-@keyframes glow-breathe {
-  0%, 100% { box-shadow: var(--shadow-primary); }
-  50%      { box-shadow: 0 12px 30px -6px color-mix(in srgb, var(--primary-600) 70%, transparent); }
-}
-
-/* لمعة بتمسح عرض الزرار مرة واحدة عند الهوفر */
-@keyframes sheen {
-  from { transform: translateX(-120%) skewX(-18deg); }
-  to   { transform: translateX(220%) skewX(-18deg); }
 }
 
 /* ---------- تأكيد ونجاح ---------- */
@@ -160,50 +137,73 @@
   to   { transform: scaleX(1); }
 }
 
-/* ---------- حركات الطبقة الجديدة (الخامات) ---------- */
-
-/* دخول العنصر وهو "بيوصل لبؤرة الرؤية": من مصغّر ومشوّش شوية لحاد وواضح.
-   التشويش هو اللي بيعمل الفرق - العين بتقراه كـ "الحاجة دي بتقرب مني"
-   بدل "الحاجة دي بتزحف من تحت". بيتستخدم للكروت البطلة بس، مش لكل عنصر:
-   الـ blur عملية تقيلة على كرت الشاشة لو اتحطت على قايمة طويلة. */
+/* دخول الكارت الرئيسي: بيقعد مكانه من فوق شوية، من غير تشويش.
+   (كانت blur + تصغير - والتشويش بيدّي إحساس إن الكارت لسه بيتحمّل.) */
 @keyframes focus-in {
-  from { opacity: 0; transform: scale(0.965) translateY(10px); filter: blur(7px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-}
-
-/* تنفّس بطيء جدًا للخلفية اللونية ورا شاشات التطبيق - 40 ثانية للدورة.
-   المدة الطويلة دي مقصودة: المستخدم مش المفروض يلاحظ الحركة، هو بس
-   المفروض يحس إن الشاشة "حيّة" مش صورة ثابتة. */
-@keyframes aurora-drift {
-  0%   { transform: translate3d(0, 0, 0) scale(1); }
-  33%  { transform: translate3d(-1.2%, 1%, 0) scale(1.05); }
-  66%  { transform: translate3d(1%, -0.8%, 0) scale(1.03); }
-  100% { transform: translate3d(0, 0, 0) scale(1); }
-}
-
-/* شعاع ضوء بيعدي على السطح مرة واحدة - للحظات الاحتفال (خلصت جرعات اليوم) */
-@keyframes shine-sweep {
-  from { transform: translateX(-140%) rotate(12deg); opacity: 0; }
-  30%  { opacity: 1; }
-  to   { transform: translateX(240%) rotate(12deg); opacity: 0; }
-}
-
-/* ملء حلقة التقدّم من صفر لقيمتها. --progress متعرّف كرقم في materials.css
-   عشان المتصفح يعرف يتحرّك بين قيمتين. */
-@keyframes ring-fill {
-  from { --progress: 0; }
-}
-
-/* هالة بتتنفّس حوالين العنصر الأهم في الشاشة */
-@keyframes halo-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 26%, transparent); }
-  50%      { box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-primary) 0%, transparent); }
+  from { opacity: 0; transform: translateY(12px) scale(0.975); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* مؤشّر التاب النشط في الشريط الجانبي بيزحف لمكانه */
 @keyframes rail-in {
   from { opacity: 0; transform: scaleY(0.2); }
   to   { opacity: 1; transform: scaleY(1); }
+}
+
+/* ---------- حركات الورق والدوا ---------- */
+
+/* الختم بينزل على الورقة: بيجي كبير وشفاف وبيخبط مكانه بخبطة قصيرة. --stamp-rot
+   هو ميلان الختم الأصلي (كل ختم ليه ميلانه) - من غيره الختم كان هيتعدّل لمستقيم
+   أثناء الحركة. */
+@keyframes stamp-in {
+  0%   { opacity: 0; transform: rotate(var(--stamp-rot, -5deg)) scale(1.8); }
+  55%  { opacity: 1; transform: rotate(var(--stamp-rot, -5deg)) scale(0.93); }
+  100% { opacity: 1; transform: rotate(var(--stamp-rot, -5deg)) scale(1); }
+}
+
+/* فقاعة شريط الدوا لما الجرعة تتاخد: بتتفرقع (بتضغط وترجع) والقرص بيطلع منها */
+@keyframes bubble-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.8); }
+  70%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pill-out {
+  0%   { opacity: 1; transform: translateY(0) rotate(-40deg) scale(1); }
+  100% { opacity: 0; transform: translateY(-22px) rotate(-40deg) scale(0.7); }
+}
+
+/* جرس المنبه بيهتز: هزّة سريعة تلات مرات وبعدها سكون - بتتكرر. السكون مهم:
+   حركة مستمرة من غير وقفة بتتحوّل لخلفية والعين بتتعوّد عليها. */
+@keyframes ring-shake {
+  0%, 36%, 100% { transform: rotate(0); }
+  4%  { transform: rotate(-9deg); }
+  10% { transform: rotate(9deg); }
+  16% { transform: rotate(-7deg); }
+  22% { transform: rotate(7deg); }
+  28% { transform: rotate(-4deg); }
+  32% { transform: rotate(4deg); }
+}
+
+/* نص الكبسولة (علامة معاك) بيتقابل: كل نص بييجي من ناحيته ويتقفل على التاني.
+   "معاك" = اتنين نص بيكمّلوا بعض. */
+@keyframes caps-top {
+  0%   { transform: translateY(-34px) rotate(-14deg); opacity: 0; }
+  60%  { transform: translateY(2px) rotate(0); opacity: 1; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+@keyframes caps-bottom {
+  0%   { transform: translateY(34px) rotate(14deg); opacity: 0; }
+  60%  { transform: translateY(-2px) rotate(0); opacity: 1; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+/* ورقة النتيجة بتنزل مكانها */
+@keyframes leaf-in {
+  from { opacity: 0; transform: translateY(-14px) rotate(-5deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(0); }
 }
 
 /* ---------- كلاسات جاهزة ---------- */

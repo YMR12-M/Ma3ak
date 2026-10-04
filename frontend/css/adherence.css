@@ -11,21 +11,26 @@
   width: 100%;
   margin-top: var(--space-3);
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--rule-strong);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--paper-2);
   color: var(--color-text);
   font: inherit;
   text-align: start;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);
-  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+  box-shadow: var(--shadow);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out),
+    border-color var(--dur-2) var(--ease-out);
+}
+
+.adherence-entry:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--rule-strong);
 }
 
 @media (hover: hover) {
   .adherence-entry:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
+    border-color: var(--ink);
   }
 }
 
@@ -34,11 +39,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-sm);
+  background: var(--green-tint);
+  color: var(--green-ink);
+  box-shadow: 0 2px 0 var(--green-deep);
 }
 
 .adherence-entry-body {
@@ -48,7 +54,9 @@
 
 .adherence-entry-title {
   display: block;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--font-size-md);
 }
 
 .adherence-entry-desc {
@@ -56,6 +64,7 @@
   margin-top: 2px;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 /* ---------- الملخّص ---------- */
@@ -80,8 +89,9 @@
 }
 
 .adherence-rate-value {
+  font-family: var(--font-display);
   font-size: var(--font-size-display);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1;
 }
 
@@ -89,10 +99,11 @@
   margin-top: var(--space-0);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 700;
 }
 
-.adherence-rate-good .adherence-rate-value { color: var(--color-success); }
-.adherence-rate-warn .adherence-rate-value { color: var(--color-warning); }
+.adherence-rate-good .adherence-rate-value { color: var(--green-ink); }
+.adherence-rate-warn .adherence-rate-value { color: var(--sun-ink); }
 .adherence-rate-muted .adherence-rate-value { color: var(--color-text-muted); }
 
 .adherence-counts {
@@ -106,20 +117,23 @@
 }
 
 .adherence-count-value {
+  font-family: var(--font-display);
   font-size: var(--font-size-xl);
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .adherence-count-label {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 700;
 }
 
 .adherence-count-missed .adherence-count-value {
-  color: var(--color-danger);
+  color: var(--coral-ink);
 }
 
-/* ---------- الملاحظة (أهم حاجة في الصفحة) ---------- */
+/* ---------- الملاحظة (أهم حاجة في الصفحة) ----------
+   ملصق الصيدلي: نفس لغة تعليمات الدوا في باقي التطبيق - "ده شرط/ملاحظة مهمة". */
 
 .adherence-insight {
   display: flex;
@@ -127,32 +141,36 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
   padding: var(--space-3);
-  border-inline-start: 4px solid var(--color-warning);
+  border: 2px dashed var(--sun-deep);
+  border-inline-start: 7px solid var(--sun);
   border-radius: var(--radius);
-  background: var(--color-warning-light);
+  background: var(--sun-tint);
 }
 
 .adherence-insight-icon {
   flex-shrink: 0;
   display: flex;
-  color: var(--color-warning);
+  color: var(--sun-ink);
 }
 
 .adherence-insight-title {
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
 }
 
 .adherence-insight-desc {
   margin-top: 2px;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 /* ---------- الأعمدة اليومية ---------- */
 
 .adherence-section-title {
   margin: var(--space-4) 0 var(--space-2);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
@@ -184,21 +202,22 @@
   align-items: flex-end;
   width: 100%;
   height: 72px;
+  border: 1.5px solid var(--line);
   border-radius: var(--radius-xs);
   /* الخلفية هي "اللي فات" والملء هو "اللي اتاخد" - عمود واحد بيقول الحاجتين */
-  background: var(--color-danger-light);
+  background: var(--coral-tint);
   overflow: hidden;
 }
 
 .adherence-bar-taken {
   width: 100%;
-  border-radius: var(--radius-xs);
-  background: var(--color-success);
+  background: var(--green);
 }
 
 .adherence-bar-label {
-  color: var(--color-text-faint);
-  font-size: 10px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 /* ---------- كل دواء ---------- */
@@ -218,40 +237,43 @@
 }
 
 .adherence-med-name {
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
 }
 
 .adherence-med-rate {
-  font-weight: 700;
-  color: var(--color-success);
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--green-ink);
 }
 
 .adherence-med-rate.warn {
-  color: var(--color-warning);
+  color: var(--sun-ink);
 }
 
 .adherence-med-track {
-  height: 8px;
+  height: 12px;
   margin-top: var(--space-1);
+  border: 1.5px solid var(--line);
   border-radius: var(--radius-pill);
-  background: var(--color-surface-alt);
+  background: var(--paper-3);
   overflow: hidden;
 }
 
 .adherence-med-fill {
   height: 100%;
-  border-radius: var(--radius-pill);
-  background: var(--grad-brand);
+  background: var(--green);
 }
 
 .adherence-med-meta {
   margin-top: var(--space-0);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 600;
 }
 
 .adherence-note {
   margin-top: var(--space-3);
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }

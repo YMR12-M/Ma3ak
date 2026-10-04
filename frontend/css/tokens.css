@@ -1,374 +1,368 @@
 /* ============================================
    MA3ak (معاك) - Design Tokens
-   المصدر الوحيد لكل قيم التصميم: ألوان، خطوط، مسافات، ظلال، حركة، خامات.
+   المصدر الوحيد لكل قيم التصميم: ألوان، خطوط، مسافات، حواف، ظلال، حركة.
    باقي ملفات الـ CSS بتستهلك المتغيرات دي بس - مفيش لون أو ظل مكتوب يدويًا
    في أي ملف تاني، عشان تغيير الهوية البصرية كلها يبقى من الملف ده لوحده.
 
-   القاعدة الحاكمة للتصميم كله: الجمهور كبار السن ومتابعينهم -
-   خط كبير، تباين عالي، مساحات لمس واسعة (56px حد أدنى)، حركة هادية مش مشتتة.
+   ---------- الفكرة: "ورق وصيدلية" ----------
+   التطبيق ده مش واجهة SaaS عامة بتتلوّن بلون المشروع. هو عالم الدوا نفسه:
+   ورقة الروشتة، حبر القلم، علبة الأقراص الأسبوعية، شريط الدوا، ختم
+   الصيدلية، ونتيجة الحيط. وكل قرار في الملف ده راجع للعالم ده:
 
-   ملحوظة على "الفخامة": الإحساس بالجودة العالية هنا جاي من العمق (ظلال
-   متعددة الطبقات)، ومن حدّة العناصر (أيقونات SVG مش إيموجي)، ومن دقة
-   الإيقاع (مسافات وخطوط متناسقة) - مش من تقليل التباين أو ترقيق الخطوط.
-   أي "أناقة" بتيجي على حساب وضوح الرؤية مرفوضة في التطبيق ده.
+     - الورق (--paper-*): الخلفية كريمي دافي مش أبيض بارد - ورق مش شاشة.
+       وأبيض ناصع على شاشة في أوضة نوم بالليل بيوجع عين كبير سن.
+     - الحبر (--ink-*): كحلي غامق مايل للأزرق - لون قلم الدكتور والإيصالات.
+       بيدّي تباين ~14:1 على الورق، أعلى من أي رمادي.
+     - الأصباغ (--green / --sun / --sky / --dusk / --indigo / --coral / --blue):
+       ألوان مسطّحة مصمتة، كل واحد ليه معنى. الأخضر = "تمام / اتاخدت / اعمل
+       دلوقتي" (أخضر الصيدلية)، والمرجاني = "فاتت / خطر".
+     - فترات اليوم (--part-*): الصبح أصفر، الضهر أزرق سما، المسا برتقالي
+       غروب، الليل نيلي. زي علبة الأقراص الأسبوعية بالظبط (خانة لكل فترة).
+       كبير السن بيعرف "ده دوا الصبح" من لونه وأيقونته قبل ما يقرا.
+
+   ---------- مفيش blur، مفيش تدرّج، مفيش توهّج ----------
+   كل ظل في الملف ده "حافة صلبة" (blur = 0): سُمك الورقة، حافة الزرار
+   اللي بيتدوس. الحاجات المطبوعة والمقصوصة مبتبقاش ليها هالة ناعمة. والتدرّجات
+   اتشالت: كل لون مصمت. الاستثناء الوحيد: الطبقة اللي ورا النوافذ المنبثقة.
+
+   القاعدة الحاكمة للتصميم كله لسه زي ما هي: الجمهور كبار السن ومتابعينهم -
+   خط كبير، تباين عالي، مساحات لمس واسعة (56px حد أدنى)، حركة هادية مش مشتتة.
+   وكل لون نص هنا متحسب تباينه على السطح اللي هيتحط عليه (الأرقام في تعليق كل
+   مجموعة) - مفيش "ذوق" بيتقدّم على القراية.
    ============================================ */
 
 :root {
-  /* ---------- تدرّج اللون الأساسي (أخضر مزرق: طب + طمأنينة) ---------- */
-  --primary-50: #eef7f5;
-  --primary-100: #d7ece7;
-  --primary-200: #aed9d0;
-  --primary-300: #7cbfb2;
-  --primary-400: #4f9f8f;
-  --primary-500: #2f7d6e;
-  --primary-600: #276a5d;
-  --primary-700: #235c51;
-  /* لون أعمق مايل للأزرق - بيتستخدم في آخر تدرّج الهوية بس. الانتقال من أخضر
-     لمزرق بيدّي التدرّج عمق حقيقي بدل تدرّج من لون واحد لنفسه أغمق (اللي بيطلع
-     شكله "مسطّح" مهما كان). */
-  --primary-deep: #1c5a63;
+  /* ---------- الورق والحبر ---------- */
+  --paper: #f5efe3;      /* خلفية الصفحة */
+  --paper-2: #fffbf2;    /* الكارت: ورقة أنضف فوق الورقة */
+  --paper-3: #ebe2cf;    /* قاع الحقول والخانات الفاضية */
+  --foil: #d9d3c3;       /* رقاقة شريط الدوا */
+  --rule: #d8ccb2;       /* خط رفيع على الورق */
+  --rule-strong: #b4a586;/* حافة الكارت والزرار الورقي (2.4:1) - زخرفة، المعنى في النص جواها */
 
-  /* ---------- اللون المكمّل (عسلي دافي: تنبيه من غير فزع) ---------- */
-  --accent-100: #fbeedd;
-  --accent-300: #eab77e;
-  --accent-500: #d98c3f;
-  --accent-600: #bd7429;
+  --ink: #1b2340;        /* النص الأساسي: 13.5:1 على الورق، 14.9:1 على الكارت */
+  --ink-2: #4a5273;      /* النص الثانوي: 6.7:1 على الورق */
+  --ink-3: #666c86;      /* التلميحات: 4.5:1 على الورق، 5.0:1 على الكارت - للمعلومة الإضافية بس */
 
-  /* ---------- ألوان الحالة ---------- */
-  --danger-100: #fbe9e7;
-  --danger-500: #c1443c;
-  --danger-600: #a3352e;
-  --warn-100: #fdf3dc;
-  --warn-500: #b8860b;
-  --info-100: #e7eefc;
-  --info-500: #2f6fed;
+  /* خط الإطارات والظلال الصلبة للأسطح المميّزة (كارت الجرعة، النافذة، الورقة، شريط
+     الدوا). بالنهار هو الحبر نفسه. بالليل مش هو: الكريمي الكامل كإطار حوالين كل
+     كارت على خلفية كحلي بيبهر عين حد فاتح التطبيق في أوضة معتمة، فبيتخفّف
+     للافندر (5.9:1 على الورق الليلي - لسه خط واضح). النص وحلقة التركيز وحد الحقل
+     وقت الكتابة بيفضلوا --ink كامل: دول مش زينة. */
+  --line: var(--ink);
 
-  /* ---------- الأسطح والنص ---------- */
-  --color-bg: #f7f5f0;
-  --color-bg-tint: #f1f6f3;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f1eee7;
-  --color-surface-glass: rgba(255, 255, 255, 0.7);
-  --color-text: #1f2527;
-  --color-text-muted: #586366;
-  --color-text-faint: #8b9497;
-  --color-border: #e3dfd6;
-  --color-border-strong: #cdc7ba;
-  --color-overlay: rgba(18, 26, 24, 0.55);
+  /* حد الحقل (input/select/textarea) والمفتاح وهو مقفول. هو **حد مكوّن واجهة**، مش
+     زخرفة: WCAG 1.4.11 بيطلب 3:1 على الأقل بينه وبين اللي حواليه. --rule-strong
+     (2.4:1) كان أفتح من كده، وحقل بحد بالكاد باين بيضيّع كبير السن في فورم أدوية.
+     3.8:1 على الورق و4.3:1 على الكارت. */
+  --field-line: #857656;
 
-  /* لون خلفية زرار الأساسي وقت الهوفر، ولون النص/الأيقونة على الأسطح الفاتحة.
-     الاتنين منفصلين عمدًا: في الوضع الداكن الخلفية بتفتح شوية والنص بيفتح كتير. */
-  --color-primary-hover: var(--primary-700);
-  --color-primary-ink: var(--primary-700);
-  --color-on-primary: #ffffff;
+  /* ---------- الأصباغ ----------
+     كل صبغة ليها 4 درجات بنفس الترتيب:
+       base  = اللون المصمت (خلفية زرار/أيقونة)
+       deep  = حافة الزرار الصلبة وظله
+       tint  = خلفية فاتحة (شريحة، تذكرة، بانر)
+       ink   = اللون لما يتكتب بيه نص على tint أو على الورق */
+  --green: #0b7a4b;      /* أخضر الصيدلية - الأبيض عليه 5.4:1 */
+  --green-deep: #07603a;
+  --green-tint: #d7eedf;
+  --green-ink: #07603a;  /* 6.3:1 على tint */
+
+  --sun: #f2b21b;        /* الصبح / "دلوقتي" - الحبر عليه 8.2:1 */
+  --sun-deep: #b9820a;
+  --sun-tint: #fcefc6;
+  --sun-ink: #7a5200;    /* 6.0:1 على tint */
+
+  --sky: #3d9be0;        /* الضهر - الحبر عليه 5.1:1 */
+  --sky-deep: #1f6fae;
+  --sky-tint: #d9ecfa;
+  --sky-ink: #14598c;    /* 6.1:1 على tint */
+
+  --dusk: #ee7a4a;       /* المسا - الحبر عليه 5.5:1 */
+  --dusk-deep: #b9531f;
+  --dusk-tint: #fadfd0;
+  --dusk-ink: #8f3f12;   /* 5.7:1 على tint */
+
+  --indigo: #4a3e9d;     /* الليل - الأبيض عليه 8.5:1 */
+  --indigo-deep: #33297a;
+  --indigo-tint: #e4e0f6;
+  --indigo-ink: #33297a; /* 8.9:1 على tint */
+
+  --coral: #c93b27;      /* فاتت / خطر - الأبيض عليه 5.1:1 */
+  --coral-deep: #9b2a1a;
+  --coral-tint: #f8ddd5;
+  --coral-ink: #9b2a1a;  /* 6.0:1 على tint */
+
+  --blue: #2a4da3;       /* معلومة / موعد - الأبيض عليه 7.9:1 */
+  --blue-deep: #1f3b82;
+  --blue-tint: #dce5f6;
+  --blue-ink: #1f3b82;   /* 7.8:1 على tint */
+
+  /* لون الشاي - بيتستخدم في رسمة كوباية الشاي بس (js/components/Illustrations.jsx) */
+  --tea: #b8561a;
+
+  /* لون النص فوق الأصباغ المصمتة. الأخضر والمرجاني والنيلي والأزرق غامقين فبياخدوا
+     أبيض، والأصفر والسما والغروب فاتحين فبياخدوا حبر. في الوضع الليلي الصبغات
+     بتفتح، فالنص عليها بيتحوّل لغامق. */
+  --on-green: #ffffff;
+  --on-sun: var(--ink);
+  --on-sky: var(--ink);
+  --on-dusk: var(--ink);
+  --on-indigo: #ffffff;
+  --on-coral: #ffffff;
+  --on-blue: #ffffff;
+
+  /* ---------- فترات اليوم ----------
+     نفس أصباغ فوق بأسماء المعنى. js/dayParts.js هو اللي بيقرر الجرعة دي في أنهي
+     فترة؛ وهنا بس بنقول لكل فترة لونها. */
+  --part-morning: var(--sun);
+  --part-morning-deep: var(--sun-deep);
+  --part-morning-tint: var(--sun-tint);
+  --part-morning-ink: var(--sun-ink);
+  --part-morning-on: var(--on-sun);
+
+  --part-noon: var(--sky);
+  --part-noon-deep: var(--sky-deep);
+  --part-noon-tint: var(--sky-tint);
+  --part-noon-ink: var(--sky-ink);
+  --part-noon-on: var(--on-sky);
+
+  --part-evening: var(--dusk);
+  --part-evening-deep: var(--dusk-deep);
+  --part-evening-tint: var(--dusk-tint);
+  --part-evening-ink: var(--dusk-ink);
+  --part-evening-on: var(--on-dusk);
+
+  --part-night: var(--indigo);
+  --part-night-deep: var(--indigo-deep);
+  --part-night-tint: var(--indigo-tint);
+  --part-night-ink: var(--indigo-ink);
+  --part-night-on: var(--on-indigo);
+
+  --color-overlay: rgba(27, 35, 64, 0.62);
 
   /* ---------- شريط التنقّل السفلي ----------
-     الشريط لوح داكن في الوضعين مش سطح فاتح - عشان يقرا كـ "أرضية ثابتة"
-     للتطبيق مهما كان لون الشاشة اللي بتعدّي من تحته، وعشان الدايرة الفاتحة
-     اللي بتطلع منه تبان مقطوعة من جسمه فعلًا. عشان كده قيمه مكتوبة صراحة
-     هنا ومش مشتقّة من --primary-*: التدرّج ده بينقلب في الوضع الداكن
-     (بيفتح) والشريط لازم يعمل العكس - يغمق أكتر. */
-  --nav-base-1: #2a7264;
-  --nav-base-2: #235c51;
-  --nav-base-3: #1b5762;
-  --nav-knob-1: #ffffff;
-  --nav-knob-2: #e7f3ef;
-  --nav-knob-ink: #1f5f53;
-
-  /* ---------- الظلال ----------
-     كل ظل هنا مركّب من أكتر من طبقة، مش طبقة واحدة. الفكرة مأخوذة من طريقة وقوع
-     الضوء الحقيقي: طبقة ملتصقة قوية وضيقة جدًا (خط التلامس مع السطح)، وطبقة
-     أوسع وأخف (الظل المنتشر)، وطبقة تالتة واسعة جدًا وخفيفة أوي (الضوء المحيط).
-     ظل الطبقة الواحدة بيبان "مرسوم"، والمركّب بيبان إن العنصر فعلًا مرفوع فوق
-     الصفحة - وده أكبر فرق بين واجهة عادية وواجهة بتحس إنها "غالية". */
-  --shadow-xs:
-    0 1px 1px rgba(20, 30, 28, 0.04),
-    0 1px 3px rgba(20, 30, 28, 0.05);
-  --shadow-sm:
-    0 1px 2px rgba(20, 30, 28, 0.05),
-    0 2px 6px rgba(20, 30, 28, 0.05),
-    0 6px 14px rgba(20, 30, 28, 0.04);
-  --shadow:
-    0 1px 2px rgba(20, 30, 28, 0.05),
-    0 4px 10px rgba(20, 30, 28, 0.06),
-    0 12px 26px rgba(20, 30, 28, 0.05);
-  --shadow-md:
-    0 1px 2px rgba(20, 30, 28, 0.06),
-    0 6px 14px rgba(20, 30, 28, 0.07),
-    0 18px 38px rgba(20, 30, 28, 0.07);
-  --shadow-lg:
-    0 2px 4px rgba(20, 30, 28, 0.06),
-    0 10px 22px rgba(20, 30, 28, 0.08),
-    0 28px 56px rgba(20, 30, 28, 0.09);
-  --shadow-xl:
-    0 2px 6px rgba(20, 30, 28, 0.08),
-    0 16px 34px rgba(20, 30, 28, 0.1),
-    0 44px 90px rgba(20, 30, 28, 0.13);
-  /* خط ضوء رفيع على الحرف العلوي - بيوحي إن السطح مرفوع والضوء جاي من فوق */
-  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  --shadow-inset-edge:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(20, 30, 28, 0.04);
+     لوح حبر كحلي في الوضعين - "أرضية" التطبيق الثابتة - والتاب النشط بيطلع منه
+     جوه فقاعة ورقية (زي فقاعة شريط الدوا اللي بتطلع من الرقاقة). قيمه مكتوبة
+     صراحة هنا مش مشتقّة: الوضع الليلي بيقلب الورق والحبر، والشريط لازم يفضل
+     لوح غامق أغمق من الصفحة مش لوح فاتح. */
+  --nav-surface: #1b2340;
+  --nav-knob: #fffbf2;
+  --nav-knob-ink: #1b2340;
+  --nav-ink: rgba(255, 251, 242, 0.8);
+  --nav-ink-strong: #fffbf2;
+  --nav-hover: rgba(255, 251, 242, 0.12);
 }
 
-/* ---------- الوضع الداكن: تفضيل النظام (لما المستخدم ميكونش اختار صراحة) ---------- */
+/* ---------- الوضع الليلي: تفضيل النظام (لما المستخدم ميكونش اختار صراحة) ----------
+   مش مجرد قلب ألوان: هو نفس اللونين متبادلين. بالنهار حبر كحلي على ورق كريمي،
+   وبالليل ورق كريمي على حبر كحلي - وده بالظبط شكل ورقة بتتقري على ضو أباجورة. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* التدرّجات الفاتحة بتتقلب لتدرّجات داكنة - نفس الأسماء، قيم مناسبة للخلفية الداكنة */
-    --primary-50: #17322d;
-    --primary-100: #1e403a;
-    --primary-200: #27544b;
-    --primary-300: #3a7f71;
-    --primary-400: #4b9a89;
-    --primary-500: #35897a;
-    --primary-600: #3f9c8b;
-    --primary-700: #8fd8c9;
-    --primary-deep: #2a7f8c;
+    --paper: #121528;
+    --paper-2: #1b1f3a;
+    --paper-3: #252a4c;
+    --foil: #323861;
+    --rule: #323861;
+    --rule-strong: #4a5183;
 
-    --accent-100: #3a3020;
-    --accent-300: #b8813f;
-    --accent-500: #d9924a;
-    --accent-600: #e8a55f;
+    --ink: #f4eee0;      /* النص الأساسي بالليل: 15.6:1 على الورق الليلي */
+    --ink-2: #b9bdd6;    /* 9.7:1 */
+    --ink-3: #8e93b3;    /* 6.0:1 */
+    --line: #8f95c4;
+    --field-line: #7d84b8;
 
-    --danger-100: #3a2320;
-    --danger-500: #e0625a;
-    --danger-600: #ef7a72;
-    --warn-100: #3a3220;
-    --warn-500: #d8ad3e;
-    --info-100: #1e2a41;
-    --info-500: #6f9bf2;
+    --green: #4ad69a;
+    --green-deep: #1e9f6a;
+    --green-tint: #1b3a33;
+    --green-ink: #7ee8b9;
 
-    --color-primary-hover: #46a08e;
-    --color-primary-ink: #8fd8c9;
-    --color-on-primary: #ffffff;
+    --sun: #f6c445;
+    --sun-deep: #b9820a;
+    --sun-tint: #3a3320;
+    --sun-ink: #f6c445;
 
-    /* الشريط بيغمق لحد ما يقرب من أسود مخضرّ، والدايرة بتقلب لنعناعي فاتح
-       بحبر داكن - نفس التباين العالي بالظبط بس مقلوب */
-    --nav-base-1: #27332f;
-    --nav-base-2: #1e2b29;
-    --nav-base-3: #18272a;
-    --nav-knob-1: #a9e5d7;
-    --nav-knob-2: #7fcdbd;
-    --nav-knob-ink: #0d2a25;
+    --sky: #5bb0ee;
+    --sky-deep: #2f82c4;
+    --sky-tint: #1e3248;
+    --sky-ink: #8cc8f4;
 
-    --color-bg: #101615;
-    --color-bg-tint: #141c1a;
-    --color-surface: #1b2220;
-    --color-surface-alt: #242c2a;
-    --color-surface-glass: rgba(27, 34, 32, 0.72);
-    --color-text: #f0f4f2;
-    --color-text-muted: #a9b4b1;
-    --color-text-faint: #7f8b88;
-    --color-border: #2f3936;
-    --color-border-strong: #435049;
-    --color-overlay: rgba(4, 8, 7, 0.7);
+    --dusk: #f59a6e;
+    --dusk-deep: #c0623a;
+    --dusk-tint: #3d2a2a;
+    --dusk-ink: #f7b08c;
 
-    /* في الوضع الداكن الظل لوحده مش بيبيّن الارتفاع (أسود على أسود)، فالطبقة
-       اللي بتشتغل فعلًا هي خط الضوء العلوي في --shadow-inset-top تحت. */
-    --shadow-xs:
-      0 1px 1px rgba(0, 0, 0, 0.25),
-      0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-sm:
-      0 1px 2px rgba(0, 0, 0, 0.3),
-      0 2px 6px rgba(0, 0, 0, 0.3),
-      0 6px 14px rgba(0, 0, 0, 0.25);
-    --shadow:
-      0 1px 2px rgba(0, 0, 0, 0.32),
-      0 4px 10px rgba(0, 0, 0, 0.34),
-      0 12px 26px rgba(0, 0, 0, 0.3);
-    --shadow-md:
-      0 1px 2px rgba(0, 0, 0, 0.36),
-      0 6px 14px rgba(0, 0, 0, 0.4),
-      0 18px 38px rgba(0, 0, 0, 0.36);
-    --shadow-lg:
-      0 2px 4px rgba(0, 0, 0, 0.4),
-      0 10px 22px rgba(0, 0, 0, 0.46),
-      0 28px 56px rgba(0, 0, 0, 0.44);
-    --shadow-xl:
-      0 2px 6px rgba(0, 0, 0, 0.45),
-      0 16px 34px rgba(0, 0, 0, 0.5),
-      0 44px 90px rgba(0, 0, 0, 0.55);
-    --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    --shadow-inset-edge:
-      inset 0 1px 0 rgba(255, 255, 255, 0.07),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    --indigo: #9c90f0;
+    --indigo-deep: #6b5fd0;
+    --indigo-tint: #2a2650;
+    --indigo-ink: #bab1f6;
+
+    --coral: #f0705b;
+    --coral-deep: #b8402e;
+    --coral-tint: #3f2326;
+    --coral-ink: #f59a8a;
+
+    --blue: #7c9bea;
+    --blue-deep: #4a68c0;
+    --blue-tint: #1e2a4a;
+    --blue-ink: #a3baf2;
+    --tea: #d9792e;
+
+    --on-green: #062a1a;
+    --on-sun: #231a00;
+    --on-sky: #0a2236;
+    --on-dusk: #2e1305;
+    --on-indigo: #1c1647;
+    --on-coral: #2a0d09;
+    --on-blue: #0e1a3a;
+
+    --color-overlay: rgba(4, 6, 18, 0.74);
+
+    --nav-surface: #2a3062;
+    --nav-knob: #f4eee0;
+    --nav-knob-ink: #1b2340;
+    --nav-ink: rgba(244, 238, 224, 0.82);
+    --nav-ink-strong: #f4eee0;
+    --nav-hover: rgba(244, 238, 224, 0.12);
   }
 }
 
-/* ---------- الوضع الداكن: اختيار صريح من شاشة الإعدادات ---------- */
+/* ---------- الوضع الليلي: اختيار صريح من شاشة الإعدادات ---------- */
 /* التكرار هنا مقصود: CSS مفيهاش وسيلة لإعادة استخدام بلوك متغيرات في أكتر من
-   محدِّد، وأي تعديل هنا لازم يتعمل في البلوك اللي فوق كمان. */
+   محدِّد، وأي تعديل هنا لازم يتعمل في البلوك اللي فوق كمان. (البلوك اللي فوق
+   احتياطي بس: index.html بيحدد data-theme قبل أول رسم في كل الأحوال العادية.) */
 :root[data-theme='dark'] {
-  --primary-50: #17322d;
-  --primary-100: #1e403a;
-  --primary-200: #27544b;
-  --primary-300: #3a7f71;
-  --primary-400: #4b9a89;
-  --primary-500: #35897a;
-  --primary-600: #3f9c8b;
-  --primary-700: #8fd8c9;
-  --primary-deep: #2a7f8c;
+  --paper: #121528;
+  --paper-2: #1b1f3a;
+  --paper-3: #252a4c;
+  --foil: #323861;
+  --rule: #323861;
+  --rule-strong: #4a5183;
 
-  --accent-100: #3a3020;
-  --accent-300: #b8813f;
-  --accent-500: #d9924a;
-  --accent-600: #e8a55f;
+  --ink: #f4eee0;
+  --ink-2: #b9bdd6;
+  --ink-3: #8e93b3;
+  --line: #8f95c4;
+  --field-line: #7d84b8;
 
-  --danger-100: #3a2320;
-  --danger-500: #e0625a;
-  --danger-600: #ef7a72;
-  --warn-100: #3a3220;
-  --warn-500: #d8ad3e;
-  --info-100: #1e2a41;
-  --info-500: #6f9bf2;
+  --green: #4ad69a;
+  --green-deep: #1e9f6a;
+  --green-tint: #1b3a33;
+  --green-ink: #7ee8b9;
 
-  --color-primary-hover: #46a08e;
-  --color-primary-ink: #8fd8c9;
-  --color-on-primary: #ffffff;
+  --sun: #f6c445;
+  --sun-deep: #b9820a;
+  --sun-tint: #3a3320;
+  --sun-ink: #f6c445;
 
-  --nav-base-1: #27332f;
-  --nav-base-2: #1e2b29;
-  --nav-base-3: #18272a;
-  --nav-knob-1: #a9e5d7;
-  --nav-knob-2: #7fcdbd;
-  --nav-knob-ink: #0d2a25;
+  --sky: #5bb0ee;
+  --sky-deep: #2f82c4;
+  --sky-tint: #1e3248;
+  --sky-ink: #8cc8f4;
 
-  --color-bg: #101615;
-  --color-bg-tint: #141c1a;
-  --color-surface: #1b2220;
-  --color-surface-alt: #242c2a;
-  --color-surface-glass: rgba(27, 34, 32, 0.72);
-  --color-text: #f0f4f2;
-  --color-text-muted: #a9b4b1;
-  --color-text-faint: #7f8b88;
-  --color-border: #2f3936;
-  --color-border-strong: #435049;
-  --color-overlay: rgba(4, 8, 7, 0.7);
+  --dusk: #f59a6e;
+  --dusk-deep: #c0623a;
+  --dusk-tint: #3d2a2a;
+  --dusk-ink: #f7b08c;
 
-  --shadow-xs:
-    0 1px 1px rgba(0, 0, 0, 0.25),
-    0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-sm:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 6px 14px rgba(0, 0, 0, 0.25);
-  --shadow:
-    0 1px 2px rgba(0, 0, 0, 0.32),
-    0 4px 10px rgba(0, 0, 0, 0.34),
-    0 12px 26px rgba(0, 0, 0, 0.3);
-  --shadow-md:
-    0 1px 2px rgba(0, 0, 0, 0.36),
-    0 6px 14px rgba(0, 0, 0, 0.4),
-    0 18px 38px rgba(0, 0, 0, 0.36);
-  --shadow-lg:
-    0 2px 4px rgba(0, 0, 0, 0.4),
-    0 10px 22px rgba(0, 0, 0, 0.46),
-    0 28px 56px rgba(0, 0, 0, 0.44);
-  --shadow-xl:
-    0 2px 6px rgba(0, 0, 0, 0.45),
-    0 16px 34px rgba(0, 0, 0, 0.5),
-    0 44px 90px rgba(0, 0, 0, 0.55);
-  --shadow-inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --shadow-inset-edge:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  --indigo: #9c90f0;
+  --indigo-deep: #6b5fd0;
+  --indigo-tint: #2a2650;
+  --indigo-ink: #bab1f6;
+
+  --coral: #f0705b;
+  --coral-deep: #b8402e;
+  --coral-tint: #3f2326;
+  --coral-ink: #f59a8a;
+
+  --blue: #7c9bea;
+  --blue-deep: #4a68c0;
+  --blue-tint: #1e2a4a;
+  --blue-ink: #a3baf2;
+  --tea: #d9792e;
+
+  --on-green: #062a1a;
+  --on-sun: #231a00;
+  --on-sky: #0a2236;
+  --on-dusk: #2e1305;
+  --on-indigo: #1c1647;
+  --on-coral: #2a0d09;
+  --on-blue: #0e1a3a;
+
+  --color-overlay: rgba(4, 6, 18, 0.74);
+
+  --nav-surface: #2a3062;
+  --nav-knob: #f4eee0;
+  --nav-knob-ink: #1b2340;
+  --nav-ink: rgba(244, 238, 224, 0.82);
+  --nav-ink-strong: #f4eee0;
+  --nav-hover: rgba(244, 238, 224, 0.12);
 }
 
 /* ============================================
-   الأسماء الدلالية والمشتقّة - محسوبة من التدرّجات فوق، فبتتعدّل لوحدها
-   مع الوضع الداكن من غير أي تكرار.
+   الأسماء الدلالية والمشتقّة - محسوبة من الأصباغ فوق، فبتتعدّل لوحدها
+   مع الوضع الليلي من غير أي تكرار. دي اللي بتتستخدم فعليًا في باقي الملفات.
    ============================================ */
 
 :root {
-  --color-primary: var(--primary-500);
-  --color-primary-dark: var(--color-primary-ink); /* اسم قديم متسيب كمرادف عشان ميكسرش أي كود قايم */
-  --color-primary-light: var(--primary-50);
-  --color-primary-soft: var(--primary-100);
+  --color-bg: var(--paper);
+  --color-surface: var(--paper-2);
+  --color-surface-alt: var(--paper-3);
+  --color-text: var(--ink);
+  --color-text-muted: var(--ink-2);
+  --color-text-faint: var(--ink-3);
+  --color-border: var(--rule);
+  --color-border-strong: var(--rule-strong);
 
-  --color-accent: var(--accent-500);
-  --color-accent-dark: var(--accent-600);
-  --color-accent-light: var(--accent-100);
+  --color-primary: var(--green);
+  --color-primary-hover: var(--green-deep);
+  --color-primary-ink: var(--green-ink);
+  --color-primary-light: var(--green-tint);
+  --color-on-primary: var(--on-green);
 
-  --color-danger: var(--danger-500);
-  --color-danger-light: var(--danger-100);
-  --color-success: var(--primary-500);
-  --color-success-light: var(--primary-50);
-  --color-warning: var(--warn-500);
-  --color-warning-light: var(--warn-100);
+  --color-accent: var(--sun);
+  --color-accent-dark: var(--sun-ink);
+  --color-accent-light: var(--sun-tint);
 
-  /* ---------- تدرّجات الهوية ----------
-     التدرّج الأساسي بيلف من أخضر فاتح لأخضر داكن لمزرق عميق - إزاحة في درجة
-     اللون (hue) مش في الإضاءة بس، وده اللي بيمنعه يبان "مسطّح". */
-  --grad-brand: linear-gradient(135deg, var(--primary-400) 0%, var(--primary-500) 48%, var(--primary-600) 76%, var(--primary-deep) 100%);
-  --grad-brand-soft: linear-gradient(135deg, var(--primary-100) 0%, var(--primary-50) 100%);
-  --grad-brand-line: linear-gradient(90deg, var(--primary-deep), var(--primary-500), var(--accent-500));
-  --grad-accent: linear-gradient(135deg, var(--accent-300) 0%, var(--accent-500) 70%, var(--accent-600) 100%);
-  --grad-danger: linear-gradient(135deg, #d4574f 0%, var(--danger-600) 100%);
-  --grad-surface: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-tint) 100%);
+  --color-danger: var(--coral);
+  --color-danger-ink: var(--coral-ink);
+  --color-danger-light: var(--coral-tint);
+  --color-success: var(--green-ink);
+  --color-success-light: var(--green-tint);
+  --color-warning: var(--sun-ink);
+  --color-warning-light: var(--sun-tint);
+  --color-info: var(--blue-ink);
+  --color-info-light: var(--blue-tint);
 
-  /* شريط التنقّل: اللوح الداكن + الدايرة النشطة. الحبر أبيض في الوضعين لأن
-     اللوح داكن في الوضعين - 78% مش 100% عشان التاب النشط يفضل هو الأوضح،
-     ولسه فوق حد التباين المطلوب (5.3:1 على أغمق نقطة في التدرّج). */
-  --nav-surface: linear-gradient(150deg, var(--nav-base-1) 0%, var(--nav-base-2) 46%, var(--nav-base-3) 100%);
-  --nav-knob: linear-gradient(180deg, var(--nav-knob-1) 0%, var(--nav-knob-2) 100%);
-  --nav-ink: rgba(255, 255, 255, 0.78);
-  --nav-ink-strong: #ffffff;
-  --nav-hover: rgba(255, 255, 255, 0.11);
+  /* ---------- الظلال: حافة صلبة، blur = 0 ----------
+     ظل الورقة مش هالة ناعمة: هو سُمك الورقة نفسها (2-3px) تحتها. والزرار ليه حافة
+     أسمك بلونه الغامق (شوف .btn في components.css) - لما بيتداس الحافة بتختفي
+     والزرار بينزل مكانها، يعني حركة الضغط معناها "اتداس" فعلًا. */
+  --edge-hair: 0 1px 0 var(--rule);
+  --edge-sm: 0 2px 0 var(--rule-strong);
+  --edge-md: 0 3px 0 var(--rule-strong);
+  --edge-ink: 0 4px 0 var(--line);
+  --edge-ink-lg: 0 6px 0 var(--line);
 
-  /* لمعة زجاجية بتتحط فوق الأسطح المرتفعة (كارت الجرعة، الزرار الكبير) -
-     ضوء خافت جاي من فوق الشمال وبيختفي في النص */
-  --grad-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.06) 34%, transparent 62%);
+  --shadow-xs: var(--edge-hair);
+  --shadow-sm: var(--edge-sm);
+  --shadow: var(--edge-md);
+  --shadow-md: var(--edge-md);
+  /* الأسطح اللي طايرة فوق الصفحة (نافذة، شاشة منبه): حافة حبر + ظل واسع واحد بس */
+  --shadow-lg: var(--edge-ink), 0 22px 36px -22px rgba(27, 35, 64, 0.55);
+  --shadow-xl: var(--edge-ink-lg), 0 34px 60px -28px rgba(27, 35, 64, 0.6);
 
-  /* خلفية "شبكة لونية" ناعمة - دواير تدرّج مش صور، يعني صفر تحميل زيادة */
-  --mesh-bg:
-    radial-gradient(58% 44% at 8% 6%, color-mix(in srgb, var(--primary-300) 40%, transparent) 0%, transparent 70%),
-    radial-gradient(48% 40% at 96% 12%, color-mix(in srgb, var(--accent-300) 32%, transparent) 0%, transparent 72%),
-    radial-gradient(60% 50% at 88% 96%, color-mix(in srgb, var(--primary-200) 44%, transparent) 0%, transparent 74%),
-    radial-gradient(40% 34% at 18% 92%, color-mix(in srgb, var(--accent-100) 66%, transparent) 0%, transparent 70%);
+  /* حلقة التركيز: خاتم ورقي رفيع + خاتم حبر. شغّالة على أي خلفية (فاتحة، غامقة،
+     أخضر) لإنها بتتكوّن من لونين متقابلين. */
+  --ring: 0 0 0 3px var(--paper-2), 0 0 0 6px var(--ink);
+  --ring-danger: 0 0 0 3px var(--paper-2), 0 0 0 6px var(--coral);
 
-  /* نفس الفكرة بس أخف كتير - دي بتتحط ورا شاشات التطبيق نفسها مش شاشة الدخول،
-     فلازم تفضل مجرد إحساس بعمق في الخلفية، ميقراش كـ "لون" */
-  --mesh-app:
-    radial-gradient(46% 30% at 12% 0%, color-mix(in srgb, var(--primary-300) 20%, transparent) 0%, transparent 68%),
-    radial-gradient(40% 26% at 90% 4%, color-mix(in srgb, var(--accent-300) 13%, transparent) 0%, transparent 70%),
-    radial-gradient(52% 34% at 78% 88%, color-mix(in srgb, var(--primary-200) 18%, transparent) 0%, transparent 72%);
-
-  /* ---------- الحبيبات (grain) ----------
-     طبقة ضوضاء رمادية شفافة جدًا بتتحط فوق الخلفية. الغرض منها إن التدرّجات
-     الكبيرة ما تطلعش فيها "أحزمة" لونية (banding) - المتصفح بيقرّب الألوان
-     المتقاربة لنفس القيمة فبتظهر حلقات واضحة في التدرّج، والضوضاء بتكسرها.
-     دي كمان اللي بتدّي الخلفية ملمس بدل ما تبقى لون رقمي مسطّح.
-     مرسومة كـ SVG جوه الـ CSS نفسه - مفيش أي ملف صورة بيتحمّل. */
-  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
-
-  /* ---------- ظلال ملوّنة (للعناصر الأساسية بس: الزرار الرئيسي، كارت الجرعة) ---------- */
-  --shadow-primary:
-    0 2px 4px -1px color-mix(in srgb, var(--primary-deep) 40%, transparent),
-    0 8px 18px -6px color-mix(in srgb, var(--primary-600) 55%, transparent),
-    0 18px 36px -14px color-mix(in srgb, var(--primary-600) 45%, transparent);
-  --shadow-primary-lift:
-    0 3px 6px -1px color-mix(in srgb, var(--primary-deep) 45%, transparent),
-    0 12px 26px -6px color-mix(in srgb, var(--primary-600) 62%, transparent),
-    0 26px 50px -16px color-mix(in srgb, var(--primary-600) 52%, transparent);
-  --shadow-accent:
-    0 2px 4px -1px color-mix(in srgb, var(--accent-600) 38%, transparent),
-    0 8px 18px -6px color-mix(in srgb, var(--accent-600) 50%, transparent);
-  --shadow-danger:
-    0 2px 4px -1px color-mix(in srgb, var(--danger-600) 35%, transparent),
-    0 8px 18px -6px color-mix(in srgb, var(--danger-500) 45%, transparent);
-
-  /* هالة لونية واسعة وخفيفة - للعناصر اللي المفروض العين تروحلها فورًا */
-  --glow-primary: 0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent), 0 0 34px -6px color-mix(in srgb, var(--color-primary) 40%, transparent);
-
-  /* حلقة التركيز - نفس الشكل بالظبط على كل عنصر تفاعلي في التطبيق */
-  --ring: 0 0 0 4px color-mix(in srgb, var(--color-primary) 32%, transparent);
-  --ring-danger: 0 0 0 4px color-mix(in srgb, var(--color-danger) 30%, transparent);
-
-  /* ---------- الخطوط ---------- */
+  /* ---------- الخطوط ----------
+     صوتين: --font-display (Kufam) للمطبوع: عناوين، أسماء أدوية، ساعات، أرقام،
+     أختام. و--font-family (Cairo) للمقروء: كل نص تاني. */
   --font-family: 'Cairo', 'Tahoma', 'Segoe UI', sans-serif;
-  /* خط لاتيني منفصل للأرقام والكلمات الإنجليزية (الاسم Ma3ak، الأكواد، اللينكات).
-     أرقام Cairo العربية شكلها مش متساوي العرض، فالساعات في قايمة الجرعات كانت
-     بترقص شمال ويمين وانت بتعدّي بينها. */
+  --font-display: 'Kufam', 'Cairo', 'Tahoma', 'Segoe UI', sans-serif;
+  /* خط لاتيني منفصل للأكواد واللينكات اللي محتاجة عرض ثابت (كود المشاركة، الرابط) */
   --font-family-latin: 'Plus Jakarta Sans', 'Cairo', 'Segoe UI', sans-serif;
   --font-size-xs: 14px;
   --font-size-sm: 17px;
@@ -389,12 +383,14 @@
   --space-5: 48px;
   --space-6: 64px;
 
-  /* ---------- الحواف ---------- */
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius: 18px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
+  /* ---------- الحواف ----------
+     أضيق من اللي كان: الكروت ورقة مقصوصة (14px) مش مخدة (32px). والدايرة الكاملة
+     (--radius-pill) محجوزة للحاجات اللي هي كبسولة فعلًا: زرار صغير، شريحة وقت. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-pill: 999px;
 
   /* ---------- الحركة: كل transition/animation في المشروع بتستخدم القيم دي ---------- */

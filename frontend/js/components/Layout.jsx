@@ -40,18 +40,12 @@ function AppLayout({
   );
 
   return (
-    <div className="app-shell ambient">
+    <div className="app-shell">
       <header className="app-header">
         <div className="header-inner">
           <div className="header-row">
             <div className="header-brand">
-              <span className="header-brand-logo" aria-hidden="true">
-                <Icon name="brand" size={21} strokeWidth={2} />
-              </span>
-              <span className="header-brand-name">
-                <span className="header-brand-ar">معاك</span>
-                <span className="header-brand-en">Ma3ak</span>
-              </span>
+              <Wordmark />
             </div>
 
             {hasPatientSwitcher && (

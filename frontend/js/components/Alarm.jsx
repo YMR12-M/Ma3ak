@@ -100,84 +100,104 @@ function AlarmOverlay({ dose, onTake, onSnooze, onDismiss, busy, error, onSpeak 
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onDismiss]);
 
+  // فترة الجرعة (لون الشاشة كلها + أيقونتها) والساعة بخط ضخم - js/dayParts.js
+  const part = dayPartOfTime(dose.scheduled_at);
+  const time = formatClockParts(dose.scheduled_at);
+
   const node = (
-    <div className="alarm-overlay" role="alertdialog" aria-labelledby="alarm-title" aria-live="assertive">
+    <div
+      className={`alarm-overlay part-${part.key}${dose.is_critical ? ' alarm-overlay-critical' : ''}`}
+      role="alertdialog"
+      aria-labelledby="alarm-title"
+      aria-live="assertive"
+    >
       <div className={`alarm-card${dose.is_critical ? ' alarm-card-critical' : ''}`}>
-        <div className="alarm-label">
-          {dose.is_critical && (
-            <span className="alarm-critical-chip">
-              <Icon name="alert" size={15} strokeWidth={2.4} />
-              دوا مهم
-            </span>
-          )}
-          وقت الدوا دلوقتي
+        {/* شريط أعلى الورقة: وقت الدوا دلوقتي + أيقونة فترته، والساعة بخط ضخم */}
+        <div className="alarm-band">
+          <div className="alarm-label">
+            {/* Boolean() مش && على القيمة الخام: MySQL بيرجّع is_critical رقم (0/1)،
+                و{0 && <X/>} بيطبع "0" على الشاشة بدل ما ميعرضش حاجة */}
+            {Boolean(dose.is_critical) && (
+              <span className="alarm-critical-chip">
+                <Icon name="alert" size={15} strokeWidth={2.4} />
+                دوا مهم
+              </span>
+            )}
+            <Icon name={part.icon} size={26} strokeWidth={2.2} />
+            وقت الدوا دلوقتي
+          </div>
+          <div className="alarm-time">
+            {time.clock}
+            <small>{time.ampm}</small>
+          </div>
         </div>
 
-        {/* صورة الشريط لو موجودة، وإلا الأيقونة النابضة. الصورة أوضح بكتير
-            لحد بيبص على 6 علب متشابهة - الاسم العلمي مش هو اللي بيميّزها عنده.
-            الدايرة بتنبض عشان العين تروح لها على طول، وبتقف تمامًا لو المستخدم
-            مفعّل "تقليل الحركة" في نظامه (css/alarm.css) */}
-        {dose.has_image ? (
-          <div className="alarm-image-wrap">
-            <MedImage
-              medicationId={dose.medication_id}
-              hasImage={dose.has_image}
-              className="med-image-alarm"
-            />
-          </div>
-        ) : (
-          <div className="alarm-icon" aria-hidden="true">
-            <span className="alarm-icon-pulse" />
-            <Icon name="pill" size={64} strokeWidth={1.6} />
-          </div>
-        )}
+        <div className="alarm-body">
+          {/* صورة الشريط لو موجودة، وإلا الجرس المهتز. الصورة أوضح بكتير
+              لحد بيبص على 6 علب متشابهة - الاسم العلمي مش هو اللي بيميّزها عنده.
+              الدايرة بتهتز عشان العين تروح لها على طول، وبتقف تمامًا لو المستخدم
+              مفعّل "تقليل الحركة" في نظامه (css/alarm.css) */}
+          {dose.has_image ? (
+            <div className="alarm-image-wrap">
+              <MedImage
+                medicationId={dose.medication_id}
+                hasImage={dose.has_image}
+                className="med-image-alarm"
+              />
+            </div>
+          ) : (
+            <div className="alarm-icon" aria-hidden="true">
+              <Icon name="pill" size={64} strokeWidth={1.8} />
+            </div>
+          )}
 
-        <h2 className="alarm-med-name" id="alarm-title">
-          {dose.name}
-        </h2>
-        {dose.dosage && <div className="alarm-dosage">{dose.dosage}</div>}
-        <div className="alarm-time">الساعة {formatTime(dose.scheduled_at)}</div>
-        {/* تعليمات الدكتور - المكان الوحيد اللي المريض هيقراها فيه فعلاً */}
-        {dose.notes && (
-          <div className="alarm-notes">
-            <Icon name="alert" size={18} strokeWidth={2.2} />
-            {dose.notes}
-          </div>
-        )}
+          <h2 className="alarm-med-name" id="alarm-title">
+            {dose.name}
+          </h2>
+          {dose.dosage && <div className="alarm-dosage">{dose.dosage}</div>}
+          {/* تعليمات الدكتور - المكان الوحيد اللي المريض هيقراها فيه فعلاً. بتتعرض
+              كملصق الصيدلي زي كارت الجرعة. */}
+          {dose.notes && (
+            <div className="sticker alarm-notes">
+              <Icon name="alert" size={18} strokeWidth={2.2} />
+              {dose.notes}
+            </div>
+          )}
 
-        {onSpeak && (
-          <button className="alarm-speak" onClick={() => onSpeak(dose)} aria-label="اسمع الدواء">
-            <Icon name="speaker" size={21} />
-            اسمعه
+          {onSpeak && (
+            <button className="alarm-speak" onClick={() => onSpeak(dose)} aria-label="اسمع الدواء">
+              <Icon name="speaker" size={21} />
+              اسمعه
+            </button>
+          )}
+
+          <Banner onClose={undefined}>{error}</Banner>
+
+          <button className="alarm-take" onClick={onTake} disabled={busy}>
+            <Icon name="check" size={34} strokeWidth={3} />
+            خدت الدوا
           </button>
-        )}
 
-        <Banner onClose={undefined}>{error}</Banner>
+          {snoozeAllowed ? (
+            <button className="alarm-snooze" onClick={onSnooze} disabled={busy}>
+              <Icon name="clock" size={21} />
+              فكّرني بعد {SNOOZE_MINUTES} دقايق
+              {snoozesLeft <= 1 && <span className="alarm-snooze-last"> (آخر مرة)</span>}
+            </button>
+          ) : (
+            /* السبب بيتقال صراحة. زرار مختفي من غير تفسير بيخلي المستخدم يفتكر
+               إن التطبيق بايظ - والسبب هنا قرار مقصود يستاهل يتشرح. */
+            <div className="alarm-no-snooze">
+              {dose.is_critical || !dose.snooze_allowed
+                ? 'الدوا ده مواعيده مش بتتأجل'
+                : `أجّلتها ${MAX_SNOOZES} مرات خلاص`}
+            </div>
+          )}
 
-        <button className="alarm-take" onClick={onTake} disabled={busy}>
-          <Icon name="check" size={32} strokeWidth={2.7} />
-          خدت الدوا
-        </button>
-
-        {snoozeAllowed ? (
-          <button className="alarm-snooze" onClick={onSnooze} disabled={busy}>
-            <Icon name="clock" size={21} />
-            فكّرني بعد {SNOOZE_MINUTES} دقايق
-            {snoozesLeft <= 1 && <span className="alarm-snooze-last"> (آخر مرة)</span>}
+          <button className="alarm-dismiss" onClick={onDismiss} disabled={busy}>
+            إغلاق مؤقت
           </button>
-        ) : (
-          /* السبب بيتقال صراحة. زرار مختفي من غير تفسير بيخلي المستخدم يفتكر
-             إن التطبيق بايظ - والسبب هنا قرار مقصود يستاهل يتشرح. */
-          <div className="alarm-no-snooze">
-            {dose.is_critical || !dose.snooze_allowed
-              ? 'الدوا ده مواعيده مش بتتأجل'
-              : `أجّلتها ${MAX_SNOOZES} مرات خلاص`}
-          </div>
-        )}
-
-        <button className="alarm-dismiss" onClick={onDismiss} disabled={busy}>
-          إغلاق مؤقت
-        </button>
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,12 @@
    واجهة التعريف بالتطبيق: نص الشاشة عرض للمميزات، والنص التاني الفورم.
    على الموبايل الفورم بييجي الأول والمميزات تحته - محدش يستنى يسكرول
    عشان يسجّل دخول.
+
+   ---------- المميزات: روشتة ----------
+   مميزات أي تطبيق عادةً بتتعرض كشبكة كروت متساوية، كل كارت فيه أيقونة وعنوان
+   ووصف. هنا المميزات ورقة روشتة: "الأدوية اللي اتكتبتلك" - كل ميزة سطر فيه
+   علامة صح في مربع زي نموذج طبي. الشكل ده بيقول المعنى قبل ما تقرا: "ده اللي
+   هتاخده". ومعاه علبة الأقراص مرسومة، وأختام مايلة بدل شارات ملوّنة.
    ============================================ */
 
 .auth-screen {
@@ -14,52 +20,11 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-3) var(--space-2);
-  overflow: hidden;
   background: var(--color-bg);
-}
-
-/* خلفية "شبكة لونية" متحركة - تدرّجات لونية بس (مفيش صور ولا فيديو)، وبتتحرك
-   ببطء شديد (24 ثانية للدورة) فبتدّي إحساس بالعمق من غير ما تشتت أو تتعب العين */
-.auth-mesh {
-  position: absolute;
-  inset: -18%;
-  z-index: 0;
-  background: var(--mesh-bg);
-  filter: blur(34px) saturate(115%);
-  animation: mesh-drift 24s var(--ease-in-out) infinite;
-  pointer-events: none;
-}
-
-/* طبقة حبيبات فوق التدرّج.
-   من غيرها التدرّجات الكبيرة دي بتطلع فيها "أحزمة" لونية واضحة على الشاشات
-   العادية - المتصفح بيقرّب الدرجات المتقاربة لنفس القيمة فبتبان حلقات.
-   الضوضاء بتكسر الأحزمة دي فالتدرّج بيرجع ناعم، وكمان بتدي الخلفية ملمس. */
-.auth-grain {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: var(--noise);
-  background-size: 140px 140px;
-  opacity: 0.55;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
-:root[data-theme='dark'] .auth-grain {
-  opacity: 0.26;
-  mix-blend-mode: soft-light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .auth-grain {
-    opacity: 0.26;
-    mix-blend-mode: soft-light;
-  }
 }
 
 .auth-layout {
   position: relative;
-  z-index: 1;
   width: 100%;
   max-width: 1180px;
   display: grid;
@@ -78,37 +43,20 @@
   animation: fade-up var(--dur-4) var(--ease-out) backwards;
 }
 
+/* كارت الدخول: بطاقة بحافة حبر وظل حبر صلب - أهم عنصر في أول شاشة، فبياخد
+   أقوى حافة في التطبيق. */
 .auth-card {
   position: relative;
   width: 100%;
   max-width: 440px;
-  overflow: hidden;
   background: var(--color-surface);
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border: 2px solid var(--line);
   border-radius: var(--radius-xl);
-  /* الكارت ده أهم عنصر في أول شاشة بيشوفها المستخدم، فبياخد أقوى ظل في
-     التطبيق + خط ضوء علوي: بيبان طايف فوق الخلفية اللونية مش ملزوق فيها */
-  box-shadow: var(--shadow-xl), var(--shadow-inset-top);
-}
-
-/* خط رفيع متدرّج بيلف الكارت - نفس فكرة الشريط اللي تحت الهيدر، بس كإطار */
-.auth-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(150deg, color-mix(in srgb, var(--color-primary) 50%, transparent) 0%, transparent 42%, color-mix(in srgb, var(--color-accent) 22%, transparent) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+  box-shadow: var(--edge-ink-lg);
 }
 
 .auth-card-header {
-  padding: var(--space-4) var(--space-3) var(--space-3);
-  background: linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-surface) 100%);
+  padding: var(--space-4) var(--space-3) var(--space-1);
   text-align: center;
 }
 
@@ -116,39 +64,17 @@
   padding: var(--space-3) var(--space-3) var(--space-4);
 }
 
-/* البراند جوه كارت الفورم - النسخة المصغّرة (النسخة الكبيرة في نص العرض) */
-.auth-card-logo {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 24px;
-  background: var(--grad-brand);
-  color: var(--color-on-primary);
-  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
-  animation: pop-in var(--dur-4) var(--ease-spring) backwards;
-}
-
-.auth-card-logo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--grad-sheen);
-}
-
 .auth-card-title {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-xl);
-  color: var(--color-primary-ink);
+  --wm: 54px;
+  display: flex;
+  justify-content: center;
 }
 
 .auth-card-tag {
   margin-top: var(--space-0);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+  font-weight: 700;
 }
 
 /* ---------- تابات دخول / حساب جديد ---------- */
@@ -158,7 +84,8 @@
   gap: 6px;
   padding: 5px;
   margin-bottom: var(--space-3);
-  background: var(--color-surface-alt);
+  background: var(--paper-3);
+  border: 1.5px solid var(--rule-strong);
   border-radius: var(--radius);
 }
 
@@ -173,13 +100,13 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-muted);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background var(--dur-2) var(--ease-out),
+    background-color var(--dur-2) var(--ease-out),
     color var(--dur-2) var(--ease-out),
-    box-shadow var(--dur-2) var(--ease-out),
     transform var(--dur-1) var(--ease-out);
 }
 
@@ -188,18 +115,19 @@
 }
 
 .tab.active {
-  background: var(--grad-brand);
-  color: var(--color-on-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--ink);
+  color: var(--paper-2);
 }
 
 .auth-hint {
   margin-top: var(--space-2);
   padding: var(--space-2);
   border-radius: var(--radius-sm);
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
+  background: var(--sun-tint);
+  border: 1.5px dashed var(--sun-deep);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
+  font-weight: 600;
   text-align: center;
   animation: fade-up var(--dur-3) var(--ease-out) backwards;
 }
@@ -210,196 +138,187 @@
 }
 
 /* ============================================
-   نص العرض: البراند + المميزات
+   نص العرض: الروشتة
    ============================================ */
 
 .auth-showcase {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   animation: fade-up var(--dur-5) var(--ease-out) backwards;
 }
 
-.auth-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.auth-logo {
+.rx-sheet {
   position: relative;
-  display: flex;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  background: var(--paper-2);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--edge-ink-lg);
+}
+
+/* الهيدر: العلامة والجملة والمقدمة على ناحية، وعلبة الأقراص على الناحية التانية */
+.rx-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 84px;
-  height: 84px;
-  border-radius: 28px;
-  background: var(--grad-brand);
-  color: var(--color-on-primary);
-  box-shadow: var(--shadow-primary), var(--shadow-inset-top);
-  animation: float-soft 6s var(--ease-in-out) infinite;
+  padding-bottom: var(--space-3);
+  border-bottom: 4px double var(--line);
 }
 
-.auth-logo::before {
-  content: '';
+.rx-brand {
+  --wm: 76px;
+}
+
+/* علامة الروشتة: Rx بحرف كبير مايل في ركن الورقة */
+.rx-symbol {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--grad-sheen);
+  top: var(--space-2);
+  /* العنصر نفسه direction: ltr (تحت)، فـ inline-start عنده = شمال الشاشة. ده المقصود:
+     الركن الشمال فوق، بعيد عن العلامة اللي قاعدة على اليمين. */
+  inset-inline-start: var(--space-3);
+  font-family: var(--font-family-latin);
+  font-size: 54px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  color: var(--coral);
+  opacity: 0.16;
+  transform: rotate(-8deg);
+  pointer-events: none;
+  direction: ltr;
 }
 
-.auth-title {
-  font-size: var(--font-size-display);
-  color: var(--color-primary-ink);
-  line-height: 1.1;
-}
-
-/* التدرّج على حروف العنوان نفسه (كلاس .text-gradient من materials.css).
-   مسموح هنا بس لأن العنوان ضخم - على أي مقاس أصغر التدرّج بيقلّل التباين. */
-.auth-title.text-gradient {
-  padding-bottom: 2px; /* التدرّج بيتقص عند حد الصندوق، والحشوة بتحمي نزول حروف زي "ع" */
-}
-
-.auth-tagline {
-  margin-top: var(--space-0);
+.rx-tagline {
+  margin-top: var(--space-1);
+  font-family: var(--font-display);
   font-size: var(--font-size-md);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-text-muted);
 }
 
-.auth-pitch {
+.rx-pitch {
   max-width: 46ch;
+  margin-top: var(--space-2);
   font-size: var(--font-size-base);
+  font-weight: 500;
   color: var(--color-text);
 }
 
-.auth-pitch strong {
-  color: var(--color-primary-ink);
+.rx-pitch strong {
+  padding-inline: 0.2em;
+  background: linear-gradient(transparent 55%, var(--sun-tint) 55% 92%, transparent 92%);
+  font-weight: 800;
 }
 
-/* ---------- شبكة المميزات ---------- */
+.rx-art {
+  width: 100%;
+  max-width: 400px;
+  margin-inline: auto;
+}
 
-.auth-features {
+.rx-label {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  color: var(--color-text-muted);
+}
+
+/* ---------- سطور الروشتة ---------- */
+
+.rx-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
-  gap: var(--space-1);
+  grid-template-columns: 1fr;
+  column-gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.auth-feature {
-  display: flex;
-  align-items: flex-start;
+.rx-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
   gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--color-surface) 74%, transparent);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  box-shadow: var(--shadow-xs), var(--shadow-inset-top);
-  transition:
-    transform var(--dur-2) var(--ease-out),
-    box-shadow var(--dur-2) var(--ease-out),
-    border-color var(--dur-2) var(--ease-out);
+  align-items: start;
+  padding: var(--space-2) 0;
+  border-bottom: 2px dotted var(--rule-strong);
 }
 
-@media (hover: hover) {
-  .auth-feature:hover {
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
-    box-shadow: var(--shadow-md);
-  }
-
-  .auth-feature:hover .auth-feature-icon {
-    transform: scale(1.12) rotate(-6deg);
-  }
-}
-
-.auth-feature-icon {
-  position: relative;
+/* مربع علامة الصح زي نموذج طبي. ميلان بسيط بيتبدّل بين السطور - مربعات
+   اتعلّمت بإيد مش بطابعة. */
+.rx-check {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
-  background: var(--color-primary-light);
-  color: var(--color-primary-ink);
-  box-shadow: var(--shadow-inset-top);
-  transition: transform var(--dur-3) var(--ease-spring);
-}
-
-.auth-feature-icon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--grad-sheen);
-}
-
-/* نبرات لونية مختلفة للأيقونات عشان الشبكة متبقاش لون واحد ممل */
-.auth-feature-icon.tone-accent { background: var(--color-accent-light); color: var(--color-accent-dark); }
-.auth-feature-icon.tone-danger { background: var(--color-danger-light); color: var(--color-danger); }
-.auth-feature-icon.tone-info   { background: var(--info-100); color: var(--info-500); }
-
-.auth-feature-title {
-  font-weight: 800;
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-}
-
-.auth-feature-desc {
+  width: 28px;
+  height: 28px;
   margin-top: 2px;
-  font-size: var(--font-size-xs);
+  border: 2.5px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper-2);
+  color: var(--green-ink);
+  transform: rotate(-2deg);
+}
+
+.rx-item:nth-child(even) .rx-check {
+  transform: rotate(2.5deg);
+}
+
+.rx-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.rx-desc {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   line-height: 1.55;
   color: var(--color-text-muted);
 }
 
-/* ---------- شارات صغيرة تحت المميزات ---------- */
+/* ---------- الأختام تحت الروشتة ---------- */
 
-.auth-badges {
+.rx-stamps {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-1);
 }
 
-.auth-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 15px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, transparent);
-  color: var(--color-primary-ink);
+.rx-stamps .stamp {
   font-size: var(--font-size-xs);
-  font-weight: 700;
-  box-shadow: var(--shadow-xs), var(--shadow-inset-top);
 }
+
+.rx-stamps .stamp:nth-child(2) { --stamp-rot: 3deg; }
+.rx-stamps .stamp:nth-child(3) { --stamp-rot: -2.5deg; }
+.rx-stamps .stamp:nth-child(4) { --stamp-rot: 4.5deg; }
 
 /* ============================================
    ترتيب الشاشة على المقاسات المختلفة
    ============================================ */
 
-/* موبايل: الفورم فوق والمميزات تحته (الأولوية للي جاي يسجّل دخول) */
+/* موبايل: الفورم فوق والروشتة تحتها (الأولوية للي جاي يسجّل دخول) */
 @media (max-width: 959px) {
   .auth-panel { order: 1; }
   .auth-showcase { order: 2; }
 
-  .auth-title { font-size: var(--font-size-xl); }
-  .auth-logo { width: 64px; height: 64px; border-radius: 20px; }
-  .auth-logo .icon { width: 34px; height: 34px; }
-  .auth-pitch { font-size: var(--font-size-sm); }
-  .auth-features { grid-template-columns: 1fr; }
+  .rx-sheet {
+    padding: var(--space-3) var(--space-2) var(--space-2);
+  }
+
+  /* العلامة والجملة اللي تحتها موجودين فوق خالص في كارت الدخول، فمبنكرّرهمش هنا */
+  .rx-brand,
+  .rx-tagline { display: none; }
+
+  .rx-pitch { margin-top: 0; font-size: var(--font-size-sm); }
+  .rx-symbol { font-size: 40px; }
 }
 
-/* ديسكتوب: عمودين - العرض على اليمين (بداية السطر في RTL) والفورم على الشمال */
+/* ديسكتوب: عمودين - الروشتة على اليمين (بداية القراية في RTL) والفورم على الشمال */
 @media (min-width: 960px) {
   .auth-screen {
     padding: var(--space-4);
@@ -407,15 +326,15 @@
   }
 
   .auth-layout {
-    grid-template-columns: 1.25fr 0.75fr;
+    grid-template-columns: 1.3fr 0.7fr;
     gap: var(--space-4);
-    /* من فوق مش من النص: قايمة المميزات أطول من الكارت، ولو وقفنا الاتنين في
-       النص بيبان الكارت طايح لتحت من غير سبب */
+    /* من فوق مش من النص: الروشتة أطول من الكارت، ولو وقفنا الاتنين في النص
+       بيبان الكارت طايح لتحت من غير سبب */
     align-items: start;
   }
 
   /* ترتيب الـ DOM بيحط الفورم الأول (عشان الموبايل)، وهنا بنحدد مكان كل واحد
-     صراحةً: العرض في العمود العريض (يمين الشاشة = بداية القراية بالعربي)
+     صراحةً: الروشتة في العمود العريض (يمين الشاشة = بداية القراية بالعربي)
      والفورم في العمود الأضيق جنبه. من غير التحديد ده الفورم كان بياخد العمود
      العريض لمجرد إنه الأول في الـ DOM. */
   .auth-showcase {
@@ -426,32 +345,26 @@
   .auth-panel {
     grid-column: 2;
     grid-row: 1;
-  }
-
-  /* الفورم بيفضل ثابت قدام العين وانت بتسكرول في المميزات - محدش يضطر يرجع فوق عشان يسجّل */
-  .auth-panel {
+    /* الفورم بيفضل ثابت قدام العين وانت بتسكرول في المميزات - محدش يضطر يرجع فوق عشان يسجّل */
     position: sticky;
     top: var(--space-4);
   }
 
-  /* البراند الكبير ظاهر جنبه، فالكارت مش محتاج هيدر ضخم */
+  /* العلامة الكبيرة ظاهرة جنبه في الروشتة، فالكارت مش محتاج هيدر */
   .auth-card-header {
-    padding: var(--space-3) var(--space-3) var(--space-2);
+    display: none;
   }
 
-  .auth-card-logo {
-    width: 60px;
-    height: 60px;
-    border-radius: 20px;
+  .auth-card-body {
+    padding-top: var(--space-4);
   }
 
-  .auth-card-logo .icon {
-    width: 32px;
-    height: 32px;
+  .rx-head {
+    grid-template-columns: 1fr minmax(0, 0.9fr);
   }
 
-  .auth-card-title {
-    font-size: var(--font-size-lg);
+  .rx-list {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -468,16 +381,17 @@
   padding: 0.4em;
   border: 0;
   background: none;
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   font: inherit;
   font-size: var(--font-size-sm);
+  font-weight: 700;
   text-decoration: underline;
+  text-underline-offset: 4px;
   cursor: pointer;
 }
 
 .recovery-screen {
   position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,9 +403,10 @@
   width: 100%;
   max-width: 28rem;
   padding: var(--space-5) var(--space-4);
+  border: 2px solid var(--line);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--edge-ink-lg);
   text-align: center;
 }
 
@@ -502,31 +417,33 @@
   width: 5rem;
   height: 5rem;
   margin-bottom: var(--space-3);
-  border-radius: 50%;
-  background: var(--color-warning-light);
-  color: var(--color-warning);
+  border-radius: var(--radius-lg);
+  background: var(--sun-tint);
+  color: var(--sun-ink);
+  box-shadow: 0 3px 0 var(--sun-deep);
 }
 
 .recovery-title {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-xl);
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .recovery-desc {
   margin: 0 0 var(--space-4);
   color: var(--color-text-muted);
   line-height: 1.7;
+  font-weight: 500;
 }
 
 /* الكود نفسه: خط ثابت العرض ومسافات واسعة عشان يتقرا حرف حرف من غير لبس -
-   المستخدم غالبًا هينقله بإيده على ورقة */
+   المستخدم غالبًا هينقله بإيده على ورقة. الإطار المتقطع = "قصّه من هنا". */
 .recovery-code {
   padding: var(--space-3);
   margin-bottom: var(--space-3);
-  border: 2px dashed var(--color-border-strong);
+  border: 2.5px dashed var(--line);
   border-radius: var(--radius);
-  background: var(--color-surface-alt);
+  background: var(--sun-tint);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--font-size-lg);
   font-weight: 700;
@@ -541,12 +458,19 @@
   min-height: var(--tap-min);
   margin-bottom: var(--space-4);
   padding: 0.5em 1.2em;
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--rule-strong);
   border-radius: var(--radius-pill);
-  background: var(--color-surface-alt);
+  background: var(--paper-2);
   color: var(--color-text);
   font: inherit;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 3px 0 var(--rule-strong);
+}
+
+.recovery-copy:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--rule-strong);
 }
 
 .recovery-confirm {
@@ -555,11 +479,13 @@
   justify-content: center;
   gap: 0.5em;
   margin-bottom: var(--space-3);
+  font-weight: 700;
   cursor: pointer;
 }
 
 .recovery-confirm input {
-  width: 1.3rem;
-  height: 1.3rem;
-  accent-color: var(--color-primary);
+  width: 1.4rem;
+  height: 1.4rem;
+  min-height: 0;
+  accent-color: var(--green);
 }

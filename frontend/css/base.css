@@ -30,14 +30,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Cairo خط متغيّر (variable font): المتصفح بيولّد أي وزن بين 400 و900 من ملف
-     واحد بدل ما ينزّل ملف لكل وزن. optical-sizing بيخلي الحروف تترسم بتفاصيل
-     مختلفة شوية حسب المقاس - أوضح في المقاسات الصغيرة وأرشق في العناوين. */
+  /* Cairo وKufam خطين متغيّرين (variable fonts): المتصفح بيولّد أي وزن بين 400
+     و900 من ملف واحد بدل ما ينزّل ملف لكل وزن. */
   font-optical-sizing: auto;
   font-synthesis-weight: none;
   /* أي كلمة أطول من عرض الحاوية (لينك، إيميل) تتكسر بدل ما تمدّ الصفحة أفقيًا */
   overflow-wrap: break-word;
-  /* تغيير المظهر (فاتح/داكن) بيتم بتبديل متغيرات على :root - الانتقال ده بيخلي
+  /* تغيير المظهر (فاتح/ليلي) بيتم بتبديل متغيرات على :root - الانتقال ده بيخلي
      التبديل يحصل بتدرّج ناعم بدل قفزة لون مفاجئة في وش المستخدم */
   transition: background-color var(--dur-3) var(--ease-out), color var(--dur-3) var(--ease-out);
 }
@@ -52,10 +51,13 @@ figure {
   margin: 0;
 }
 
+/* العناوين بصوت "المطبوع" (Kufam). سُمك 800 مش 900 كقاعدة: 900 للأرقام والأسماء
+   الكبيرة بس (شوف .display-* في identity.css)، وإلا الشاشة كلها بتبان بتزعق. */
 h1,
 h2,
 h3,
 h4 {
+  font-family: var(--font-display);
   line-height: var(--line-height-tight);
   font-weight: 800;
   /* بيوزّع كلمات العنوان على السطور بالتساوي بدل ما يسيب كلمة وحيدة في آخر
@@ -78,7 +80,7 @@ textarea {
 }
 
 button {
-  -webkit-tap-highlight-color: transparent; /* بنرسم حالة الضغط بنفسنا - التظليل الأزرق الافتراضي بيبوّظ شكل الزراير المدوّرة */
+  -webkit-tap-highlight-color: transparent; /* بنرسم حالة الضغط بنفسنا - التظليل الأزرق الافتراضي بيبوّظ شكل الزراير */
 }
 
 a {
@@ -88,7 +90,7 @@ a {
 }
 
 a:hover {
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 img,
@@ -103,15 +105,15 @@ svg {
 
 /* ---------- التركيز (focus) ----------
    :focus-visible بس - يعني الحلقة بتبان لمستخدم الكيبورد/التنقل المساعد،
-   ومبتظهرش لمستخدم الماوس/اللمس اللي مش محتاجها. ده مهم بالذات في تطبيق
-   زي ده: مساعدة كبير السن على التنقل بالكيبورد من غير ما نلخبط شكل الأزرار. */
+   ومبتظهرش لمستخدم الماوس/اللمس اللي مش محتاجها. الحبر مش الأخضر: هو اللون
+   الوحيد اللي ظاهر بنفس الوضوح فوق الورق وفوق الأخضر وفوق الغامق. */
 :focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
   border-radius: var(--radius-xs);
 }
 
-/* حقول الإدخال ليها حالة تركيز خاصة بيها (حلقة + إطار ملوّن) في components.css،
+/* حقول الإدخال ليها حالة تركيز خاصة بيها (حلقة + إطار) في components.css،
    فبنشيل الـ outline العام عنها عشان ميتراكبوش */
 input:focus-visible,
 select:focus-visible,
@@ -121,8 +123,8 @@ textarea:focus-visible {
 
 /* ---------- تحديد النص ---------- */
 ::selection {
-  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
-  color: var(--color-text);
+  background: var(--sun);
+  color: var(--on-sun);
 }
 
 /* ---------- شريط السكرول (كروم/سفاري/إيدج) ---------- */
@@ -163,13 +165,16 @@ textarea:focus-visible {
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
-/* النصوص اللاتينية الصريحة (اسم التطبيق بالإنجليزي، الأكواد، اللينكات).
-   Cairo بيرسم الحروف اللاتينية بشكل مقبول بس مش أكتر - الخط ده مصمّم للاتيني
-   فبيدّي الكلمات دي شكل مضبوط، والعربي اللي ممكن يتخلط معاه بيرجع لـ Cairo
-   تلقائيًا لأنه تاني حاجة في السلسلة. */
+/* النصوص اللاتينية الصريحة (الأكواد، اللينكات). */
 .latin {
   font-family: var(--font-family-latin);
   font-variant-numeric: tabular-nums;
+}
+
+/* صوت "المطبوع" لأي نص مش عنوان (اسم دوا، ساعة، رقم كبير) من غير ما نغيّر نوع الوسم */
+.display {
+  font-family: var(--font-display);
+  line-height: var(--line-height-tight);
 }
 
 /* ---------- كلاسات مساعدة عامة ---------- */

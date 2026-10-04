@@ -118,13 +118,13 @@ function SkeletonCards({ count = 3 }) {
 }
 
 // icon هنا اسم أيقونة من js/icons.jsx (مش إيموجي) - الأسماء المتاحة كلها
-// معرّفة في ICON_PATHS هناك.
+// معرّفة في ICON_PATHS هناك. الحالة الفاضية بتتعرض برسمة (js/components/Illustrations.jsx)
+// مش أيقونة في دايرة: EmptyArt بتختار الرسمة المناسبة من اسم الأيقونة، فأماكن
+// النداء القديمة متتغيّرتش.
 function EmptyState({ icon = 'inbox', text }) {
   return (
     <div className="empty-state">
-      <div className="empty-icon">
-        <Icon name={icon} size={46} strokeWidth={1.6} />
-      </div>
+      <EmptyArt icon={icon} />
       <p>{text}</p>
     </div>
   );
@@ -414,9 +414,6 @@ function Modal({
         data-at-top={edges.top ? 'true' : 'false'}
         data-at-bottom={edges.bottom ? 'true' : 'false'}
       >
-        {/* شريط تدرّج الهوية على حرف النافذة العلوي */}
-        <span className="modal-accent" aria-hidden="true" />
-
         {/* منطقة المسك: المقبض + الهيدر. السحب من هنا بس - مش من جسم الفورم،
             عشان محدش يقفل النافذة وهو بيحاول يسكرول الحقول اللي جواها. */}
         <div
@@ -471,6 +468,16 @@ function Modal({
 function formatTime(dateStr) {
   const d = new Date(String(dateStr).replace(' ', 'T'));
   return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+}
+
+/* الساعة مقسومة لجزئين: "٦:١٧" و"م". بتتعرض بخط ضخم (الساعة) وصغير (ص/م) جنب بعض في
+   كارت الجرعة والتذكرة. الساعة من غير صفر في الأول ("٦:١٧" مش "٠٦:١٧") - أسهل في
+   القراية الكبيرة. نفس قراية formatTime بالظبط (الوقت المكتوب زي ما هو). */
+function formatClockParts(dateStr) {
+  const d = new Date(String(dateStr).replace(' ', 'T'));
+  const text = d.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' });
+  const pieces = text.split(/\s+/).filter(Boolean);
+  return { clock: pieces[0] || text, ampm: pieces[1] || '' };
 }
 
 function formatDateTime(dateStr) {
