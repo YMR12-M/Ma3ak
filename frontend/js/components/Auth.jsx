@@ -10,67 +10,55 @@
    يستنى يسكرول عشان يسجّل دخول.
    ============================================ */
 
-// مصدر واحد لقايمة المميزات - أي ميزة جديدة تتضاف هنا وبتظهر في الشاشة على طول.
-// النبرة (tone) بتحدد لون دايرة الأيقونة بس، عشان الشبكة متبقاش لون واحد ممل.
+// مصدر واحد لقايمة المميزات - أي ميزة جديدة تتضاف هنا وبتظهر في الروشتة على طول.
+// كل ميزة سطر في الروشتة: علامة صح + عنوان + وصف. مفيش أيقونات ولا ألوان لكل
+// ميزة: الشبكة المتساوية بالأيقونات الملوّنة هي بالظبط الشكل اللي الروشتة جت
+// بدله (شوف تعليق أول css/auth.css).
 const APP_FEATURES = [
   {
-    icon: 'pill',
     title: 'مواعيد الدوا',
     desc: 'كل جرعة في ميعادها، والمريض بيأكد إنه خدها بضغطة واحدة.',
   },
   {
-    icon: 'bell',
     title: 'منبه بيوصل والتطبيق مقفول',
     desc: 'إشعار ورنّة أول ما الميعاد ييجي، وزرار "خدته" شغّال من جوّه الإشعار نفسه.',
-    tone: 'accent',
   },
   {
-    icon: 'alert',
     title: 'لو الجرعة فاتت، المتابع بيعرف',
     desc: 'تذكير تاني، وبعدها تنبيه للمتابع، وبعدها تصعيد لو المريض مردّش خالص.',
-    tone: 'danger',
   },
   {
-    icon: 'alert',
     title: 'زرار "حصلت مشكلة؟"',
     desc: 'الدوا خلص؟ حاسس بتعب؟ عايز حد يكلمك؟ ضغطة واحدة والخبر بيوصلك فورًا.',
-    tone: 'danger',
   },
   {
-    icon: 'calendar',
     title: 'المواعيد الطبية',
     desc: 'مواعيد الدكاترة والتحاليل، مع تذكير تلقائي قبل الموعد بـ 24 ساعة.',
-    tone: 'info',
   },
   {
-    icon: 'stethoscope',
     title: 'القياسات الصحية',
     desc: 'ضغط، سكر، وزن، نبض، وحرارة - كل قياس متسجّل بتاريخه وقدامك في أي وقت.',
   },
   {
-    icon: 'link',
     title: 'المريض بيدخل بلينك واحد',
     desc: 'من غير حساب ولا باسورد يحفظه - يدوس على اللينك ويلاقي كل حاجة جاهزة.',
-    tone: 'info',
   },
   {
-    icon: 'users',
     title: 'أكتر من متابع',
     desc: 'الإخوات كلهم يتابعوا نفس الشخص بكود مشاركة، وكل واحد شايف نفس البيانات.',
-    tone: 'accent',
   },
   {
-    icon: 'install',
     title: 'يتثبّت زي أي تطبيق',
     desc: 'شغال على الموبايل والكمبيوتر، وممكن تحطه على شاشتك الرئيسية بضغطة.',
   },
 ];
 
+// الأختام اللي تحت الروشتة. tone بيحدد لون الختم (css/identity.css).
 const APP_BADGES = [
-  { icon: 'textSize', label: 'خط كبير وأزرار واسعة' },
-  { icon: 'moon', label: 'وضع ليلي' },
-  { icon: 'speaker', label: 'نطق صوتي للجرعة' },
-  { icon: 'speech', label: 'عربي بالكامل' },
+  { icon: 'textSize', label: 'خط كبير وأزرار واسعة', tone: 'blue' },
+  { icon: 'moon', label: 'وضع ليلي', tone: 'ink' },
+  { icon: 'speaker', label: 'نطق صوتي للجرعة', tone: 'green' },
+  { icon: 'speech', label: 'عربي بالكامل', tone: 'coral' },
 ];
 
 function AuthScreen({ onAuthenticated, initialError }) {
@@ -132,20 +120,17 @@ function AuthScreen({ onAuthenticated, initialError }) {
 
   return (
     <div className="auth-screen">
-      {/* خلفية لونية متحركة + طبقة حبيبات فوقها - ديكور بحت، متخفي عن قارئ الشاشة.
-          الحبيبات مش زينة: من غيرها التدرّجات الواسعة بتطلع فيها أحزمة لونية
-          واضحة على الشاشات العادية (شوف .auth-grain في auth.css). */}
-      <div className="auth-mesh" aria-hidden="true" />
-      <div className="auth-grain" aria-hidden="true" />
-
       <div className="auth-layout">
+        {/* العنوان الوحيد في الصفحة لقارئ الشاشة: العلامة المرسومة (فوق الكارت على
+            الموبايل وفي الروشتة على الديسكتوب) مش عنوان - هي صورة بـ aria-label. */}
+        <h1 className="sr-only">معاك - متابعة كبار السن</h1>
+
         <section className="auth-panel">
           <div className="auth-card">
             <div className="auth-card-header">
-              <div className="auth-card-logo" aria-hidden="true">
-                <Icon name="brand" size={38} strokeWidth={1.8} />
+              <div className="auth-card-title">
+                <Wordmark />
               </div>
-              <h1 className="auth-card-title">معاك</h1>
               <p className="auth-card-tag">في كل خطوة، معاك</p>
             </div>
 
@@ -219,42 +204,49 @@ function AuthScreen({ onAuthenticated, initialError }) {
         )}
 
         <section className="auth-showcase">
-          <div className="auth-brand">
-            <div className="auth-logo" aria-hidden="true">
-              <Icon name="brand" size={44} strokeWidth={1.7} />
-            </div>
-            <div>
-              <h2 className="auth-title text-gradient">معاك</h2>
-              <p className="auth-tagline">في كل خطوة، معاك</p>
-            </div>
-          </div>
+          <div className="rx-sheet">
+            <span className="rx-symbol" aria-hidden="true">
+              Rx
+            </span>
 
-          <p className="auth-pitch">
-            تطبيق واحد بيخلي متابعة كبير السن أسهل: <strong>إنت</strong> بتجهّز الأدوية والمواعيد
-            من موبايلك، و<strong>هو</strong> بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة.
-          </p>
-
-          <ul className="auth-features stagger">
-            {APP_FEATURES.map((f) => (
-              <li key={f.title} className="auth-feature">
-                <span className={`auth-feature-icon${f.tone ? ` tone-${f.tone}` : ''}`} aria-hidden="true">
-                  <Icon name={f.icon} size={24} />
-                </span>
-                <div>
-                  <div className="auth-feature-title">{f.title}</div>
-                  <div className="auth-feature-desc">{f.desc}</div>
+            <header className="rx-head">
+              <div>
+                <div className="rx-brand">
+                  <Wordmark />
                 </div>
-              </li>
-            ))}
-          </ul>
+                <p className="rx-tagline">في كل خطوة، معاك</p>
+                <p className="rx-pitch">
+                  تطبيق واحد بيخلي متابعة كبير السن أسهل: <strong>إنت</strong> بتجهّز الأدوية
+                  والمواعيد من موبايلك، و<strong>هو</strong> بيفتح شاشة واحدة بسيطة فيها جرعة
+                  واحدة بس كل مرة.
+                </p>
+              </div>
+              {/* علبة الأقراص الأسبوعية: خانتين مفتوحتين والنهارده معلّم عليها */}
+              <PillBoxArt className="rx-art" open={[2, 5]} highlight={3} />
+            </header>
 
-          <div className="auth-badges">
-            {APP_BADGES.map((b) => (
-              <span key={b.label} className="auth-badge">
-                <Icon name={b.icon} size={16} />
-                {b.label}
-              </span>
-            ))}
+            <p className="rx-label">اللي هتلاقيه جوّه التطبيق:</p>
+            <ul className="rx-list stagger">
+              {APP_FEATURES.map((f) => (
+                <li key={f.title} className="rx-item">
+                  <span className="rx-check" aria-hidden="true">
+                    <Icon name="check" size={18} strokeWidth={3.4} />
+                  </span>
+                  <div>
+                    <div className="rx-title">{f.title}</div>
+                    <div className="rx-desc">{f.desc}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="rx-stamps">
+              {APP_BADGES.map((b) => (
+                <Stamp key={b.label} tone={b.tone} icon={b.icon}>
+                  {b.label}
+                </Stamp>
+              ))}
+            </div>
           </div>
         </section>
       </div>
@@ -363,9 +355,6 @@ function RecoveryCodeScreen({ code, onContinue }) {
 
   return (
     <div className="auth-screen">
-      <div className="auth-mesh" aria-hidden="true" />
-      <div className="auth-grain" aria-hidden="true" />
-
       <div className="recovery-screen">
         <div className="recovery-card">
           <div className="recovery-icon" aria-hidden="true">

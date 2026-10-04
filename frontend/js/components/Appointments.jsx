@@ -122,7 +122,9 @@ function AppointmentsView({ patientId }) {
 function AppointmentCard({ appt, onEdit, onDelete }) {
   return (
     <Card className="appt-card">
-      <div>
+      {/* نتيجة صغيرة بتاريخ الموعد - نفس ورقة شاشة المريض */}
+      <CalendarLeaf date={parseCairoDatetime(appt.appointment_at)} size={12} />
+      <div className="appt-body">
         <div className="appt-title">{appt.title}</div>
         {(appt.doctor_name || appt.location) && (
           <div className="appt-meta">

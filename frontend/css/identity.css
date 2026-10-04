@@ -1,0 +1,530 @@
+/* ============================================
+   MA3ak (معاك) - Identity
+   العناصر اللي بتخلّي التطبيق ده يبان تطبيق دوا بتاع عيلة مصرية، مش واجهة
+   عامة بتتلوّن بلون المشروع. كل واحد فيهم شيء حقيقي من بيت فيه كبير سن بياخد
+   دوا، ومعناه معروف قبل ما حد يتعلّمه:
+
+     .wm        علامة "معاك": الألف كبسولة (اتنين نص = معاك)
+     .leaf      نتيجة الحيط: ورقة اليوم بتاريخه (تثبيت للتاريخ عند كبير السن)
+     .blister   شريط الدوا: جرعة لكل فقاعة، والفقاعة بتتفرقع لما الجرعة تتاخد
+     .stamp     ختم الصيدلية: "اتاخدت"، "فاتت" - حالة مكتوبة مش لون بس
+     .sticker   ملصق الصيدلي على العلبة: "بعد الأكل" - تعليمات الدكتور
+     .ticket    تذكرة الجرعة: كعب ملوّن بفترة اليوم + خط تقطيع
+     .part-*    فترات اليوم: الصبح / الضهر / المسا / الليل
+
+   كل لون هنا من tokens.css، وكل اتجاه بخصائص منطقية (RTL).
+   ============================================ */
+
+/* ============================================
+   فترات اليوم
+   الكلاس بيحط 5 متغيّرات، وأي عنصر جواه (تذكرة، فقاعة، علامة) بيقراهم:
+   --part (المصمت) / --part-deep (الحافة) / --part-tint (الخلفية) /
+   --part-ink (النص على tint) / --part-on (النص على المصمت)
+   ============================================ */
+
+.part-morning { --part: var(--part-morning); --part-deep: var(--part-morning-deep); --part-tint: var(--part-morning-tint); --part-ink: var(--part-morning-ink); --part-on: var(--part-morning-on); }
+.part-noon    { --part: var(--part-noon);    --part-deep: var(--part-noon-deep);    --part-tint: var(--part-noon-tint);    --part-ink: var(--part-noon-ink);    --part-on: var(--part-noon-on); }
+.part-evening { --part: var(--part-evening); --part-deep: var(--part-evening-deep); --part-tint: var(--part-evening-tint); --part-ink: var(--part-evening-ink); --part-on: var(--part-evening-on); }
+.part-night   { --part: var(--part-night);   --part-deep: var(--part-night-deep);   --part-tint: var(--part-night-tint);   --part-ink: var(--part-night-ink);   --part-on: var(--part-night-on); }
+
+/* علامة صغيرة: أيقونة الفترة + اسمها */
+.part-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 10px;
+  border: 1.5px solid var(--part-deep, var(--rule-strong));
+  border-radius: var(--radius-pill);
+  background: var(--part-tint, var(--paper-3));
+  color: var(--part-ink, var(--ink-2));
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ============================================
+   علامة معاك
+   ============================================
+
+   "معاك" = "مع" + الألف + "ك". والألف عندنا كبسولة واقفة: نص أصفر ونص أخضر
+   بينهم فجوة رفيعة - اتنين نص بيكمّلوا بعض، ودي بالظبط فكرة الاسم.
+
+   الفجوة بين النصفين شفافة مش خط بلون الخلفية: العلامة بتتحط على ورق وعلى
+   كارت وعلى أخضر، ومفيش لون واحد يظبط في كل الأماكن.
+
+   المقاس كله بالـ em: --wm هو حجم الخط. الكبسولة 0.2em عرضها و0.78em طولها،
+   وده طول ألف Kufam الحقيقية - فهي بتقعد مكان الألف مظبوطة على أي مقاس. */
+.wm {
+  display: inline-flex;
+  align-items: baseline;
+  direction: rtl;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: var(--wm, 1em);
+  line-height: 1;
+  letter-spacing: 0; /* ممنوع تباعد حروف على العربي: بيقطع الوصلات */
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* inline-block فاضي (مش flex): الـ baseline بتاعه حرف الصندوق السفلي، فالكبسولة
+   بتقف على خط الكتابة بالظبط زي الألف. النصفين طبقتين خلفية جوه نفس العنصر،
+   والحواف الخارجية المدوّرة جاية من border-radius بتاعه - والفجوة بينهم شفافة. */
+.wm-caps {
+  display: inline-block;
+  width: 0.2em;
+  height: 0.78em;
+  margin-inline: 0.025em 0.02em;
+  border-radius: 99px;
+  background:
+    linear-gradient(var(--sun), var(--sun)) top / 100% calc(50% - 0.0175em) no-repeat,
+    linear-gradient(var(--green), var(--green)) bottom / 100% calc(50% - 0.0175em) no-repeat;
+  transform: rotate(var(--wm-tilt, 6deg));
+  transform-origin: 50% 100%;
+}
+
+/* ============================================
+   نتيجة الحيط (.leaf)
+   ============================================
+
+   كل بيت مصري فيه نتيجة على الحيط: ورقة بتتقطع كل يوم، فيها التاريخ بخط ضخم.
+   ده أقدم "تذكير بالتاريخ" عند كبير السن، وهو بالظبط اللي محتاجه: ناس بتنسى
+   النهاردة إيه، والتطبيق بيقولها قبل ما تسأل.
+
+   المقاس بالـ em: غيّر font-size على .leaf وكل حاجة بتكبر/تصغر معاها. */
+.leaf {
+  position: relative;
+  flex: none;
+  width: 5.8em;
+  font-size: 16px;
+  text-align: center;
+  background: var(--paper-2);
+  border: 2px solid var(--line);
+  border-radius: 0.75em;
+  box-shadow: 0 0.25em 0 var(--line);
+  overflow: hidden;
+  animation: leaf-in var(--dur-4) var(--ease-out) backwards;
+}
+
+.leaf-month {
+  position: relative;
+  display: block;
+  padding: 0.55em 0 0.5em;
+  background: var(--coral);
+  color: var(--on-coral);
+  font-family: var(--font-display);
+  font-size: 0.94em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* خرمين التعليق: دايرتين بلون الورقة بنص حافة */
+.leaf-month::before,
+.leaf-month::after {
+  content: '';
+  position: absolute;
+  top: -0.4em;
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--line);
+}
+
+.leaf-month::before { inset-inline-start: 0.9em; }
+.leaf-month::after { inset-inline-end: 0.9em; }
+
+.leaf-day {
+  display: block;
+  padding-top: 0.04em;
+  font-family: var(--font-display);
+  font-size: 3.3em;
+  font-weight: 900;
+  line-height: 1.08;
+  color: var(--ink);
+}
+
+.leaf-week {
+  display: block;
+  padding-bottom: 0.6em;
+  font-size: 0.94em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-2);
+}
+
+/* ============================================
+   شريط الدوا (.blister)
+   ============================================
+
+   رقاقة بفقاعة لكل جرعة النهارده. بتحل مكان النقط الصغيرة (16px) اللي كانت
+   بتمثّل نفس المعلومة: الفقاعة هنا 38px، يعني كبير السن يشوف حالة كل جرعة من
+   غير ما يضيّق عينه.
+
+   الحالات (مش اللون لوحده - كل حالة ليها علامة جواها):
+     .bub-locked   قرص جوّاها: لسه مجاش ميعادها
+     .bub-open     قرص جوّاها + حلقة بتنبض: وقتها دلوقتي
+     .bub-taken    فاضية + علامة صح: اتفرقعت
+     .bub-missed   فاضية + علامة × : فاتت
+   .bub-fresh بتتضاف لحظة ما الجرعة تتاخد: الفقاعة بتتفرقع والقرص بيطلع. */
+.blister {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+  margin: 0;
+  padding: 11px 14px;
+  list-style: none;
+  background: var(--foil);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.bub {
+  --bub: 38px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--bub);
+  height: var(--bub);
+  border-radius: 50%;
+  background: var(--paper-2);
+  border: 2px solid var(--line);
+  /* عمق الفقاعة: ضلّ داخلي صلب من فوق */
+  box-shadow: inset 0 3px 0 rgba(27, 35, 64, 0.14);
+}
+
+.bub-pill {
+  display: block;
+  width: 20px;
+  height: 9px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--part, var(--sun)) 0 50%, var(--paper-2) 50% 100%);
+  transform: rotate(-40deg);
+}
+
+.bub .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.bub-open {
+  background: var(--part-tint, var(--sun-tint));
+  box-shadow: 0 0 0 3px var(--paper-2), 0 0 0 5px var(--line);
+}
+
+.bub-open .bub-pill {
+  width: 22px;
+  height: 10px;
+}
+
+/* الحلقة اللي بتنبض: "دي اللي وقتها دلوقتي". واحدة بس في الشريط. */
+.bub-open::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  animation: pulse-ring 2.2s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+.bub-taken {
+  background: var(--paper-3);
+  box-shadow: none;
+}
+
+.bub-taken .icon {
+  color: var(--green-ink);
+}
+
+.bub-missed {
+  background: var(--coral-tint);
+  box-shadow: none;
+}
+
+.bub-missed .icon {
+  color: var(--coral-ink);
+}
+
+.bub-fresh {
+  animation: bubble-pop var(--dur-4) var(--ease-spring);
+}
+
+.bub-fresh .icon {
+  animation: check-pop var(--dur-4) var(--ease-spring) var(--dur-2) backwards;
+}
+
+/* ============================================
+   الختم (.stamp)
+   ============================================
+
+   حالة مكتوبة بحرف بارز في إطار مزدوج ومايل شوية، زي ختم الصيدلية على
+   الروشتة. مش شارة ملونة: الكلمة نفسها هي المعلومة، واللون تأكيد. يعني
+   "فاتت" مقروءة حتى لو الشاشة أبيض وأسود.
+
+   الميلان (--stamp-rot) مقصود: ختم مستقيم تمامًا بيبان طابعة، المايل بيبان
+   إيد. وبييجي بالـ transform عشان حركة .stamp-fresh (الختم بينزل بخبطة) تعرفه. */
+.stamp {
+  --stamp-rot: -5deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.32em 0.75em 0.26em;
+  border: 2.5px solid currentColor;
+  border-radius: 7px;
+  outline: 1.5px solid currentColor;
+  outline-offset: -6px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transform: rotate(var(--stamp-rot));
+}
+
+.stamp .icon {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.stamp-green { color: var(--green-ink); }
+.stamp-coral { color: var(--coral-ink); }
+.stamp-blue  { color: var(--blue-ink); }
+.stamp-sun   { color: var(--sun-ink); }
+.stamp-ink   { color: var(--ink-2); }
+.stamp-flip  { --stamp-rot: 3.5deg; }
+
+.stamp-big {
+  padding: 0.36em 0.9em 0.3em;
+  border-width: 4px;
+  outline-width: 2px;
+  outline-offset: -9px;
+  font-size: var(--font-size-xl);
+}
+
+.stamp-fresh {
+  animation: stamp-in var(--dur-4) var(--ease-spring) backwards;
+}
+
+/* ============================================
+   ملصق الصيدلي (.sticker)
+   ============================================
+
+   الصيدلي بيكتب "بعد الأكل بساعة" بقلم فلوماستر على العلبة أو على ورقة صغيرة
+   ملزوقة بشريط. تعليمات الدكتور هنا بتاخد نفس الشكل: ورقة صفرا مايلة
+   بحافة متقطعة وشريط لاصق - مختلفة عن أي سطر تاني على الشاشة عن قصد، لأنها مش
+   تفصيلة عن الجرعة، دي شرط على طريقة أخدها. */
+.sticker {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 1.1em auto 0.4em;
+  padding: 0.5em 1em;
+  background: var(--sun-tint);
+  border: 2px dashed var(--sun-deep);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  transform: rotate(-1.2deg);
+}
+
+/* الشريط اللاصق */
+.sticker::before {
+  content: '';
+  position: absolute;
+  top: -0.7em;
+  inset-inline-start: calc(50% - 1.7em);
+  width: 3.4em;
+  height: 0.95em;
+  background: color-mix(in srgb, var(--paper-2) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  transform: rotate(-4deg);
+}
+
+.sticker .icon {
+  display: inline-block;
+  vertical-align: -0.2em;
+  margin-inline-end: 0.3em;
+}
+
+/* ============================================
+   تذكرة الجرعة (.ticket)
+   ============================================
+
+   كعب ملوّن بلون فترة اليوم (فيه أيقونة الفترة والساعة بخط ضخم) + خط تقطيع
+   متقطع + جسم فيه اسم الدوا. زي تذكرة سينما: الكعب هو "امتى"، والجسم هو "إيه".
+   نص الدايرتين اللي على خط التقطيع بيفتكّروك بالتذكرة وبيبانوا قاطعين الحافة.
+
+   --stub هو عرض الكعب، وبيتحكم في مكان الدايرتين كمان - لو اتغيّر في مكان
+   واحد الاتنين بيتحركوا مع بعض. */
+.ticket {
+  --stub: 104px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--stub) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--paper-2);
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ticket-stub {
+  align-self: stretch;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  background: var(--part-tint, var(--sun-tint));
+  border-inline-end: 2px dashed var(--rule-strong);
+  color: var(--part-ink, var(--ink));
+}
+
+.ticket-time {
+  font-family: var(--font-display);
+  font-size: calc(var(--font-size-md) + 4px);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-ampm {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+/* دايرتين التقطيع */
+.ticket::before,
+.ticket::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(var(--stub) - 8px);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--rule-strong);
+}
+
+.ticket::before { top: -8px; }
+.ticket::after { bottom: -8px; }
+
+.ticket-main {
+  min-width: 0;
+  padding-block: var(--space-1);
+}
+
+.ticket-name {
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.ticket-meta {
+  color: var(--ink-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.ticket-end {
+  display: flex;
+  align-items: center;
+  padding-inline-end: var(--space-2);
+}
+
+/* اللي خلص بيهدى: الكعب بيفضل ملوّن (الفترة معلومة) بس الجسم بيبهت */
+.ticket.is-done .ticket-main {
+  opacity: 0.75;
+}
+
+/* موبايل: الطرف (زرار "اتاخد" أو الختم) بينزل تحت اسم الدوا بدل ما ياخد عمود جنبه.
+   اسم زي "أتورفاستاتين" كان بيتكسّر نص كلمة لأن العمود اللي بيستناه أضيق من الكلمة،
+   وده بيزيد مع الخط الكبير. الكعب الملوّن بيفضل ماسك ارتفاع التذكرة كلها. */
+@media (max-width: 520px) {
+  .ticket {
+    --stub: 92px;
+    grid-template-columns: var(--stub) minmax(0, 1fr);
+    column-gap: var(--space-2);
+    row-gap: 0;
+    align-items: start;
+  }
+
+  .ticket-stub {
+    grid-row: 1 / span 2;
+    align-self: stretch;
+  }
+
+  .ticket-main {
+    grid-column: 2;
+    grid-row: 1;
+    padding-inline-end: var(--space-2);
+  }
+
+  .ticket-end {
+    grid-column: 2;
+    grid-row: 2;
+    padding-block: 0 var(--space-2);
+    padding-inline: 0 var(--space-2);
+  }
+
+  .ticket-end:empty {
+    display: none;
+  }
+
+  /* زرار الطرف بعرض العمود كله: هدف لمس أعرض لكبير السن */
+  .ticket-end .btn,
+  .ticket-end .patient-secondary-take {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ticket-time {
+    font-size: var(--font-size-md);
+  }
+}
+
+/* ============================================
+   تمييز العنوان بقلم هايلايتر (.marker)
+   ============================================
+
+   خط أصفر عريض ورا آخر سطر في العنوان - زي ما حد علّم على ورقة. بيحل مكان
+   الشرطة المتدرّجة اللي كانت تحت كل عنوان. */
+.marker {
+  background: linear-gradient(transparent 58%, var(--sun-tint) 58% 90%, transparent 90%);
+  padding-inline: 0.12em;
+  margin-inline: -0.12em;
+}
+
+/* ============================================
+   الرسومات (.illo)
+   ============================================
+
+   الرسومات بتتكتب في js/components/Illustrations.jsx بنفس ألوان التطبيق
+   (متغيرات CSS جوه الـ SVG)، فبتتحول للوضع الليلي لوحدها. الحاوية دي بتحجز
+   المقاس وبتمنع الرسمة تتمدد برّه مكانها. */
+.illo {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}

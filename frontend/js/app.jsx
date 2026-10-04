@@ -273,17 +273,9 @@ function App() {
   }, [user]);
 
   if (booting) {
-    return (
-      <div className="boot-screen">
-        {/* شاشة الإقلاع بتبان جزء من ثانية غالبًا - بس لما النت بطيء بتفضل
-            ثواني، فالأفضل تبقى شاشة براند حقيقية مش دايرة بتلف على أبيض */}
-        <div className="boot-logo" aria-hidden="true">
-          <Icon name="brand" size={46} strokeWidth={1.7} />
-        </div>
-        <div className="boot-name">معاك</div>
-        <Spinner />
-      </div>
-    );
+    // شاشة الإقلاع بتبان جزء من ثانية غالبًا - بس لما النت بطيء بتفضل ثواني،
+    // فالأفضل تبقى شاشة براند حقيقية مش دايرة بتلف على أبيض (Brand.jsx)
+    return <BootScreen />;
   }
 
   if (!user) {

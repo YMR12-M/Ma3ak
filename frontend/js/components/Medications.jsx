@@ -94,12 +94,16 @@ function MedicationsView({ patientId }) {
                   </div>
                   {m.dosage && <div className="med-dosage">{m.dosage}</div>}
                   <div className="med-times">
-                    {times.map((t) => (
-                      <span key={t} className="chip">
-                        <Icon name="clock" size={15} />
-                        {t}
-                      </span>
-                    ))}
+                    {/* كل ميعاد بلون فترته (صبح/ضهر/مسا/ليل) زي علبة الأقراص */}
+                    {times.map((t) => {
+                      const part = dayPartOfTime(t);
+                      return (
+                        <span key={t} className={`chip part-${part.key}`}>
+                          <Icon name={part.icon} size={15} />
+                          {t}
+                        </span>
+                      );
+                    })}
                     {/* الأيام بتبان بس لو مش "كل يوم" - إضافة شارة "كل يوم" على
                         كل دواء كانت هتزوّد ضجيج على القايمة من غير أي معلومة */}
                     {describeDays(m.days_of_week) && (

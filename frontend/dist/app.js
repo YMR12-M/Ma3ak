@@ -463,12 +463,75 @@
           cairoOffsetMinutesAt
         };
       }
+      /*! ===== js/dayParts.js ===== */
+      const DAY_PARTS = {
+        morning: { key: "morning", label: "الصبح", icon: "sunrise" },
+        noon: { key: "noon", label: "الضهر", icon: "sun" },
+        evening: { key: "evening", label: "المسا", icon: "sunset" },
+        night: { key: "night", label: "الليل", icon: "moon" }
+      };
+      const MORNING_FROM = 5;
+      const NOON_FROM = 12;
+      const EVENING_FROM = 17;
+      const NIGHT_FROM = 22;
+      function dayPartKeyOfHour(hour) {
+        const h = Number(hour);
+        if (h >= NIGHT_FROM || h < MORNING_FROM) return "night";
+        if (h >= EVENING_FROM) return "evening";
+        if (h >= NOON_FROM) return "noon";
+        return "morning";
+      }
+      function hourOfTimeString(value) {
+        const match = String(value == null ? "" : value).match(/(?:^|[ T])(\d{1,2}):(\d{2})/);
+        return match ? Number(match[1]) : null;
+      }
+      function dayPartOfTime(value) {
+        const hour = hourOfTimeString(value);
+        return DAY_PARTS[hour === null ? "morning" : dayPartKeyOfHour(hour)];
+      }
+      function cairoHourOf(date) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Africa/Cairo",
+          hour: "2-digit",
+          hour12: false
+        }).formatToParts(date || /* @__PURE__ */ new Date());
+        const hour = Number(parts.find((p) => p.type === "hour").value);
+        return hour === 24 ? 0 : hour;
+      }
+      function greetingOfHour(hour) {
+        const h = Number(hour);
+        if (h >= MORNING_FROM && h < NOON_FROM) return "صباح الخير";
+        if (h >= NOON_FROM && h < NIGHT_FROM) return "مساء الخير";
+        return "أهلاً";
+      }
+      function leafParts(date) {
+        const when = date || /* @__PURE__ */ new Date();
+        const format = (options) => new Intl.DateTimeFormat("ar-EG-u-ca-gregory-nu-arab", __spreadValues({ timeZone: "Africa/Cairo" }, options)).format(when);
+        let weekday = format({ weekday: "long" });
+        if (weekday === "الاثنين" || weekday === "الإثنين") weekday = "الإتنين";
+        return {
+          day: format({ day: "numeric" }),
+          month: format({ month: "long" }),
+          year: format({ year: "numeric" }),
+          weekday
+        };
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          DAY_PARTS,
+          dayPartKeyOfHour,
+          hourOfTimeString,
+          dayPartOfTime,
+          cairoHourOf,
+          greetingOfHour,
+          leafParts
+        };
+      }
       /*! ===== js/icons.jsx ===== */
       const ICON_PATHS = {
-        /* ---------- الهوية ---------- */
-        // شعار معاك: قلب + خط نبض جواه (رعاية + متابعة صحية)
-        brand: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M12 20.8 4.4 13.3a5 5 0 1 1 7.6-6.4 5 5 0 1 1 7.6 6.4Z" }), /* @__PURE__ */ React.createElement("path", { d: "M4.6 12.4h3.1l1.6-3 2.2 5.6 1.7-3.3 1 .7h5.2" })),
-        /* ---------- التنقّل ---------- */
+        /* ---------- التنقّل ----------
+           (علامة معاك مش هنا: هي مش أيقونة خطوط بلون النص، هي كلمة بكبسولة ملوّنة -
+           شوف Wordmark في js/components/Brand.jsx. وكانت هنا أيقونة قلب بنبض، اتشالت.) */
         home: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M3.6 10.4 12 3.5l8.4 6.9V19.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8Z" }), /* @__PURE__ */ React.createElement("path", { d: "M9.4 21.4v-6.6h5.2v6.6" })),
         pill: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("rect", { x: "1.9", y: "8.4", width: "20.2", height: "7.2", rx: "3.6", transform: "rotate(-45 12 12)" }), /* @__PURE__ */ React.createElement("path", { d: "M9.5 9.5 14.5 14.5" })),
         calendar: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("rect", { x: "3.2", y: "5", width: "17.6", height: "16", rx: "3.2" }), /* @__PURE__ */ React.createElement("path", { d: "M3.2 10.2h17.6M8.2 2.8v4.2M15.8 2.8v4.2" }), /* @__PURE__ */ React.createElement("circle", { cx: "8.4", cy: "14.4", r: "1.15", fill: "currentColor", stroke: "none" }), /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "14.4", r: "1.15", fill: "currentColor", stroke: "none" }), /* @__PURE__ */ React.createElement("circle", { cx: "15.6", cy: "14.4", r: "1.15", fill: "currentColor", stroke: "none" })),
@@ -517,6 +580,12 @@
         /* ---------- الإعدادات ---------- */
         sun: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "4.2" }), /* @__PURE__ */ React.createElement("path", { d: "M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6" })),
         moon: /* @__PURE__ */ React.createElement("path", { d: "M20.6 14.7A8.7 8.7 0 0 1 9.3 3.4 8.9 8.9 0 1 0 20.6 14.7Z" }),
+        /* ---------- فترات اليوم ----------
+           الصبح والضهر والمسا والليل: أيقونة لكل فترة (شوف js/dayParts.js). الصبح
+           والمسا نص شمس على الأفق - السهم لفوق للشروق ولتحت للغروب، فالفرق بينهم
+           مش في اللون لوحده. الضهر هو "sun" والليل هو "moon" اللي فوق. */
+        sunrise: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M7 18a5 5 0 0 1 10 0" }), /* @__PURE__ */ React.createElement("path", { d: "M12 3.2v5M9.6 5.6 12 3.2l2.4 2.4" }), /* @__PURE__ */ React.createElement("path", { d: "M4.6 11.4l1.5 1.5M19.4 11.4l-1.5 1.5M2.4 18h19.2M6.4 21.6h11.2" })),
+        sunset: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M7 18a5 5 0 0 1 10 0" }), /* @__PURE__ */ React.createElement("path", { d: "M12 3.2v5M9.6 6 12 8.4 14.4 6" }), /* @__PURE__ */ React.createElement("path", { d: "M4.6 11.4l1.5 1.5M19.4 11.4l-1.5 1.5M2.4 18h19.2M6.4 21.6h11.2" })),
         textSize: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M2.6 19.4 7.6 5.6l5 13.8M4.4 15.2h6.4" }), /* @__PURE__ */ React.createElement("path", { d: "M14.2 19.4 17.6 10.6 21 19.4M15.4 16.2h4.4" })),
         speech: /* @__PURE__ */ React.createElement("path", { d: "M21 11.7a8.4 8.4 0 0 1-12.1 7.5L3.4 20.6l1.4-5.2A8.4 8.4 0 1 1 21 11.7Z" })
       };
@@ -541,6 +610,229 @@
           },
           paths
         );
+      }
+      /*! ===== js/components/Brand.jsx ===== */
+      function Wordmark({ size, tilt, split = false, className = "" }) {
+        const style = {};
+        if (size) style["--wm"] = `${size}px`;
+        if (tilt != null) style["--wm-tilt"] = `${tilt}deg`;
+        return /* @__PURE__ */ React.createElement("span", { className: `wm ${className}`.trim(), style, role: "img", "aria-label": "معاك" }, /* @__PURE__ */ React.createElement("span", { className: "wm-l", "aria-hidden": "true" }, "مع"), /* @__PURE__ */ React.createElement("i", { className: `wm-caps${split ? " wm-caps-split" : ""}`, "aria-hidden": "true" }, split && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("b", null), /* @__PURE__ */ React.createElement("b", null))), /* @__PURE__ */ React.createElement("span", { className: "wm-l", "aria-hidden": "true" }, "ك"));
+      }
+      function Stamp({ tone = "ink", big = false, flip = false, fresh = false, icon, className = "", children }) {
+        const classes = ["stamp", `stamp-${tone}`];
+        if (big) classes.push("stamp-big");
+        if (flip) classes.push("stamp-flip");
+        if (fresh) classes.push("stamp-fresh");
+        if (className) classes.push(className);
+        return /* @__PURE__ */ React.createElement("span", { className: classes.join(" ") }, icon && /* @__PURE__ */ React.createElement(Icon, { name: icon, size: 18, strokeWidth: 2.6 }), children);
+      }
+      function CalendarLeaf({ date, size = 16 }) {
+        const p = leafParts(date);
+        return /* @__PURE__ */ React.createElement("div", { className: "leaf", style: { fontSize: size }, role: "img", "aria-label": `النهارده ${p.weekday} ${p.day} ${p.month} ${p.year}` }, /* @__PURE__ */ React.createElement("span", { className: "leaf-month", "aria-hidden": "true" }, p.month), /* @__PURE__ */ React.createElement("span", { className: "leaf-day", "aria-hidden": "true" }, p.day), /* @__PURE__ */ React.createElement("span", { className: "leaf-week", "aria-hidden": "true" }, p.weekday));
+      }
+      function BlisterStrip({ items, label }) {
+        return /* @__PURE__ */ React.createElement("ol", { className: "blister", "aria-label": label }, items.map((it) => /* @__PURE__ */ React.createElement(
+          "li",
+          {
+            key: it.id,
+            className: `bub bub-${it.state} part-${it.part}${it.fresh ? " bub-fresh" : ""}`
+          },
+          it.state === "taken" ? /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 20, strokeWidth: 3 }) : it.state === "missed" ? /* @__PURE__ */ React.createElement(Icon, { name: "close", size: 18, strokeWidth: 3 }) : /* @__PURE__ */ React.createElement("i", { className: "bub-pill", "aria-hidden": "true" }),
+          /* @__PURE__ */ React.createElement("span", { className: "sr-only" }, it.label)
+        )));
+      }
+      function DoseTicket({ scheduledAt, name, meta, notes, done = false, className = "", children }) {
+        const part = dayPartOfTime(scheduledAt);
+        const time = formatClockParts(scheduledAt);
+        return /* @__PURE__ */ React.createElement("div", { className: `ticket part-${part.key}${done ? " is-done" : ""} ${className}`.trim() }, /* @__PURE__ */ React.createElement("div", { className: "ticket-stub" }, /* @__PURE__ */ React.createElement(Icon, { name: part.icon, size: 22, strokeWidth: 2.2 }), /* @__PURE__ */ React.createElement("div", { className: "ticket-time" }, time.clock, /* @__PURE__ */ React.createElement("span", { className: "ticket-ampm" }, time.ampm))), /* @__PURE__ */ React.createElement("div", { className: "ticket-main" }, /* @__PURE__ */ React.createElement("div", { className: "ticket-name" }, name), meta && /* @__PURE__ */ React.createElement("div", { className: "ticket-meta" }, meta), notes && /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-notes" }, notes)), /* @__PURE__ */ React.createElement("div", { className: "ticket-end" }, children));
+      }
+      function useJustTaken(doses) {
+        const previous = React.useRef(null);
+        const [fresh, setFresh] = React.useState(() => /* @__PURE__ */ new Set());
+        React.useEffect(() => {
+          const current = new Map(doses.map((d) => [d.id, d.status]));
+          let timer = null;
+          if (previous.current) {
+            const justTaken = doses.filter((d) => d.status === "taken" && previous.current.has(d.id) && previous.current.get(d.id) !== "taken").map((d) => d.id);
+            if (justTaken.length) {
+              setFresh(new Set(justTaken));
+              timer = setTimeout(() => setFresh(/* @__PURE__ */ new Set()), 1500);
+            }
+          }
+          previous.current = current;
+          return () => {
+            if (timer) clearTimeout(timer);
+          };
+        }, [doses]);
+        return fresh;
+      }
+      function BootScreen() {
+        return /* @__PURE__ */ React.createElement("div", { className: "boot-screen" }, /* @__PURE__ */ React.createElement("div", { className: "boot-name" }, /* @__PURE__ */ React.createElement(Wordmark, { split: true })), /* @__PURE__ */ React.createElement(Spinner, null));
+      }
+      /*! ===== js/components/Illustrations.jsx ===== */
+      function ArtPill({ cx, cy, len, deg = 0, color }) {
+        const w = len * 0.42;
+        const r = w / 2;
+        return /* @__PURE__ */ React.createElement("g", { transform: `translate(${cx} ${cy}) rotate(${deg})` }, /* @__PURE__ */ React.createElement("rect", { x: -len / 2 + 3, y: -r + 3, width: len, height: w, rx: r, fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("rect", { x: -len / 2, y: -r, width: len, height: w, rx: r, fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "2.4" }), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: `M${-len / 2 + r} ${-r} H0 V${r} H${-len / 2 + r} A${r} ${r} 0 0 1 ${-len / 2 + r} ${-r}Z`,
+            fill: color,
+            stroke: "var(--ink)",
+            strokeWidth: "2.4",
+            strokeLinejoin: "round"
+          }
+        ));
+      }
+      function ArtTablet({ cx, cy, r }) {
+        return /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("circle", { cx: cx + 3, cy: cy + 3, r, fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("circle", { cx, cy, r, fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "2.4" }), /* @__PURE__ */ React.createElement("path", { d: `M${cx - r + 3} ${cy} H${cx + r - 3}`, stroke: "var(--ink)", strokeWidth: "2", strokeLinecap: "round" }));
+      }
+      const PILLBOX_PARTS = ["sun", "sky", "dusk", "indigo"];
+      const PILLBOX_DAYS = ["س", "ح", "ن", "ث", "ر", "خ", "ج"];
+      function PillBoxArt({ open = [], highlight = -1, loose = true, className = "" }) {
+        const X1 = 398;
+        const SW = (X1 - 42) / 7;
+        const top = 116;
+        const bot = 208;
+        const slotX = (i) => X1 - (i + 1) * SW;
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 440 250", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement("rect", { x: "40", y: "102", width: "380", height: "126", rx: "22", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("rect", { x: "30", y: "92", width: "380", height: "126", rx: "22", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3.5" }), /* @__PURE__ */ React.createElement("path", { d: "M31.8 114a20 20 0 0 1 20-20H388a20 20 0 0 1 20 20v4H31.8Z", fill: "var(--paper-3)" }), /* @__PURE__ */ React.createElement("path", { d: "M31.8 116.5H408.2", stroke: "var(--ink)", strokeWidth: "2.5" }), PILLBOX_DAYS.map((letter, i) => {
+          const x = slotX(i);
+          const part = PILLBOX_PARTS[i % 4];
+          const color = `var(--${part})`;
+          const isOpen = open.indexOf(i) !== -1;
+          return /* @__PURE__ */ React.createElement("g", { key: letter }, isOpen ? /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("rect", { x: x + 3, y: top + 2, width: SW - 6, height: bot - top - 3, rx: "8", fill: "var(--paper-3)" }), /* @__PURE__ */ React.createElement("rect", { x: x + 3, y: top + 2, width: SW - 6, height: "14", rx: "6", fill: "var(--ink)", opacity: "0.14" }), /* @__PURE__ */ React.createElement(ArtPill, { cx: x + SW / 2 - 6, cy: top + 54, len: 28, deg: -30, color }), /* @__PURE__ */ React.createElement(ArtTablet, { cx: x + SW / 2 + 8, cy: top + 78, r: 9 }), /* @__PURE__ */ React.createElement(
+            "path",
+            {
+              d: `M${x + 5} ${top + 1}L${x + SW - 5} ${top + 1}L${x + SW - 9} ${top - 52}L${x + 9} ${top - 52}Z`,
+              fill: color,
+              stroke: "var(--ink)",
+              strokeWidth: "2.8",
+              strokeLinejoin: "round"
+            }
+          ), /* @__PURE__ */ React.createElement("path", { d: `M${x + 13} ${top - 44}H${x + SW - 13}`, stroke: "#fff", strokeWidth: "3", strokeLinecap: "round", opacity: "0.55" })) : /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("rect", { x: x + 4, y: top + 4, width: SW - 8, height: bot - top - 6, rx: "9", fill: color, stroke: "var(--ink)", strokeWidth: "2.8" }), /* @__PURE__ */ React.createElement("path", { d: `M${x + 11} ${top + 13}H${x + SW - 11}`, stroke: "#fff", strokeWidth: "3", strokeLinecap: "round", opacity: "0.5" }), /* @__PURE__ */ React.createElement(
+            "text",
+            {
+              x: x + SW / 2,
+              y: top + 52,
+              textAnchor: "middle",
+              fontFamily: "Kufam, Cairo, sans-serif",
+              fontWeight: "900",
+              fontSize: "22",
+              fill: "var(--ink)"
+            },
+            letter
+          ), /* @__PURE__ */ React.createElement(
+            "path",
+            {
+              d: `M${x + SW / 2 - 8} ${bot - 4}a8 8 0 0 1 16 0`,
+              fill: "var(--paper-2)",
+              stroke: "var(--ink)",
+              strokeWidth: "2.4"
+            }
+          )), i < 6 && /* @__PURE__ */ React.createElement("path", { d: `M${x} ${top}V${bot}`, stroke: "var(--ink)", strokeWidth: "2.4" }));
+        }), highlight >= 0 && /* @__PURE__ */ React.createElement(
+          "rect",
+          {
+            x: slotX(highlight) + 1,
+            y: top + 1,
+            width: SW - 2,
+            height: bot - top,
+            rx: "10",
+            fill: "none",
+            stroke: "var(--ink)",
+            strokeWidth: "3",
+            strokeDasharray: "6 5"
+          }
+        ), loose && /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("g", { transform: "translate(402 232) rotate(18)" }, /* @__PURE__ */ React.createElement(ArtPill, { cx: 0, cy: 0, len: 46, color: "var(--green)" })), /* @__PURE__ */ React.createElement(ArtTablet, { cx: 318, cy: 238, r: 13 }), /* @__PURE__ */ React.createElement("g", { transform: "translate(60 232) rotate(-14)" }, /* @__PURE__ */ React.createElement(ArtPill, { cx: 0, cy: 0, len: 38, color: "var(--sun)" }))));
+      }
+      function TeaGlass({ x = 0, y = 0, scale = 1, tea = "var(--tea)", steam = true }) {
+        return /* @__PURE__ */ React.createElement("g", { transform: `translate(${x} ${y}) scale(${scale})` }, steam && /* @__PURE__ */ React.createElement("g", { fill: "none", stroke: "var(--ink-2)", strokeWidth: "3.2", strokeLinecap: "round", opacity: "0.7" }, /* @__PURE__ */ React.createElement("path", { d: "M62 44q-9-10 0-20t0-20" }), /* @__PURE__ */ React.createElement("path", { d: "M86 40q-9-10 0-20t0-20", opacity: "0.8" }), /* @__PURE__ */ React.createElement("path", { d: "M110 44q-9-10 0-20t0-20" })), /* @__PURE__ */ React.createElement("ellipse", { cx: "92", cy: "192", rx: "62", ry: "12", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("ellipse", { cx: "85", cy: "186", rx: "62", ry: "12", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3.5" }), /* @__PURE__ */ React.createElement("ellipse", { cx: "85", cy: "184", rx: "36", ry: "6", fill: "var(--paper-3)", stroke: "var(--ink)", strokeWidth: "2.2" }), /* @__PURE__ */ React.createElement("path", { d: "M38 66C42 108 44 150 50 180H120C126 150 128 108 132 66Z", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3.5", strokeLinejoin: "round" }), /* @__PURE__ */ React.createElement("path", { d: "M42.2 82C45 112 47 150 52 178H118C123 150 125 112 127.8 82Z", fill: tea }), /* @__PURE__ */ React.createElement("ellipse", { cx: "85", cy: "82", rx: "42.8", ry: "7", fill: "var(--sun)", opacity: "0.9" }), /* @__PURE__ */ React.createElement("path", { d: "M52 96C55 124 56 150 59 170", stroke: "#fff", strokeWidth: "4", strokeLinecap: "round", fill: "none", opacity: "0.35" }), /* @__PURE__ */ React.createElement("g", { stroke: "var(--ink)", strokeWidth: "2.6", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M92 78C88 56 104 46 118 50C120 66 108 80 92 78Z", fill: "var(--green)" }), /* @__PURE__ */ React.createElement("path", { d: "M86 78C70 72 66 54 74 44C90 46 96 62 86 78Z", fill: "var(--green)" })), /* @__PURE__ */ React.createElement("path", { d: "M94 76C100 66 106 60 112 54", stroke: "var(--ink)", strokeWidth: "2", fill: "none", strokeLinecap: "round" }), /* @__PURE__ */ React.createElement("path", { d: "M106 112L140 40", stroke: "var(--ink)", strokeWidth: "3.5", strokeLinecap: "round" }), /* @__PURE__ */ React.createElement("ellipse", { cx: "143", cy: "33", rx: "7", ry: "10", transform: "rotate(25 143 33)", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3" }), /* @__PURE__ */ React.createElement("ellipse", { cx: "85", cy: "66", rx: "47", ry: "8", fill: "none", stroke: "var(--ink)", strokeWidth: "3.5" }));
+      }
+      function TeaGlassArt({ className = "" }) {
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 170 210", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement(TeaGlass, null));
+      }
+      function TeaPairArt({ className = "" }) {
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 330 215", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement(TeaGlass, { x: 0, y: 4 }), /* @__PURE__ */ React.createElement(TeaGlass, { x: 150, y: 10, scale: 0.94, tea: "var(--dusk-deep)" }));
+      }
+      function CalendarArt({ className = "" }) {
+        const cells = [];
+        for (let row = 0; row < 3; row += 1) {
+          for (let col = 0; col < 7; col += 1) {
+            cells.push({ x: 196 - col * 24, y: 94 + row * 24, key: `${row}-${col}` });
+          }
+        }
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 260 210", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement("rect", { x: "40", y: "46", width: "200", height: "140", rx: "16", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("rect", { x: "30", y: "36", width: "200", height: "140", rx: "16", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3.5" }), /* @__PURE__ */ React.createElement("path", { d: "M31.75 70V52a16 16 0 0 1 16-16h164.5a16 16 0 0 1 16 16v18Z", fill: "var(--coral)" }), /* @__PURE__ */ React.createElement("path", { d: "M31.75 70H228.25", stroke: "var(--ink)", strokeWidth: "3" }), /* @__PURE__ */ React.createElement("rect", { x: "66", y: "22", width: "12", height: "28", rx: "6", fill: "var(--paper-3)", stroke: "var(--ink)", strokeWidth: "3" }), /* @__PURE__ */ React.createElement("rect", { x: "182", y: "22", width: "12", height: "28", rx: "6", fill: "var(--paper-3)", stroke: "var(--ink)", strokeWidth: "3" }), cells.map((c) => /* @__PURE__ */ React.createElement("rect", { key: c.key, x: c.x, y: c.y, width: "18", height: "16", rx: "4", fill: "var(--paper-3)", stroke: "var(--rule-strong)", strokeWidth: "1.5" })), /* @__PURE__ */ React.createElement("rect", { x: "148", y: "94", width: "18", height: "16", rx: "4", fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: "2.4" }), /* @__PURE__ */ React.createElement("rect", { x: "143", y: "89", width: "28", height: "26", rx: "8", fill: "none", stroke: "var(--ink)", strokeWidth: "2.6", strokeDasharray: "5 4" }), /* @__PURE__ */ React.createElement("g", { transform: "translate(222 158) rotate(38)" }, /* @__PURE__ */ React.createElement("rect", { x: "-4", y: "-3", width: "76", height: "16", rx: "3", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("rect", { x: "-8", y: "-8", width: "62", height: "16", rx: "2", fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: "2.6" }), /* @__PURE__ */ React.createElement("path", { d: "M54 -8L74 0L54 8Z", fill: "var(--paper-3)", stroke: "var(--ink)", strokeWidth: "2.6", strokeLinejoin: "round" }), /* @__PURE__ */ React.createElement("path", { d: "M68 -2.6L74 0L68 2.6Z", fill: "var(--ink)" }), /* @__PURE__ */ React.createElement("rect", { x: "-20", y: "-8", width: "12", height: "16", rx: "3", fill: "var(--coral)", stroke: "var(--ink)", strokeWidth: "2.6" })));
+      }
+      function ChartArt({ className = "" }) {
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 260 210", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement("rect", { x: "70", y: "30", width: "160", height: "164", rx: "14", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement("rect", { x: "60", y: "22", width: "160", height: "164", rx: "14", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3.5" }), /* @__PURE__ */ React.createElement("rect", { x: "104", y: "10", width: "72", height: "28", rx: "9", fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: "3" }), /* @__PURE__ */ React.createElement("rect", { x: "126", y: "16", width: "28", height: "9", rx: "4.5", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "2.4" }), [70, 94, 118, 142, 166].map((y) => /* @__PURE__ */ React.createElement("path", { key: y, d: `M76 ${y}H204`, stroke: "var(--rule-strong)", strokeWidth: "2", strokeLinecap: "round" })), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M72 120H104L112 92L126 148L138 104L146 118H208",
+            fill: "none",
+            stroke: "var(--coral)",
+            strokeWidth: "4.4",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M72 120H104L112 92L126 148L138 104L146 118H208",
+            fill: "none",
+            stroke: "var(--ink)",
+            strokeWidth: "1.4",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            opacity: "0.5"
+          }
+        ));
+      }
+      function BellArt({ className = "" }) {
+        return /* @__PURE__ */ React.createElement("svg", { className: `illo ${className}`.trim(), viewBox: "0 0 220 200", "aria-hidden": "true", focusable: "false" }, /* @__PURE__ */ React.createElement("ellipse", { cx: "116", cy: "178", rx: "62", ry: "9", fill: "var(--ink)", opacity: "0.16" }), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M118 44C84 44 68 70 68 104V130L52 150H156L140 130V104C140 70 124 44 118 44Z",
+            transform: "translate(-6 0)",
+            fill: "var(--ink)",
+            opacity: "0.16"
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M104 38C70 38 54 64 54 98V124L38 144H170L154 124V98C154 64 138 38 104 38Z",
+            fill: "var(--sun)",
+            stroke: "var(--ink)",
+            strokeWidth: "3.5",
+            strokeLinejoin: "round"
+          }
+        ), /* @__PURE__ */ React.createElement("path", { d: "M70 92C70 74 80 60 94 54", fill: "none", stroke: "#fff", strokeWidth: "4", strokeLinecap: "round", opacity: "0.55" }), /* @__PURE__ */ React.createElement("circle", { cx: "104", cy: "30", r: "8", fill: "var(--paper-2)", stroke: "var(--ink)", strokeWidth: "3" }), /* @__PURE__ */ React.createElement("path", { d: "M88 150a16 14 0 0 0 32 0Z", fill: "var(--dusk)", stroke: "var(--ink)", strokeWidth: "3", strokeLinejoin: "round" }), /* @__PURE__ */ React.createElement(
+          "path",
+          {
+            d: "M176 34a22 22 0 1 0 14 38a17 17 0 0 1-14-38Z",
+            fill: "var(--indigo)",
+            stroke: "var(--ink)",
+            strokeWidth: "3",
+            strokeLinejoin: "round",
+            transform: "translate(-8 0)"
+          }
+        ), /* @__PURE__ */ React.createElement("path", { d: "M150 26l3 7 7 3-7 3-3 7-3-7-7-3 7-3Z", fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: "2", strokeLinejoin: "round" }), /* @__PURE__ */ React.createElement("path", { d: "M196 92l2 4.5 4.5 2-4.5 2-2 4.5-2-4.5-4.5-2 4.5-2Z", fill: "var(--sun)", stroke: "var(--ink)", strokeWidth: "1.8", strokeLinejoin: "round" }));
+      }
+      function EmptyArt({ icon }) {
+        switch (icon) {
+          case "calendar":
+            return /* @__PURE__ */ React.createElement(CalendarArt, { className: "empty-art" });
+          case "stethoscope":
+          case "pulse":
+            return /* @__PURE__ */ React.createElement(ChartArt, { className: "empty-art" });
+          case "bell":
+          case "bellOff":
+            return /* @__PURE__ */ React.createElement(BellArt, { className: "empty-art" });
+          case "user":
+          case "users":
+            return /* @__PURE__ */ React.createElement(TeaPairArt, { className: "empty-art" });
+          default:
+            return /* @__PURE__ */ React.createElement(PillBoxArt, { className: "empty-art", open: [1, 4], loose: false });
+        }
       }
       /*! ===== js/components/Common.jsx ===== */
       function Button(_a) {
@@ -605,7 +897,7 @@
         return /* @__PURE__ */ React.createElement("div", { className: "skeleton-list", role: "status", "aria-label": "جاري التحميل" }, Array.from({ length: count }).map((_, i) => /* @__PURE__ */ React.createElement("div", { className: "skeleton-card", key: i, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("div", { className: "skeleton skeleton-avatar" }), /* @__PURE__ */ React.createElement("div", { className: "skeleton-card-body" }, /* @__PURE__ */ React.createElement("div", { className: "skeleton skeleton-line" }), /* @__PURE__ */ React.createElement("div", { className: "skeleton skeleton-line" })))));
       }
       function EmptyState({ icon = "inbox", text }) {
-        return /* @__PURE__ */ React.createElement("div", { className: "empty-state" }, /* @__PURE__ */ React.createElement("div", { className: "empty-icon" }, /* @__PURE__ */ React.createElement(Icon, { name: icon, size: 46, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("p", null, text));
+        return /* @__PURE__ */ React.createElement("div", { className: "empty-state" }, /* @__PURE__ */ React.createElement(EmptyArt, { icon }), /* @__PURE__ */ React.createElement("p", null, text));
       }
       function Banner({ type = "error", children, onClose }) {
         if (!children) return null;
@@ -775,7 +1067,6 @@
               "data-at-top": edges.top ? "true" : "false",
               "data-at-bottom": edges.bottom ? "true" : "false"
             },
-            /* @__PURE__ */ React.createElement("span", { className: "modal-accent", "aria-hidden": "true" }),
             /* @__PURE__ */ React.createElement(
               "div",
               {
@@ -796,6 +1087,12 @@
       function formatTime(dateStr) {
         const d = new Date(String(dateStr).replace(" ", "T"));
         return d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+      }
+      function formatClockParts(dateStr) {
+        const d = new Date(String(dateStr).replace(" ", "T"));
+        const text = d.toLocaleTimeString("ar-EG", { hour: "numeric", minute: "2-digit" });
+        const pieces = text.split(/\s+/).filter(Boolean);
+        return { clock: pieces[0] || text, ampm: pieces[1] || "" };
       }
       function formatDateTime(dateStr) {
         const d = new Date(String(dateStr).replace(" ", "T"));
@@ -925,18 +1222,29 @@
           document.addEventListener("keydown", onKeyDown);
           return () => document.removeEventListener("keydown", onKeyDown);
         }, [onDismiss]);
-        const node = /* @__PURE__ */ React.createElement("div", { className: "alarm-overlay", role: "alertdialog", "aria-labelledby": "alarm-title", "aria-live": "assertive" }, /* @__PURE__ */ React.createElement("div", { className: `alarm-card${dose.is_critical ? " alarm-card-critical" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "alarm-label" }, dose.is_critical && /* @__PURE__ */ React.createElement("span", { className: "alarm-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 15, strokeWidth: 2.4 }), "دوا مهم"), "وقت الدوا دلوقتي"), dose.has_image ? /* @__PURE__ */ React.createElement("div", { className: "alarm-image-wrap" }, /* @__PURE__ */ React.createElement(
-          MedImage,
+        const part = dayPartOfTime(dose.scheduled_at);
+        const time = formatClockParts(dose.scheduled_at);
+        const node = /* @__PURE__ */ React.createElement(
+          "div",
           {
-            medicationId: dose.medication_id,
-            hasImage: dose.has_image,
-            className: "med-image-alarm"
-          }
-        )) : /* @__PURE__ */ React.createElement("div", { className: "alarm-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", { className: "alarm-icon-pulse" }), /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 64, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("h2", { className: "alarm-med-name", id: "alarm-title" }, dose.name), dose.dosage && /* @__PURE__ */ React.createElement("div", { className: "alarm-dosage" }, dose.dosage), /* @__PURE__ */ React.createElement("div", { className: "alarm-time" }, "الساعة ", formatTime(dose.scheduled_at)), dose.notes && /* @__PURE__ */ React.createElement("div", { className: "alarm-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 18, strokeWidth: 2.2 }), dose.notes), onSpeak && /* @__PURE__ */ React.createElement("button", { className: "alarm-speak", onClick: () => onSpeak(dose), "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 21 }), "اسمعه"), /* @__PURE__ */ React.createElement(Banner, { onClose: void 0 }, error), /* @__PURE__ */ React.createElement("button", { className: "alarm-take", onClick: onTake, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 32, strokeWidth: 2.7 }), "خدت الدوا"), snoozeAllowed ? /* @__PURE__ */ React.createElement("button", { className: "alarm-snooze", onClick: onSnooze, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 21 }), "فكّرني بعد ", SNOOZE_MINUTES, " دقايق", snoozesLeft <= 1 && /* @__PURE__ */ React.createElement("span", { className: "alarm-snooze-last" }, " (آخر مرة)")) : (
-          /* السبب بيتقال صراحة. زرار مختفي من غير تفسير بيخلي المستخدم يفتكر
-             إن التطبيق بايظ - والسبب هنا قرار مقصود يستاهل يتشرح. */
-          /* @__PURE__ */ React.createElement("div", { className: "alarm-no-snooze" }, dose.is_critical || !dose.snooze_allowed ? "الدوا ده مواعيده مش بتتأجل" : `أجّلتها ${MAX_SNOOZES} مرات خلاص`)
-        ), /* @__PURE__ */ React.createElement("button", { className: "alarm-dismiss", onClick: onDismiss, disabled: busy }, "إغلاق مؤقت")));
+            className: `alarm-overlay part-${part.key}${dose.is_critical ? " alarm-overlay-critical" : ""}`,
+            role: "alertdialog",
+            "aria-labelledby": "alarm-title",
+            "aria-live": "assertive"
+          },
+          /* @__PURE__ */ React.createElement("div", { className: `alarm-card${dose.is_critical ? " alarm-card-critical" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "alarm-band" }, /* @__PURE__ */ React.createElement("div", { className: "alarm-label" }, Boolean(dose.is_critical) && /* @__PURE__ */ React.createElement("span", { className: "alarm-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 15, strokeWidth: 2.4 }), "دوا مهم"), /* @__PURE__ */ React.createElement(Icon, { name: part.icon, size: 26, strokeWidth: 2.2 }), "وقت الدوا دلوقتي"), /* @__PURE__ */ React.createElement("div", { className: "alarm-time" }, time.clock, /* @__PURE__ */ React.createElement("small", null, time.ampm))), /* @__PURE__ */ React.createElement("div", { className: "alarm-body" }, dose.has_image ? /* @__PURE__ */ React.createElement("div", { className: "alarm-image-wrap" }, /* @__PURE__ */ React.createElement(
+            MedImage,
+            {
+              medicationId: dose.medication_id,
+              hasImage: dose.has_image,
+              className: "med-image-alarm"
+            }
+          )) : /* @__PURE__ */ React.createElement("div", { className: "alarm-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 64, strokeWidth: 1.8 })), /* @__PURE__ */ React.createElement("h2", { className: "alarm-med-name", id: "alarm-title" }, dose.name), dose.dosage && /* @__PURE__ */ React.createElement("div", { className: "alarm-dosage" }, dose.dosage), dose.notes && /* @__PURE__ */ React.createElement("div", { className: "sticker alarm-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 18, strokeWidth: 2.2 }), dose.notes), onSpeak && /* @__PURE__ */ React.createElement("button", { className: "alarm-speak", onClick: () => onSpeak(dose), "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 21 }), "اسمعه"), /* @__PURE__ */ React.createElement(Banner, { onClose: void 0 }, error), /* @__PURE__ */ React.createElement("button", { className: "alarm-take", onClick: onTake, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 34, strokeWidth: 3 }), "خدت الدوا"), snoozeAllowed ? /* @__PURE__ */ React.createElement("button", { className: "alarm-snooze", onClick: onSnooze, disabled: busy }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 21 }), "فكّرني بعد ", SNOOZE_MINUTES, " دقايق", snoozesLeft <= 1 && /* @__PURE__ */ React.createElement("span", { className: "alarm-snooze-last" }, " (آخر مرة)")) : (
+            /* السبب بيتقال صراحة. زرار مختفي من غير تفسير بيخلي المستخدم يفتكر
+               إن التطبيق بايظ - والسبب هنا قرار مقصود يستاهل يتشرح. */
+            /* @__PURE__ */ React.createElement("div", { className: "alarm-no-snooze" }, dose.is_critical || !dose.snooze_allowed ? "الدوا ده مواعيده مش بتتأجل" : `أجّلتها ${MAX_SNOOZES} مرات خلاص`)
+          ), /* @__PURE__ */ React.createElement("button", { className: "alarm-dismiss", onClick: onDismiss, disabled: busy }, "إغلاق مؤقت")))
+        );
         return ReactDOM.createPortal(node, document.body);
       }
       /*! ===== js/components/Settings.jsx ===== */
@@ -1194,62 +1502,47 @@
       /*! ===== js/components/Auth.jsx ===== */
       const APP_FEATURES = [
         {
-          icon: "pill",
           title: "مواعيد الدوا",
           desc: "كل جرعة في ميعادها، والمريض بيأكد إنه خدها بضغطة واحدة."
         },
         {
-          icon: "bell",
           title: "منبه بيوصل والتطبيق مقفول",
-          desc: 'إشعار ورنّة أول ما الميعاد ييجي، وزرار "خدته" شغّال من جوّه الإشعار نفسه.',
-          tone: "accent"
+          desc: 'إشعار ورنّة أول ما الميعاد ييجي، وزرار "خدته" شغّال من جوّه الإشعار نفسه.'
         },
         {
-          icon: "alert",
           title: "لو الجرعة فاتت، المتابع بيعرف",
-          desc: "تذكير تاني، وبعدها تنبيه للمتابع، وبعدها تصعيد لو المريض مردّش خالص.",
-          tone: "danger"
+          desc: "تذكير تاني، وبعدها تنبيه للمتابع، وبعدها تصعيد لو المريض مردّش خالص."
         },
         {
-          icon: "alert",
           title: 'زرار "حصلت مشكلة؟"',
-          desc: "الدوا خلص؟ حاسس بتعب؟ عايز حد يكلمك؟ ضغطة واحدة والخبر بيوصلك فورًا.",
-          tone: "danger"
+          desc: "الدوا خلص؟ حاسس بتعب؟ عايز حد يكلمك؟ ضغطة واحدة والخبر بيوصلك فورًا."
         },
         {
-          icon: "calendar",
           title: "المواعيد الطبية",
-          desc: "مواعيد الدكاترة والتحاليل، مع تذكير تلقائي قبل الموعد بـ 24 ساعة.",
-          tone: "info"
+          desc: "مواعيد الدكاترة والتحاليل، مع تذكير تلقائي قبل الموعد بـ 24 ساعة."
         },
         {
-          icon: "stethoscope",
           title: "القياسات الصحية",
           desc: "ضغط، سكر، وزن، نبض، وحرارة - كل قياس متسجّل بتاريخه وقدامك في أي وقت."
         },
         {
-          icon: "link",
           title: "المريض بيدخل بلينك واحد",
-          desc: "من غير حساب ولا باسورد يحفظه - يدوس على اللينك ويلاقي كل حاجة جاهزة.",
-          tone: "info"
+          desc: "من غير حساب ولا باسورد يحفظه - يدوس على اللينك ويلاقي كل حاجة جاهزة."
         },
         {
-          icon: "users",
           title: "أكتر من متابع",
-          desc: "الإخوات كلهم يتابعوا نفس الشخص بكود مشاركة، وكل واحد شايف نفس البيانات.",
-          tone: "accent"
+          desc: "الإخوات كلهم يتابعوا نفس الشخص بكود مشاركة، وكل واحد شايف نفس البيانات."
         },
         {
-          icon: "install",
           title: "يتثبّت زي أي تطبيق",
           desc: "شغال على الموبايل والكمبيوتر، وممكن تحطه على شاشتك الرئيسية بضغطة."
         }
       ];
       const APP_BADGES = [
-        { icon: "textSize", label: "خط كبير وأزرار واسعة" },
-        { icon: "moon", label: "وضع ليلي" },
-        { icon: "speaker", label: "نطق صوتي للجرعة" },
-        { icon: "speech", label: "عربي بالكامل" }
+        { icon: "textSize", label: "خط كبير وأزرار واسعة", tone: "blue" },
+        { icon: "moon", label: "وضع ليلي", tone: "ink" },
+        { icon: "speaker", label: "نطق صوتي للجرعة", tone: "green" },
+        { icon: "speech", label: "عربي بالكامل", tone: "coral" }
       ];
       function AuthScreen({ onAuthenticated, initialError }) {
         const [mode, setMode] = React.useState("login");
@@ -1299,7 +1592,7 @@
             }
           );
         }
-        return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "auth-mesh", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-grain", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-layout" }, /* @__PURE__ */ React.createElement("section", { className: "auth-panel" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-header" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 38, strokeWidth: 1.8 })), /* @__PURE__ */ React.createElement("h1", { className: "auth-card-title" }, "معاك"), /* @__PURE__ */ React.createElement("p", { className: "auth-card-tag" }, "في كل خطوة، معاك")), /* @__PURE__ */ React.createElement("div", { className: "auth-card-body" }, /* @__PURE__ */ React.createElement("div", { className: "tabs", role: "tablist", "aria-label": "نوع الدخول" }, /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "auth-layout" }, /* @__PURE__ */ React.createElement("h1", { className: "sr-only" }, "معاك - متابعة كبار السن"), /* @__PURE__ */ React.createElement("section", { className: "auth-panel" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-header" }, /* @__PURE__ */ React.createElement("div", { className: "auth-card-title" }, /* @__PURE__ */ React.createElement(Wordmark, null)), /* @__PURE__ */ React.createElement("p", { className: "auth-card-tag" }, "في كل خطوة، معاك")), /* @__PURE__ */ React.createElement("div", { className: "auth-card-body" }, /* @__PURE__ */ React.createElement("div", { className: "tabs", role: "tablist", "aria-label": "نوع الدخول" }, /* @__PURE__ */ React.createElement(
           "button",
           {
             role: "tab",
@@ -1334,7 +1627,7 @@
               }
             }
           }
-        ), /* @__PURE__ */ React.createElement("section", { className: "auth-showcase" }, /* @__PURE__ */ React.createElement("div", { className: "auth-brand" }, /* @__PURE__ */ React.createElement("div", { className: "auth-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 44, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "auth-title text-gradient" }, "معاك"), /* @__PURE__ */ React.createElement("p", { className: "auth-tagline" }, "في كل خطوة، معاك"))), /* @__PURE__ */ React.createElement("p", { className: "auth-pitch" }, "تطبيق واحد بيخلي متابعة كبير السن أسهل: ", /* @__PURE__ */ React.createElement("strong", null, "إنت"), " بتجهّز الأدوية والمواعيد من موبايلك، و", /* @__PURE__ */ React.createElement("strong", null, "هو"), " بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة."), /* @__PURE__ */ React.createElement("ul", { className: "auth-features stagger" }, APP_FEATURES.map((f) => /* @__PURE__ */ React.createElement("li", { key: f.title, className: "auth-feature" }, /* @__PURE__ */ React.createElement("span", { className: `auth-feature-icon${f.tone ? ` tone-${f.tone}` : ""}`, "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: f.icon, size: 24 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "auth-feature-title" }, f.title), /* @__PURE__ */ React.createElement("div", { className: "auth-feature-desc" }, f.desc))))), /* @__PURE__ */ React.createElement("div", { className: "auth-badges" }, APP_BADGES.map((b) => /* @__PURE__ */ React.createElement("span", { key: b.label, className: "auth-badge" }, /* @__PURE__ */ React.createElement(Icon, { name: b.icon, size: 16 }), b.label))))));
+        ), /* @__PURE__ */ React.createElement("section", { className: "auth-showcase" }, /* @__PURE__ */ React.createElement("div", { className: "rx-sheet" }, /* @__PURE__ */ React.createElement("span", { className: "rx-symbol", "aria-hidden": "true" }, "Rx"), /* @__PURE__ */ React.createElement("header", { className: "rx-head" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "rx-brand" }, /* @__PURE__ */ React.createElement(Wordmark, null)), /* @__PURE__ */ React.createElement("p", { className: "rx-tagline" }, "في كل خطوة، معاك"), /* @__PURE__ */ React.createElement("p", { className: "rx-pitch" }, "تطبيق واحد بيخلي متابعة كبير السن أسهل: ", /* @__PURE__ */ React.createElement("strong", null, "إنت"), " بتجهّز الأدوية والمواعيد من موبايلك، و", /* @__PURE__ */ React.createElement("strong", null, "هو"), " بيفتح شاشة واحدة بسيطة فيها جرعة واحدة بس كل مرة.")), /* @__PURE__ */ React.createElement(PillBoxArt, { className: "rx-art", open: [2, 5], highlight: 3 })), /* @__PURE__ */ React.createElement("p", { className: "rx-label" }, "اللي هتلاقيه جوّه التطبيق:"), /* @__PURE__ */ React.createElement("ul", { className: "rx-list stagger" }, APP_FEATURES.map((f) => /* @__PURE__ */ React.createElement("li", { key: f.title, className: "rx-item" }, /* @__PURE__ */ React.createElement("span", { className: "rx-check", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 18, strokeWidth: 3.4 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "rx-title" }, f.title), /* @__PURE__ */ React.createElement("div", { className: "rx-desc" }, f.desc))))), /* @__PURE__ */ React.createElement("div", { className: "rx-stamps" }, APP_BADGES.map((b) => /* @__PURE__ */ React.createElement(Stamp, { key: b.label, tone: b.tone, icon: b.icon }, b.label)))))));
       }
       function LoginForm({ onSubmit, loading }) {
         const [identifier, setIdentifier] = React.useState("");
@@ -1415,7 +1708,7 @@
       function RecoveryCodeScreen({ code, onContinue }) {
         const [copied, setCopied] = React.useState(false);
         const [confirmed, setConfirmed] = React.useState(false);
-        return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "auth-mesh", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "auth-grain", "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("div", { className: "recovery-screen" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-card" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "lock", size: 40, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("h1", { className: "recovery-title" }, "احفظ كود الاسترجاع"), /* @__PURE__ */ React.createElement("p", { className: "recovery-desc" }, "لو نسيت كلمة المرور، الكود ده هو الطريقة الوحيدة ترجّع بيها حسابك. مش هنقدر نعرضه تاني بعد الشاشة دي."), /* @__PURE__ */ React.createElement("div", { className: "recovery-code", dir: "ltr" }, code), /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("div", { className: "auth-screen" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-screen" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-card" }, /* @__PURE__ */ React.createElement("div", { className: "recovery-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "lock", size: 40, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("h1", { className: "recovery-title" }, "احفظ كود الاسترجاع"), /* @__PURE__ */ React.createElement("p", { className: "recovery-desc" }, "لو نسيت كلمة المرور، الكود ده هو الطريقة الوحيدة ترجّع بيها حسابك. مش هنقدر نعرضه تاني بعد الشاشة دي."), /* @__PURE__ */ React.createElement("div", { className: "recovery-code", dir: "ltr" }, code), /* @__PURE__ */ React.createElement(
           "button",
           {
             className: "recovery-copy",
@@ -1528,7 +1821,7 @@
           0,
           tabs.findIndex((t) => t.key === view)
         );
-        return /* @__PURE__ */ React.createElement("div", { className: "app-shell ambient" }, /* @__PURE__ */ React.createElement("header", { className: "app-header" }, /* @__PURE__ */ React.createElement("div", { className: "header-inner" }, /* @__PURE__ */ React.createElement("div", { className: "header-row" }, /* @__PURE__ */ React.createElement("div", { className: "header-brand" }, /* @__PURE__ */ React.createElement("span", { className: "header-brand-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 21, strokeWidth: 2 })), /* @__PURE__ */ React.createElement("span", { className: "header-brand-name" }, /* @__PURE__ */ React.createElement("span", { className: "header-brand-ar" }, "معاك"), /* @__PURE__ */ React.createElement("span", { className: "header-brand-en" }, "Ma3ak"))), hasPatientSwitcher && /* @__PURE__ */ React.createElement("div", { className: "patient-switcher" }, /* @__PURE__ */ React.createElement("span", { className: "patient-switcher-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "user", size: 17 })), /* @__PURE__ */ React.createElement("div", { className: "patient-select-wrap" }, /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement("header", { className: "app-header" }, /* @__PURE__ */ React.createElement("div", { className: "header-inner" }, /* @__PURE__ */ React.createElement("div", { className: "header-row" }, /* @__PURE__ */ React.createElement("div", { className: "header-brand" }, /* @__PURE__ */ React.createElement(Wordmark, null)), hasPatientSwitcher && /* @__PURE__ */ React.createElement("div", { className: "patient-switcher" }, /* @__PURE__ */ React.createElement("span", { className: "patient-switcher-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "user", size: 17 })), /* @__PURE__ */ React.createElement("div", { className: "patient-select-wrap" }, /* @__PURE__ */ React.createElement(
           "select",
           {
             className: "patient-select",
@@ -1604,35 +1897,42 @@
         if (loading) return /* @__PURE__ */ React.createElement(SkeletonCards, { count: 3 });
         const pending = doses.filter((d) => d.status === "pending");
         const done = doses.filter((d) => d.status !== "pending");
-        const taken = doses.filter((d) => d.status === "taken").length;
-        const missed = doses.filter((d) => d.status === "missed").length;
-        return /* @__PURE__ */ React.createElement("div", { className: "view" }, /* @__PURE__ */ React.createElement("h2", { className: "view-title" }, "جرعات النهارده"), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), doses.length > 0 && /* @__PURE__ */ React.createElement(DaySummary, { total: doses.length, taken, missed, left: pending.length }), doses.length === 0 && /* @__PURE__ */ React.createElement(EmptyState, { icon: "pill", text: "مفيش أدوية مسجلة النهارده" }), pending.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, pending.map((d) => /* @__PURE__ */ React.createElement(Card, { key: d.id, className: "dose-card" }, /* @__PURE__ */ React.createElement("div", { className: "dose-info" }, /* @__PURE__ */ React.createElement("div", { className: "dose-time" }, formatTime(d.scheduled_at)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "dose-name" }, d.name), d.dosage && /* @__PURE__ */ React.createElement("div", { className: "dose-dosage" }, d.dosage))), /* @__PURE__ */ React.createElement(
+        return /* @__PURE__ */ React.createElement("div", { className: "view" }, /* @__PURE__ */ React.createElement("h2", { className: "view-title" }, "جرعات النهارده"), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), doses.length > 0 && /* @__PURE__ */ React.createElement(DaySummary, { doses }), doses.length === 0 && /* @__PURE__ */ React.createElement(EmptyState, { icon: "pill", text: "مفيش أدوية مسجلة النهارده" }), pending.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, pending.map((d) => /* @__PURE__ */ React.createElement(DoseTicket, { key: d.id, scheduledAt: d.scheduled_at, name: d.name, meta: d.dosage }, /* @__PURE__ */ React.createElement(
           Button,
           {
             onClick: () => handleTake(d.id),
             "aria-label": `تسجيل جرعة ${d.name} الساعة ${formatTime(d.scheduled_at)} كمتناولة`
           },
-          /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 20, strokeWidth: 2.4 }),
+          /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 20, strokeWidth: 2.6 }),
           "اتاخد"
-        )))), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "view-subtitle" }, "تم تسجيلها"), /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, done.map((d) => /* @__PURE__ */ React.createElement(Card, { key: d.id, className: "dose-card done" }, /* @__PURE__ */ React.createElement("div", { className: "dose-info" }, /* @__PURE__ */ React.createElement("div", { className: "dose-time" }, formatTime(d.scheduled_at)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "dose-name" }, d.name))), /* @__PURE__ */ React.createElement("span", { className: `status-pill ${d.status}` }, /* @__PURE__ */ React.createElement(Icon, { name: d.status === "taken" ? "checkCircle" : "warning", size: 17 }), d.status === "taken" ? "اتاخدت" : "فاتت"))))), onOpenAdherence && /* @__PURE__ */ React.createElement("button", { className: "adherence-entry", onClick: onOpenAdherence }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pulse", size: 22 })), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-body" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-title" }, "تقرير الالتزام"), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-desc" }, "نسبة الجرعات على مدى أسبوع أو شهر، وأنهي ميعاد بيتنسى")), /* @__PURE__ */ React.createElement(Icon, { name: "chevron", size: 18, strokeWidth: 2.2 })));
+        )))), done.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("h3", { className: "view-subtitle" }, "تم تسجيلها"), /* @__PURE__ */ React.createElement("div", { className: "dose-list stagger" }, done.map((d) => /* @__PURE__ */ React.createElement(DoseTicket, { key: d.id, scheduledAt: d.scheduled_at, name: d.name, meta: d.dosage, done: true }, /* @__PURE__ */ React.createElement(Stamp, { tone: d.status === "taken" ? "green" : "coral", flip: d.status !== "taken" }, d.status === "taken" ? "اتاخدت" : "فاتت"))))), onOpenAdherence && /* @__PURE__ */ React.createElement("button", { className: "adherence-entry", onClick: onOpenAdherence }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pulse", size: 22 })), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-body" }, /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-title" }, "تقرير الالتزام"), /* @__PURE__ */ React.createElement("span", { className: "adherence-entry-desc" }, "نسبة الجرعات على مدى أسبوع أو شهر، وأنهي ميعاد بيتنسى")), /* @__PURE__ */ React.createElement(Icon, { name: "chevron", size: 18, strokeWidth: 2.2 })));
       }
-      function DaySummary({ total, taken, missed, left }) {
-        const pct = total > 0 ? Math.round(taken / total * 100) : 0;
+      function DaySummary({ doses }) {
+        const total = doses.length;
+        const taken = doses.filter((d) => d.status === "taken").length;
+        const missed = doses.filter((d) => d.status === "missed").length;
+        const left = doses.filter((d) => d.status === "pending").length;
         const allDone = total > 0 && left === 0 && missed === 0;
         let meta;
         if (allDone) meta = "تمام، كل جرعات النهارده اتاخدت.";
         else if (left > 0) meta = `فاضل ${left} ${left === 1 ? "جرعة" : "جرعات"} النهارده.`;
         else meta = "مفيش جرعات مستنية دلوقتي.";
-        return /* @__PURE__ */ React.createElement("div", { className: `day-summary${allDone ? " is-complete" : ""}` }, /* @__PURE__ */ React.createElement(
-          "div",
-          {
-            className: "progress-ring",
-            style: { "--progress": pct },
-            role: "img",
-            "aria-label": `${taken} من ${total} جرعات اتاخدت`
-          },
-          /* @__PURE__ */ React.createElement("span", { className: "progress-ring-value" }, taken, "/", total)
-        ), /* @__PURE__ */ React.createElement("div", { className: "day-summary-body" }, /* @__PURE__ */ React.createElement("div", { className: "day-summary-title" }, allDone ? "خلصت النهارده" : "متابعة اليوم"), /* @__PURE__ */ React.createElement("div", { className: "day-summary-meta" }, meta)), /* @__PURE__ */ React.createElement("div", { className: "day-summary-stats", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-done" }, /* @__PURE__ */ React.createElement(Icon, { name: "checkCircle", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, taken), " اتاخدت"), left > 0 && /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-left" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, left), " مستنية"), missed > 0 && /* @__PURE__ */ React.createElement("span", { className: "day-stat tone-missed" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", size: 15 }), /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, missed), " فاتت")));
+        const nowDate = /* @__PURE__ */ new Date();
+        let openAssigned = false;
+        const items = doses.map((d) => {
+          let state = d.status === "taken" ? "taken" : d.status === "missed" ? "missed" : "locked";
+          if (state === "locked" && !openAssigned && !getDoseAvailability(d.scheduled_at, nowDate).isEarly) {
+            state = "open";
+            openAssigned = true;
+          }
+          return {
+            id: d.id,
+            state,
+            part: dayPartOfTime(d.scheduled_at).key,
+            label: `${d.name} ${formatTime(d.scheduled_at)} - ${d.status === "taken" ? "اتاخدت" : d.status === "missed" ? "فاتت" : "لسه"}`
+          };
+        });
+        return /* @__PURE__ */ React.createElement("div", { className: `day-summary${allDone ? " is-complete" : ""}` }, /* @__PURE__ */ React.createElement(CalendarLeaf, { date: nowDate, size: 14 }), /* @__PURE__ */ React.createElement("div", { className: "day-summary-body" }, /* @__PURE__ */ React.createElement("div", { className: "day-summary-title" }, allDone ? "خلصت النهارده" : "متابعة اليوم"), /* @__PURE__ */ React.createElement("div", { className: "day-summary-meta" }, meta), /* @__PURE__ */ React.createElement(BlisterStrip, { items, label: `${taken} من ${total} جرعات اتاخدت` }), /* @__PURE__ */ React.createElement("div", { className: "day-summary-stats", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("div", { className: "day-stat tone-done" }, /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, taken), "اتاخدت"), /* @__PURE__ */ React.createElement("div", { className: "day-stat tone-left" }, /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, left), "مستنية"), /* @__PURE__ */ React.createElement("div", { className: "day-stat tone-missed" }, /* @__PURE__ */ React.createElement("span", { className: "day-stat-value" }, missed), "فاتت"))));
       }
       /*! ===== js/components/Medications.jsx ===== */
       const WEEKDAYS = ["الأحد", "الإتنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -1688,7 +1988,10 @@
           "دواء جديد"
         )), /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), loading ? /* @__PURE__ */ React.createElement(SkeletonCards, { count: 3 }) : meds.length === 0 ? /* @__PURE__ */ React.createElement(EmptyState, { icon: "pill", text: "مفيش أدوية مسجلة، ضيف أول دواء." }) : /* @__PURE__ */ React.createElement("div", { className: "med-list stagger" }, meds.map((m) => {
           const times = typeof m.times === "string" ? JSON.parse(m.times) : m.times;
-          return /* @__PURE__ */ React.createElement(Card, { key: m.id, className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, m.name, Boolean(m.is_critical) && /* @__PURE__ */ React.createElement("span", { className: "med-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 13, strokeWidth: 2.4 }), "مواعيده مهمة")), m.dosage && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, m.dosage), /* @__PURE__ */ React.createElement("div", { className: "med-times" }, times.map((t) => /* @__PURE__ */ React.createElement("span", { key: t, className: "chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 15 }), t)), describeDays(m.days_of_week) && /* @__PURE__ */ React.createElement("span", { className: "chip chip-days" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 15 }), describeDays(m.days_of_week)), m.pills_left != null && /* @__PURE__ */ React.createElement("span", { className: `chip${m.pills_left <= times.length * 5 ? " chip-low" : ""}` }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 15 }), "فاضل ", m.pills_left)), m.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, m.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(
+          return /* @__PURE__ */ React.createElement(Card, { key: m.id, className: "med-card" }, /* @__PURE__ */ React.createElement("div", { className: "med-main" }, /* @__PURE__ */ React.createElement("div", { className: "med-name" }, m.name, Boolean(m.is_critical) && /* @__PURE__ */ React.createElement("span", { className: "med-critical-chip" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 13, strokeWidth: 2.4 }), "مواعيده مهمة")), m.dosage && /* @__PURE__ */ React.createElement("div", { className: "med-dosage" }, m.dosage), /* @__PURE__ */ React.createElement("div", { className: "med-times" }, times.map((t) => {
+            const part = dayPartOfTime(t);
+            return /* @__PURE__ */ React.createElement("span", { key: t, className: `chip part-${part.key}` }, /* @__PURE__ */ React.createElement(Icon, { name: part.icon, size: 15 }), t);
+          }), describeDays(m.days_of_week) && /* @__PURE__ */ React.createElement("span", { className: "chip chip-days" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 15 }), describeDays(m.days_of_week)), m.pills_left != null && /* @__PURE__ */ React.createElement("span", { className: `chip${m.pills_left <= times.length * 5 ? " chip-low" : ""}` }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 15 }), "فاضل ", m.pills_left)), m.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, m.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(
             Button,
             {
               variant: "ghost",
@@ -2023,7 +2326,7 @@
         ));
       }
       function AppointmentCard({ appt, onEdit, onDelete }) {
-        return /* @__PURE__ */ React.createElement(Card, { className: "appt-card" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "appt-title" }, appt.title), (appt.doctor_name || appt.location) && /* @__PURE__ */ React.createElement("div", { className: "appt-meta" }, appt.doctor_name, appt.doctor_name && appt.location ? " - " : "", appt.location), /* @__PURE__ */ React.createElement("div", { className: "appt-datetime" }, formatDateTime(appt.appointment_at)), appt.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, appt.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(Button, { variant: "ghost", "aria-label": `تعديل موعد ${appt.title}`, onClick: onEdit }, "تعديل"), /* @__PURE__ */ React.createElement(Button, { variant: "danger", "aria-label": `حذف موعد ${appt.title}`, onClick: onDelete }, "حذف")));
+        return /* @__PURE__ */ React.createElement(Card, { className: "appt-card" }, /* @__PURE__ */ React.createElement(CalendarLeaf, { date: parseCairoDatetime(appt.appointment_at), size: 12 }), /* @__PURE__ */ React.createElement("div", { className: "appt-body" }, /* @__PURE__ */ React.createElement("div", { className: "appt-title" }, appt.title), (appt.doctor_name || appt.location) && /* @__PURE__ */ React.createElement("div", { className: "appt-meta" }, appt.doctor_name, appt.doctor_name && appt.location ? " - " : "", appt.location), /* @__PURE__ */ React.createElement("div", { className: "appt-datetime" }, formatDateTime(appt.appointment_at)), appt.notes && /* @__PURE__ */ React.createElement("div", { className: "med-notes" }, appt.notes)), /* @__PURE__ */ React.createElement("div", { className: "med-actions" }, /* @__PURE__ */ React.createElement(Button, { variant: "ghost", "aria-label": `تعديل موعد ${appt.title}`, onClick: onEdit }, "تعديل"), /* @__PURE__ */ React.createElement(Button, { variant: "danger", "aria-label": `حذف موعد ${appt.title}`, onClick: onDelete }, "حذف")));
       }
       function AppointmentForm({ patientId, appointment, onClose, onSaved }) {
         const isEdit = !!appointment;
@@ -2828,6 +3131,7 @@
         onInstalled
       }) {
         const [doses, setDoses] = React.useState([]);
+        const freshIds = useJustTaken(doses);
         const [loading, setLoading] = React.useState(true);
         const [error, setError] = React.useState("");
         const [staleSince, setStaleSince] = React.useState(null);
@@ -3055,26 +3359,29 @@
           }
           speak(text);
         }
-        function doseDotStatus(d) {
+        function bubbleState(d) {
           if (d.status === "taken") return "taken";
           if (d.status === "missed") return "missed";
-          if (d.isOpen) return "open";
-          return "locked";
-        }
-        function secondaryIcon(d) {
-          if (d.status === "taken") return "checkCircle";
-          if (d.status === "missed") return "warning";
-          if (d.isLocked) return "clock";
-          return "pill";
+          return d.id === heroId && heroKind === "open" ? "open" : "locked";
         }
         function secondaryMeta(d) {
-          if (d.status === "taken") return `اتاخدت - ${formatTime(d.scheduled_at)}`;
-          if (d.status === "missed") return `فاتت - ${formatTime(d.scheduled_at)}`;
+          if (d.status === "taken" || d.status === "missed") return d.dosage || "";
           if (d.isLocked) return `هتفتح الساعة ${formatTimeObj(d.availableFrom)}`;
-          return `الساعة ${formatTime(d.scheduled_at)}`;
+          return d.dosage || "جرعتك دلوقتي";
         }
         const rootClassName = `patient-home${fontLarge ? " font-large" : ""}${isNightBoost ? " font-night" : ""}`;
-        return /* @__PURE__ */ React.createElement("div", { className: `${rootClassName} ambient` }, /* @__PURE__ */ React.createElement("header", { className: "patient-header" }, /* @__PURE__ */ React.createElement("span", { className: "patient-greeting" }, "أهلاً ", firstName), /* @__PURE__ */ React.createElement("div", { className: "patient-header-actions" }, /* @__PURE__ */ React.createElement(
+        const greeting = greetingOfHour(cairoHourOf(now));
+        const heroTarget = heroDose || waitingDose;
+        const heroPart = heroTarget ? dayPartOfTime(heroTarget.scheduled_at) : null;
+        const heroClock = heroTarget ? formatClockParts(heroTarget.scheduled_at) : null;
+        const blisterItems = dosesWithAvailability.map((d) => ({
+          id: d.id,
+          state: bubbleState(d),
+          part: dayPartOfTime(d.scheduled_at).key,
+          fresh: freshIds.has(d.id),
+          label: `${formatTime(d.scheduled_at)} - ${d.status === "taken" ? "اتاخدت" : d.status === "missed" ? "فاتت" : "لسه"}`
+        }));
+        return /* @__PURE__ */ React.createElement("div", { className: rootClassName }, /* @__PURE__ */ React.createElement("header", { className: "patient-header" }, /* @__PURE__ */ React.createElement("div", { className: "patient-greeting" }, /* @__PURE__ */ React.createElement("span", { className: "patient-hello" }, greeting), /* @__PURE__ */ React.createElement("span", { className: "patient-name" }, "يا ", firstName)), /* @__PURE__ */ React.createElement("div", { className: "patient-header-actions" }, /* @__PURE__ */ React.createElement(
           "button",
           {
             className: "patient-settings-btn",
@@ -3083,28 +3390,36 @@
             title: "الإعدادات"
           },
           /* @__PURE__ */ React.createElement(Icon, { name: "settings", size: 22 })
-        ), /* @__PURE__ */ React.createElement("button", { className: "patient-logout", onClick: onLogout }, "خروج"))), /* @__PURE__ */ React.createElement("main", { className: "patient-main" }, /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), staleSince && /* @__PURE__ */ React.createElement("div", { className: "patient-offline-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "مفيش نت دلوقتي - دي آخر بيانات وصلتنا ", formatTime(new Date(staleSince).toISOString()))), /* @__PURE__ */ React.createElement(InstallBanner, { deferredPrompt: installPrompt, onInstalled }), loading ? /* @__PURE__ */ React.createElement(Spinner, null) : doses.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "patient-empty" }, /* @__PURE__ */ React.createElement("div", { className: "patient-empty-icon" }, /* @__PURE__ */ React.createElement(Icon, { name: "inbox", size: 58, strokeWidth: 1.5 })), /* @__PURE__ */ React.createElement("p", null, "معندكش أدوية دلوقتي")) : /* @__PURE__ */ React.createElement("div", { className: "patient-today" }, /* @__PURE__ */ React.createElement("div", { className: "patient-progress-dots" }, dosesWithAvailability.map((d) => /* @__PURE__ */ React.createElement(
-          "span",
-          {
-            key: d.id,
-            className: `progress-dot progress-dot-${doseDotStatus(d)}${d.id === heroId && heroKind === "open" ? " progress-dot-active" : ""}`
-          }
-        ))), /* @__PURE__ */ React.createElement("div", { className: "patient-progress-label" }, done.length, " من ", doses.length, " جرعات خلصت"), heroKind === "open" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-open" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label" }, "دلوقتي"), heroDose.has_image ? /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("button", { className: "patient-logout", onClick: onLogout }, "خروج"))), /* @__PURE__ */ React.createElement("main", { className: "patient-main" }, /* @__PURE__ */ React.createElement(Banner, { onClose: () => setError("") }, error), staleSince && /* @__PURE__ */ React.createElement("div", { className: "patient-offline-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "مفيش نت دلوقتي - دي آخر بيانات وصلتنا ", formatTime(new Date(staleSince).toISOString()))), /* @__PURE__ */ React.createElement(InstallBanner, { deferredPrompt: installPrompt, onInstalled }), loading ? /* @__PURE__ */ React.createElement(Spinner, null) : doses.length === 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-board" }, /* @__PURE__ */ React.createElement(CalendarLeaf, { date: now, size: 14 })), /* @__PURE__ */ React.createElement("div", { className: "patient-empty" }, /* @__PURE__ */ React.createElement(PillBoxArt, { className: "patient-empty-art", loose: false }), /* @__PURE__ */ React.createElement("p", null, "معندكش أدوية دلوقتي"))) : /* @__PURE__ */ React.createElement("div", { className: "patient-today" }, heroKind === "open" && /* @__PURE__ */ React.createElement("div", { className: `patient-hero patient-hero-open part-${heroPart.key}` }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-band" }, /* @__PURE__ */ React.createElement("span", { className: "patient-hero-when" }, /* @__PURE__ */ React.createElement(Icon, { name: heroPart.icon, size: 26, strokeWidth: 2.2 }), "دلوقتي · ", heroPart.label), /* @__PURE__ */ React.createElement("span", { className: "patient-hero-time" }, heroClock.clock, /* @__PURE__ */ React.createElement("small", null, heroClock.ampm)), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 }))), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-id" }, heroDose.has_image ? /* @__PURE__ */ React.createElement(
           MedImage,
           {
             medicationId: heroDose.medication_id,
             hasImage: heroDose.has_image,
             className: "med-image-hero"
           }
-        ) : /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 56, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, heroDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "الساعة ", formatTime(heroDose.scheduled_at)), heroDose.dosage && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, heroDose.dosage), heroDose.notes && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 17, strokeWidth: 2.2 }), heroDose.notes), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-btn", onClick: () => handleTake(heroDose.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 30, strokeWidth: 2.6 }), "خدت الدوا")), heroKind === "waiting" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-waiting" }, /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-label muted" }, "الجرعة الجاية"), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 48, strokeWidth: 1.6 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, waitingDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "هتقدر تأكدها الساعة ", formatTimeObj(waitingDose.availableFrom))), heroKind === "allDone" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-card patient-hero-alldone" }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "sparkles", size: 54, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-name" }, "خلصت كل جرعات النهارده")), secondaryDoses.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-title" }, "باقي جرعات النهارده"), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-list stagger" }, secondaryDoses.map((d) => /* @__PURE__ */ React.createElement("div", { key: d.id, className: `patient-secondary-row status-${d.status}` }, /* @__PURE__ */ React.createElement("span", { className: "patient-secondary-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: secondaryIcon(d), size: 24 })), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-name" }, d.name), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-meta" }, secondaryMeta(d)), d.notes && /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-notes" }, d.notes)), d.isOpen && /* @__PURE__ */ React.createElement("button", { className: "patient-secondary-take", onClick: () => handleTake(d.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 17, strokeWidth: 2.6 }), "خدت"), d.isLate && /* @__PURE__ */ React.createElement(
-          "button",
+        ) : /* @__PURE__ */ React.createElement("span", { className: "patient-hero-token", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "pill", size: 36, strokeWidth: 2 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-text" }, /* @__PURE__ */ React.createElement("h2", { className: "patient-hero-name" }, heroDose.name), heroDose.dosage && /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, heroDose.dosage))), heroDose.notes && /* @__PURE__ */ React.createElement("div", { className: "sticker patient-hero-notes" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 20, strokeWidth: 2.4 }), heroDose.notes), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-btn", onClick: () => handleTake(heroDose.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 34, strokeWidth: 3 }), "خدت الدوا"))), heroKind === "waiting" && /* @__PURE__ */ React.createElement("div", { className: `patient-hero patient-hero-waiting part-${heroPart.key}` }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-band" }, /* @__PURE__ */ React.createElement("span", { className: "patient-hero-when" }, /* @__PURE__ */ React.createElement(Icon, { name: heroPart.icon, size: 26, strokeWidth: 2.2 }), "الجاية · ", heroPart.label), /* @__PURE__ */ React.createElement("span", { className: "patient-hero-time" }, heroClock.clock, /* @__PURE__ */ React.createElement("small", null, heroClock.ampm)), /* @__PURE__ */ React.createElement("button", { className: "patient-hero-speak", onClick: speakDoseInfo, title: "اسمع الدواء", "aria-label": "اسمع الدواء" }, /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 24 }))), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-hero-id" }, /* @__PURE__ */ React.createElement("span", { className: "patient-hero-token", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 36, strokeWidth: 2 })), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-text" }, /* @__PURE__ */ React.createElement("h2", { className: "patient-hero-name" }, waitingDose.name), /* @__PURE__ */ React.createElement("div", { className: "patient-hero-meta" }, "هتقدر تأكدها الساعة ", formatTimeObj(waitingDose.availableFrom)))))), heroKind === "allDone" && /* @__PURE__ */ React.createElement("div", { className: "patient-hero patient-hero-alldone" }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Stamp, { tone: "green", big: true, fresh: true }, "تمام")), /* @__PURE__ */ React.createElement(TeaGlassArt, { className: "patient-done-art" }), /* @__PURE__ */ React.createElement("h2", { className: "patient-hero-name" }, "خلصت كل جرعات النهارده")), /* @__PURE__ */ React.createElement("div", { className: "patient-board" }, /* @__PURE__ */ React.createElement(CalendarLeaf, { date: now, size: 14 }), /* @__PURE__ */ React.createElement("div", { className: "patient-board-main" }, /* @__PURE__ */ React.createElement(BlisterStrip, { items: blisterItems, label: "جرعات النهارده" }), /* @__PURE__ */ React.createElement("div", { className: "patient-progress-label" }, done.length, " من ", doses.length, " جرعات خلصت"))), secondaryDoses.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "patient-secondary" }, /* @__PURE__ */ React.createElement("h3", { className: "patient-secondary-title" }, "باقي جرعات النهارده"), /* @__PURE__ */ React.createElement("div", { className: "patient-secondary-list stagger" }, secondaryDoses.map((d) => /* @__PURE__ */ React.createElement(
+          DoseTicket,
           {
-            className: "patient-secondary-take patient-secondary-take-late",
-            onClick: () => handleTake(d.id)
+            key: d.id,
+            scheduledAt: d.scheduled_at,
+            name: d.name,
+            meta: secondaryMeta(d),
+            notes: d.notes,
+            done: d.status === "taken" || d.status === "missed"
           },
-          /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 17, strokeWidth: 2.6 }),
-          "خدتها"
-        )))))), nextAppointment && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-card" }, /* @__PURE__ */ React.createElement("span", { className: "patient-appt-icon", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 26 })), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-appt-label" }, describeApptWhen(nextAppointment.appointment_at)), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-title" }, nextAppointment.title), nextAppointment.doctor_name && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, "د. ", nextAppointment.doctor_name), nextAppointment.location && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, nextAppointment.location)), /* @__PURE__ */ React.createElement(
+          d.status === "taken" && /* @__PURE__ */ React.createElement(Stamp, { tone: "green" }, "اتاخدت"),
+          d.isOpen && /* @__PURE__ */ React.createElement("button", { className: "patient-secondary-take", onClick: () => handleTake(d.id) }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 18, strokeWidth: 3 }), "خدت"),
+          d.status === "missed" && !d.isLate && /* @__PURE__ */ React.createElement(Stamp, { tone: "coral", flip: true }, "فاتت"),
+          d.isLate && /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              className: "patient-secondary-take patient-secondary-take-late",
+              onClick: () => handleTake(d.id)
+            },
+            /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 18, strokeWidth: 3 }),
+            "خدتها"
+          )
+        ))))), nextAppointment && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-card" }, /* @__PURE__ */ React.createElement(CalendarLeaf, { date: parseCairoDatetime(nextAppointment.appointment_at), size: 11 }), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-body" }, /* @__PURE__ */ React.createElement("div", { className: "patient-appt-label" }, describeApptWhen(nextAppointment.appointment_at)), /* @__PURE__ */ React.createElement("div", { className: "patient-appt-title" }, nextAppointment.title), nextAppointment.doctor_name && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, "د. ", nextAppointment.doctor_name), nextAppointment.location && /* @__PURE__ */ React.createElement("div", { className: "patient-appt-meta" }, nextAppointment.location)), /* @__PURE__ */ React.createElement(
           "button",
           {
             className: "patient-appt-speak",
@@ -3112,7 +3427,7 @@
             "aria-label": "اسمع الموعد"
           },
           /* @__PURE__ */ React.createElement(Icon, { name: "speaker", size: 20 })
-        )), caregivers.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-card" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-info" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-label" }, "متابعك"), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-name" }, caregivers[0].name)), caregivers[0].phone ? /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call", href: `tel:${caregivers[0].phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 22, strokeWidth: 2.2 }), "اتصل بيه") : /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-avatar", "aria-hidden": "true" }, caregivers[0].name.trim()[0] || "م")), caregivers.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more-label" }, "متابعين تانيين"), caregivers.slice(1).map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "patient-caregiver-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-name" }, c.name), c.phone ? /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call small", href: `tel:${c.phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 18, strokeWidth: 2.2 }), "اتصل") : /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-nophone" }, "مفيش رقم"))))), /* @__PURE__ */ React.createElement("div", { className: "patient-quick-actions" }, /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowHistory(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 20 }), "اللي خدته قبل كده"), /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowVitals(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "stethoscope", size: 20 }), "سجّل قياس")), isNightBoost && /* @__PURE__ */ React.createElement("div", { className: "patient-night-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "moon", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "وضع الليل: الخط أكبر شوية عشان الرؤية بالليل")), pushStatus !== "ready" && pushStatus !== "unsupported" && /* @__PURE__ */ React.createElement(
+        )), caregivers.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-card" }, /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-avatar", "aria-hidden": "true" }, caregivers[0].name.trim()[0] || "م"), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-info" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-label" }, "متابعك"), /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-name" }, caregivers[0].name)), caregivers[0].phone && /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call", href: `tel:${caregivers[0].phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 22, strokeWidth: 2.2 }), "اتصل بيه")), caregivers.length > 1 && /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more" }, /* @__PURE__ */ React.createElement("div", { className: "patient-caregiver-more-label" }, "متابعين تانيين"), caregivers.slice(1).map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "patient-caregiver-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-name" }, c.name), c.phone ? /* @__PURE__ */ React.createElement("a", { className: "patient-caregiver-call small", href: `tel:${c.phone}` }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", size: 18, strokeWidth: 2.2 }), "اتصل") : /* @__PURE__ */ React.createElement("span", { className: "patient-caregiver-row-nophone" }, "مفيش رقم"))))), /* @__PURE__ */ React.createElement("div", { className: "patient-quick-actions" }, /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowHistory(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 20 }), "اللي خدته قبل كده"), /* @__PURE__ */ React.createElement("button", { className: "patient-quick-btn", onClick: () => setShowVitals(true) }, /* @__PURE__ */ React.createElement(Icon, { name: "stethoscope", size: 20 }), "سجّل قياس")), isNightBoost && /* @__PURE__ */ React.createElement("div", { className: "patient-night-banner" }, /* @__PURE__ */ React.createElement(Icon, { name: "moon", size: 20 }), /* @__PURE__ */ React.createElement("span", null, "وضع الليل: الخط أكبر شوية عشان الرؤية بالليل")), pushStatus !== "ready" && pushStatus !== "unsupported" && /* @__PURE__ */ React.createElement(
           "div",
           {
             className: `patient-notif-banner${pushStatus === "blocked" || pushStatus === "needs-install" ? " patient-notif-banner-denied" : ""}`
@@ -3218,7 +3533,7 @@
         { key: "temperature", label: "الحرارة", icon: "thermometer", tone: "amber" }
       ];
       const PATIENT_VITAL_HISTORY = 5;
-      function formatVitalValue(vital) {
+      function formatPatientVitalValue(vital) {
         const v = typeof vital.value_json === "string" ? JSON.parse(vital.value_json) : vital.value_json;
         if (vital.type === "blood_pressure") return `${v.systolic}/${v.diastolic}`;
         return String(v.value);
@@ -3287,7 +3602,7 @@
             onChange: (e) => setValue(e.target.value),
             autoFocus: true
           }
-        )), /* @__PURE__ */ React.createElement("button", { className: "patient-vital-save", onClick: save, disabled: !canSave || saving }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 26, strokeWidth: 2.6 }), saving ? "بنسجّل..." : "سجّل"), history && history.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history" }, /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history-title" }, "آخر قراءات ", type.label), history.map((v) => /* @__PURE__ */ React.createElement("div", { key: v.id, className: "patient-vital-history-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-value" }, formatVitalValue(v)), /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-when" }, describePastWhen(v.recorded_at))))), /* @__PURE__ */ React.createElement("button", { className: "issue-back", onClick: () => setType(null), disabled: saving }, "رجوع"))));
+        )), /* @__PURE__ */ React.createElement("button", { className: "patient-vital-save", onClick: save, disabled: !canSave || saving }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 26, strokeWidth: 2.6 }), saving ? "بنسجّل..." : "سجّل"), history && history.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history" }, /* @__PURE__ */ React.createElement("div", { className: "patient-vital-history-title" }, "آخر قراءات ", type.label), history.map((v) => /* @__PURE__ */ React.createElement("div", { key: v.id, className: "patient-vital-history-row" }, /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-value" }, formatPatientVitalValue(v)), /* @__PURE__ */ React.createElement("span", { className: "patient-vital-history-when" }, describePastWhen(v.recorded_at))))), /* @__PURE__ */ React.createElement("button", { className: "issue-back", onClick: () => setType(null), disabled: saving }, "رجوع"))));
       }
       const PATIENT_HISTORY_DAYS = 7;
       function PatientHistorySheet({ patientId, onClose }) {
@@ -3511,7 +3826,7 @@
           syncPushSubscription();
         }, [user]);
         if (booting) {
-          return /* @__PURE__ */ React.createElement("div", { className: "boot-screen" }, /* @__PURE__ */ React.createElement("div", { className: "boot-logo", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "brand", size: 46, strokeWidth: 1.7 })), /* @__PURE__ */ React.createElement("div", { className: "boot-name" }, "معاك"), /* @__PURE__ */ React.createElement(Spinner, null));
+          return /* @__PURE__ */ React.createElement(BootScreen, null);
         }
         if (!user) {
           return /* @__PURE__ */ React.createElement(AuthScreen, { onAuthenticated, initialError: accessError });

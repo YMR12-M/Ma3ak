@@ -2,6 +2,11 @@
    MA3ak (معاك) - شاشة المنبه
    بتغطي الشاشة بالكامل لما ميعاد جرعة ييجي والتطبيق مفتوح.
    المنطق والسبب في js/components/Alarm.jsx
+
+   الشاشة كلها بلون فترة اليوم (أصفر الصبح، أزرق الضهر، برتقالي المسا، نيلي
+   الليل) والجرعة المتأخرة المهمة بالمرجاني - وفي نصها ورقة بحافة حبر فيها
+   الساعة بخط ضخم، زي منبه على الكومودينو. كبير السن بيلاحظ لون الشاشة قبل
+   ما يقرا أي حاجة.
    ============================================ */
 
 .alarm-overlay {
@@ -12,11 +17,14 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-3);
-  /* أغمق من overlay النوافذ العادية: المفروض محدش يبص على حاجة تانية دلوقتي */
-  background: rgba(12, 22, 20, 0.82);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: var(--part, var(--sun));
   animation: alarm-in var(--dur-3) var(--ease-out) both;
+}
+
+/* دوا مهم (أنسولين، قلب): الشاشة كلها مرجاني بدل لون الفترة - ده الفرق اللي لازم
+   يبان من بعيد */
+.alarm-overlay-critical {
+  background: var(--coral);
 }
 
 @keyframes alarm-in {
@@ -30,17 +38,11 @@
   max-height: 100%;
   overflow-y: auto;
   text-align: center;
-  padding: var(--space-5) var(--space-4) var(--space-4);
+  background: var(--paper-2);
+  border: 3px solid var(--line);
   border-radius: var(--radius-xl);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-xl);
-  /* شريط علوي بلون الهوية - نفس لغة النوافذ في باقي التطبيق */
-  border-top: 4px solid var(--color-primary);
+  box-shadow: 0 8px 0 var(--line);
   animation: alarm-card-in var(--dur-4) var(--ease-spring) both;
-}
-
-.alarm-card-critical {
-  border-top-color: var(--color-danger);
 }
 
 @keyframes alarm-card-in {
@@ -48,58 +50,86 @@
   to { opacity: 1; transform: none; }
 }
 
+/* شريط أعلى الورقة: "وقت الدوا دلوقتي" وأيقونة الفترة، والساعة بخط ضخم */
+.alarm-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--part-tint, var(--sun-tint));
+  border-bottom: 3px solid var(--line);
+}
+
 .alarm-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: var(--font-size-md);
-  font-weight: 700;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--part-ink, var(--ink));
+  text-align: start;
 }
 
 .alarm-critical-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  margin-inline-end: 0.5em;
-  padding: 0.15em 0.6em;
+  padding: 0.1em 0.7em;
+  border: 2px solid var(--coral);
   border-radius: var(--radius-pill);
-  background: var(--color-danger-light);
-  color: var(--color-danger);
+  background: var(--coral);
+  color: var(--on-coral);
   font-size: var(--font-size-sm);
+  font-weight: 800;
 }
 
-/* ---------- الأيقونة النابضة ---------- */
+.alarm-time {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-display);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.alarm-time small {
+  margin-inline-start: 6px;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.alarm-body {
+  padding: var(--space-3) var(--space-3) var(--space-3);
+}
+
+/* ---------- الأيقونة المهتزة ----------
+   جرس منبه بيهتز: هزّة سريعة ووقفة (ring-shake في animations.css). مش نبض
+   دايم - الوقفة هي اللي بتخلي الهزّة تتلاحظ كل مرة. */
 
 .alarm-icon {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 7rem;
   height: 7rem;
   margin-bottom: var(--space-3);
+  border: 3px solid var(--line);
   border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--part-tint, var(--sun-tint));
+  color: var(--part-ink, var(--ink));
+  box-shadow: 0 5px 0 var(--part-deep, var(--line));
+  animation: ring-shake 2.4s var(--ease-in-out) infinite;
 }
 
-.alarm-card-critical .alarm-icon {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-
-.alarm-icon-pulse {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.25;
-  animation: alarm-pulse 1.8s var(--ease-in-out) infinite;
-}
-
-@keyframes alarm-pulse {
-  0%   { transform: scale(1);    opacity: 0.28; }
-  70%  { transform: scale(1.35); opacity: 0; }
-  100% { transform: scale(1.35); opacity: 0; }
+.alarm-overlay-critical .alarm-icon {
+  background: var(--coral-tint);
+  color: var(--coral-ink);
+  box-shadow: 0 5px 0 var(--coral);
 }
 
 /* ---------- النصوص ---------- */
@@ -107,21 +137,16 @@
 .alarm-med-name {
   margin: 0 0 var(--space-1);
   font-size: var(--font-size-display);
-  font-weight: 800;
+  font-weight: 900;
   line-height: var(--line-height-tight);
   color: var(--color-text);
 }
 
 .alarm-dosage {
   font-size: var(--font-size-lg);
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: var(--space-1);
-}
-
-.alarm-time {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
 }
 
 /* ---------- الأزرار ---------- */
@@ -133,13 +158,20 @@
   margin-bottom: var(--space-3);
   padding: 0.5em 1.1em;
   min-height: var(--tap-min);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--rule-strong);
   border-radius: var(--radius-pill);
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
-  font: inherit;
+  background: var(--paper-2);
+  color: var(--color-text);
+  font-family: var(--font-display);
   font-size: var(--font-size-base);
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 3px 0 var(--rule-strong);
+}
+
+.alarm-speak:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--rule-strong);
 }
 
 /* الزرار الأساسي: أكبر حاجة على الشاشة. كبير سن ممكن يكون بيدوس بإصبع مرتعش
@@ -150,23 +182,23 @@
   justify-content: center;
   gap: 0.5em;
   width: 100%;
-  min-height: 4.6rem;
+  min-height: 4.8rem;
   padding: var(--space-3);
   border: 0;
   border-radius: var(--radius-lg);
-  background: var(--grad-brand);
-  color: var(--color-on-primary);
-  font: inherit;
-  font-size: var(--font-size-xl);
-  font-weight: 800;
+  background: var(--green);
+  color: var(--on-green);
+  font-family: var(--font-display);
+  font-size: calc(var(--font-size-lg) + 4px);
+  font-weight: 900;
   cursor: pointer;
-  box-shadow: var(--shadow-primary);
-  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+  box-shadow: 0 7px 0 var(--green-deep);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
 }
 
 .alarm-take:active:not(:disabled) {
-  transform: scale(0.98);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(6px);
+  box-shadow: 0 1px 0 var(--green-deep);
 }
 
 .alarm-take:disabled,
@@ -185,24 +217,32 @@
   min-height: var(--tap-min);
   margin-top: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
+  border: 2px solid var(--rule-strong);
   border-radius: var(--radius-lg);
-  background: var(--color-surface-alt);
+  background: var(--paper-2);
   color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-size-md);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: var(--font-size-base);
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 4px 0 var(--rule-strong);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out);
+}
+
+.alarm-snooze:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--rule-strong);
 }
 
 .alarm-snooze-last {
   color: var(--color-text-muted);
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .alarm-no-snooze {
   margin-top: var(--space-2);
   font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--color-text-muted);
 }
 
@@ -213,18 +253,51 @@
   padding: 0.5em 1em;
   border: 0;
   background: none;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   font: inherit;
   font-size: var(--font-size-base);
+  font-weight: 700;
   text-decoration: underline;
+  text-underline-offset: 4px;
   cursor: pointer;
 }
 
-/* المستخدم اللي طالب تقليل الحركة من نظامه: كل الحركة بتقف. النبض مفيد بس
+/* شاشة قصيرة (موبايل 640-760px): الأيقونة والمسافات أصغر عشان "خدت الدوا" و"فكّرني
+   بعد" يبانوا من غير سكرول جوه الورقة */
+@media (max-height: 760px) {
+  .alarm-overlay {
+    padding: var(--space-2);
+  }
+
+  .alarm-icon {
+    width: 5rem;
+    height: 5rem;
+    margin-bottom: var(--space-2);
+  }
+
+  .alarm-icon .icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .alarm-body {
+    padding: var(--space-2) var(--space-3) var(--space-3);
+  }
+
+  .alarm-med-name {
+    font-size: var(--font-size-xl);
+  }
+
+  .alarm-speak {
+    margin-bottom: var(--space-2);
+  }
+}
+
+/* المستخدم اللي طالب تقليل الحركة من نظامه: كل الحركة بتقف. الهزّة مفيدة بس
    مش على حساب حد الحركة بتضايقه فعليًا (دوار، صداع نصفي). */
 @media (prefers-reduced-motion: reduce) {
   .alarm-overlay,
   .alarm-card { animation: none; }
-  .alarm-icon-pulse { animation: none; opacity: 0.2; }
+  .alarm-icon { animation: none; }
   .alarm-take { transition: none; }
 }

@@ -18,7 +18,7 @@
 
 /* لازم يتغيّر الرقم ده مع أي تعديل في قايمة APP_SHELL تحت - هو اللي بيخلي
    المتصفح يرمي الكاش القديم ويحمّل النسخة الجديدة (شوف حدث activate تحت). */
-const CACHE_NAME = 'ma3ak-shell-v8';
+const CACHE_NAME = 'ma3ak-shell-v9';
 
 /* قشرة التطبيق كاملة - بقت 5 ملفات بدل 26.
    قبل كده كان كل ملف CSS وكل ملف مكوّن بيتكاشّ لوحده، لأن المتصفح كان بيحمّلهم
@@ -36,6 +36,7 @@ const APP_SHELL = [
   // بيفضل بخطه الحقيقي بدل ما يقع على خط النظام
   '/fonts/cairo-arabic.woff2',
   '/fonts/cairo-latin.woff2',
+  '/fonts/kufam-arabic.woff2',
 ];
 
 self.addEventListener('install', (event) => {

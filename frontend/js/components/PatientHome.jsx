@@ -86,6 +86,8 @@ function PatientHome({
   onInstalled,
 }) {
   const [doses, setDoses] = React.useState([]);
+  // ids الجرعات اللي اتاخدت **دلوقتي** (مش اللي كانت متاخدة من الأول) - فقاعتها بتتفرقع
+  const freshIds = useJustTaken(doses);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   // بيانات معروضة من نسخة محفوظة على الجهاز لأن النت قاطع - المريض لازم يعرف
@@ -452,32 +454,45 @@ function PatientHome({
     speak(text);
   }
 
-  function doseDotStatus(d) {
+  // حالة الفقاعة في شريط الدوا (css/identity.css). الجرعة الرئيسية بس هي "open"
+  // (اللي حلقتها بتنبض) - أي جرعة تانية متاحة بتتعرض كفقاعة عادية.
+  function bubbleState(d) {
     if (d.status === 'taken') return 'taken';
     if (d.status === 'missed') return 'missed';
-    if (d.isOpen) return 'open';
-    return 'locked';
+    return d.id === heroId && heroKind === 'open' ? 'open' : 'locked';
   }
-  // أسماء أيقونات من js/icons.jsx
-  function secondaryIcon(d) {
-    if (d.status === 'taken') return 'checkCircle';
-    if (d.status === 'missed') return 'warning';
-    if (d.isLocked) return 'clock';
-    return 'pill';
-  }
+  // الحالة (اتاخدت/فاتت) بتتقال بالختم في طرف التذكرة، فمبنكرّرهاش هنا كنص
   function secondaryMeta(d) {
-    if (d.status === 'taken') return `اتاخدت - ${formatTime(d.scheduled_at)}`;
-    if (d.status === 'missed') return `فاتت - ${formatTime(d.scheduled_at)}`;
+    if (d.status === 'taken' || d.status === 'missed') return d.dosage || '';
     if (d.isLocked) return `هتفتح الساعة ${formatTimeObj(d.availableFrom)}`;
-    return `الساعة ${formatTime(d.scheduled_at)}`;
+    return d.dosage || 'جرعتك دلوقتي';
   }
 
   const rootClassName = `patient-home${fontLarge ? ' font-large' : ''}${isNightBoost ? ' font-night' : ''}`;
 
+  // التحية حسب ساعة القاهرة، وفترة اليوم لكل جرعة (لون + أيقونة + كلمة) - js/dayParts.js
+  const greeting = greetingOfHour(cairoHourOf(now));
+  const heroTarget = heroDose || waitingDose;
+  const heroPart = heroTarget ? dayPartOfTime(heroTarget.scheduled_at) : null;
+  const heroClock = heroTarget ? formatClockParts(heroTarget.scheduled_at) : null;
+
+  const blisterItems = dosesWithAvailability.map((d) => ({
+    id: d.id,
+    state: bubbleState(d),
+    part: dayPartOfTime(d.scheduled_at).key,
+    fresh: freshIds.has(d.id),
+    label: `${formatTime(d.scheduled_at)} - ${
+      d.status === 'taken' ? 'اتاخدت' : d.status === 'missed' ? 'فاتت' : 'لسه'
+    }`,
+  }));
+
   return (
-    <div className={`${rootClassName} ambient`}>
+    <div className={rootClassName}>
       <header className="patient-header">
-        <span className="patient-greeting">أهلاً {firstName}</span>
+        <div className="patient-greeting">
+          <span className="patient-hello">{greeting}</span>
+          <span className="patient-name">يا {firstName}</span>
+        </div>
         <div className="patient-header-actions">
           <button
             className="patient-settings-btn"
@@ -515,126 +530,175 @@ function PatientHome({
         {loading ? (
           <Spinner />
         ) : doses.length === 0 ? (
-          <div className="patient-empty">
-            <div className="patient-empty-icon">
-              <Icon name="inbox" size={58} strokeWidth={1.5} />
+          <React.Fragment>
+            <div className="patient-board">
+              <CalendarLeaf date={now} size={14} />
             </div>
-            <p>معندكش أدوية دلوقتي</p>
-          </div>
+            <div className="patient-empty">
+              <PillBoxArt className="patient-empty-art" loose={false} />
+              <p>معندكش أدوية دلوقتي</p>
+            </div>
+          </React.Fragment>
         ) : (
           <div className="patient-today">
-            {/* نقط تقدّم صغيرة - جرعة لكل نقطة، عشان المريض يشوف بنظرة واحدة كام باقي */}
-            <div className="patient-progress-dots">
-              {dosesWithAvailability.map((d) => (
-                <span
-                  key={d.id}
-                  className={`progress-dot progress-dot-${doseDotStatus(d)}${
-                    d.id === heroId && heroKind === 'open' ? ' progress-dot-active' : ''
-                  }`}
-                />
-              ))}
-            </div>
-            <div className="patient-progress-label">{done.length} من {doses.length} جرعات خلصت</div>
-
             {/* الجرعة الرئيسية: حاجة واحدة بس واضحة على الشاشة كل مرة */}
             {heroKind === 'open' && (
-              <div className="patient-hero-card patient-hero-open">
-                <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
-                  <Icon name="speaker" size={24} />
-                </button>
-                <div className="patient-hero-label">دلوقتي</div>
-                {/* الصورة بتاخد مكان الأيقونة لو موجودة - شكل الشريط الحقيقي
-                    أوضح بكتير من أيقونة برشامة عامة */}
-                {heroDose.has_image ? (
-                  <MedImage
-                    medicationId={heroDose.medication_id}
-                    hasImage={heroDose.has_image}
-                    className="med-image-hero"
-                  />
-                ) : (
-                  <div className="patient-hero-icon" aria-hidden="true">
-                    <Icon name="pill" size={56} strokeWidth={1.7} />
+              <div className={`patient-hero patient-hero-open part-${heroPart.key}`}>
+                <div className="patient-hero-band">
+                  <span className="patient-hero-when">
+                    <Icon name={heroPart.icon} size={26} strokeWidth={2.2} />
+                    دلوقتي · {heroPart.label}
+                  </span>
+                  <span className="patient-hero-time">
+                    {heroClock.clock}
+                    <small>{heroClock.ampm}</small>
+                  </span>
+                  <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
+                    <Icon name="speaker" size={24} />
+                  </button>
+                </div>
+                <div className="patient-hero-body">
+                  {/* صف الهوية زي ملصق علبة الدوا: الصورة (أو البلاطة) على ناحية والاسم
+                      والجرعة جنبها. الصورة بتاخد مكان البلاطة لو موجودة - شكل الشريط
+                      الحقيقي أوضح بكتير من أيقونة برشامة عامة. */}
+                  <div className="patient-hero-id">
+                    {heroDose.has_image ? (
+                      <MedImage
+                        medicationId={heroDose.medication_id}
+                        hasImage={heroDose.has_image}
+                        className="med-image-hero"
+                      />
+                    ) : (
+                      <span className="patient-hero-token" aria-hidden="true">
+                        <Icon name="pill" size={36} strokeWidth={2} />
+                      </span>
+                    )}
+                    <div className="patient-hero-text">
+                      <h2 className="patient-hero-name">{heroDose.name}</h2>
+                      {heroDose.dosage && <div className="patient-hero-meta">{heroDose.dosage}</div>}
+                    </div>
                   </div>
-                )}
-                <div className="patient-hero-name">{heroDose.name}</div>
-                <div className="patient-hero-meta">الساعة {formatTime(heroDose.scheduled_at)}</div>
-                {heroDose.dosage && <div className="patient-hero-meta">{heroDose.dosage}</div>}
-                {/* تعليمات الدكتور ("خده بعد الأكل") - كانت متخزنة ومتعرضة
-                    للمتابع بس، والمريض عمره ما شافها */}
-                {heroDose.notes && (
-                  <div className="patient-hero-notes">
-                    <Icon name="alert" size={17} strokeWidth={2.2} />
-                    {heroDose.notes}
-                  </div>
-                )}
-                <button className="patient-hero-btn" onClick={() => handleTake(heroDose.id)}>
-                  <Icon name="check" size={30} strokeWidth={2.6} />
-                  خدت الدوا
-                </button>
+                  {/* تعليمات الدكتور ("خده بعد الأكل") - كانت متخزنة ومتعرضة
+                      للمتابع بس، والمريض عمره ما شافها. دلوقتي بتبان كملصق
+                      الصيدلي على العلبة. */}
+                  {heroDose.notes && (
+                    <div className="sticker patient-hero-notes">
+                      <Icon name="alert" size={20} strokeWidth={2.4} />
+                      {heroDose.notes}
+                    </div>
+                  )}
+                  <button className="patient-hero-btn" onClick={() => handleTake(heroDose.id)}>
+                    <Icon name="check" size={34} strokeWidth={3} />
+                    خدت الدوا
+                  </button>
+                </div>
               </div>
             )}
 
             {heroKind === 'waiting' && (
-              <div className="patient-hero-card patient-hero-waiting">
-                <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
-                  <Icon name="speaker" size={24} />
-                </button>
-                <div className="patient-hero-label muted">الجرعة الجاية</div>
-                <div className="patient-hero-icon" aria-hidden="true">
-                  <Icon name="clock" size={48} strokeWidth={1.6} />
+              <div className={`patient-hero patient-hero-waiting part-${heroPart.key}`}>
+                <div className="patient-hero-band">
+                  <span className="patient-hero-when">
+                    <Icon name={heroPart.icon} size={26} strokeWidth={2.2} />
+                    الجاية · {heroPart.label}
+                  </span>
+                  <span className="patient-hero-time">
+                    {heroClock.clock}
+                    <small>{heroClock.ampm}</small>
+                  </span>
+                  <button className="patient-hero-speak" onClick={speakDoseInfo} title="اسمع الدواء" aria-label="اسمع الدواء">
+                    <Icon name="speaker" size={24} />
+                  </button>
                 </div>
-                <div className="patient-hero-name">{waitingDose.name}</div>
-                <div className="patient-hero-meta">
-                  هتقدر تأكدها الساعة {formatTimeObj(waitingDose.availableFrom)}
+                <div className="patient-hero-body">
+                  <div className="patient-hero-id">
+                    <span className="patient-hero-token" aria-hidden="true">
+                      <Icon name="clock" size={36} strokeWidth={2} />
+                    </span>
+                    <div className="patient-hero-text">
+                      <h2 className="patient-hero-name">{waitingDose.name}</h2>
+                      <div className="patient-hero-meta">
+                        هتقدر تأكدها الساعة {formatTimeObj(waitingDose.availableFrom)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {heroKind === 'allDone' && (
-              <div className="patient-hero-card patient-hero-alldone">
-                <div className="patient-hero-icon" aria-hidden="true">
-                  <Icon name="sparkles" size={54} strokeWidth={1.7} />
-                </div>
-                <div className="patient-hero-name">خلصت كل جرعات النهارده</div>
+              <div className="patient-hero patient-hero-alldone">
+                {/* الختم زينة: الجملة اللي تحته هي المعلومة (aria-hidden على الختم) */}
+                <span aria-hidden="true">
+                  <Stamp tone="green" big fresh>
+                    تمام
+                  </Stamp>
+                </span>
+                <TeaGlassArt className="patient-done-art" />
+                <h2 className="patient-hero-name">خلصت كل جرعات النهارده</h2>
               </div>
             )}
 
-            {/* باقي جرعات النهارده - صفوف أصغر تحت الجرعة الرئيسية */}
+            {/* لوحة النهارده: نتيجة الحيط (التاريخ) + شريط الدوا (فقاعة لكل جرعة).
+                كبير السن يشوف النهاردة إيه وخلّص كام بنظرة واحدة.
+
+                مكانها **تحت** كارت الجرعة مش فوقه عن قصد: الفعل قبل المعلومة. لما كانت
+                فوق، زرار "خدت الدوا" كان بينزل تحت حافة الشاشة على أي موبايل صغير أو مع
+                الخط الكبير، والمريض يفتح التطبيق عشان زرار واحد ويدوّر عليه. */}
+            <div className="patient-board">
+              <CalendarLeaf date={now} size={14} />
+              <div className="patient-board-main">
+                <BlisterStrip items={blisterItems} label="جرعات النهارده" />
+                <div className="patient-progress-label">
+                  {done.length} من {doses.length} جرعات خلصت
+                </div>
+              </div>
+            </div>
+
+            {/* باقي جرعات النهارده - تذاكر صغيرة تحت الجرعة الرئيسية (وفي العمود التاني
+                على الشاشة العريضة - شوف .patient-today في patient.css) */}
             {secondaryDoses.length > 0 && (
-              <React.Fragment>
-                <div className="patient-secondary-title">باقي جرعات النهارده</div>
+              <div className="patient-secondary">
+                <h3 className="patient-secondary-title">باقي جرعات النهارده</h3>
                 <div className="patient-secondary-list stagger">
                   {secondaryDoses.map((d) => (
-                    <div key={d.id} className={`patient-secondary-row status-${d.status}`}>
-                      <span className="patient-secondary-icon" aria-hidden="true">
-                        <Icon name={secondaryIcon(d)} size={24} />
-                      </span>
-                      <div className="patient-secondary-body">
-                        <div className="patient-secondary-name">{d.name}</div>
-                        <div className="patient-secondary-meta">{secondaryMeta(d)}</div>
-                        {d.notes && <div className="patient-secondary-notes">{d.notes}</div>}
-                      </div>
+                    <DoseTicket
+                      key={d.id}
+                      scheduledAt={d.scheduled_at}
+                      name={d.name}
+                      meta={secondaryMeta(d)}
+                      notes={d.notes}
+                      done={d.status === 'taken' || d.status === 'missed'}
+                    >
+                      {d.status === 'taken' && (
+                        <Stamp tone="green">اتاخدت</Stamp>
+                      )}
                       {d.isOpen && (
                         <button className="patient-secondary-take" onClick={() => handleTake(d.id)}>
-                          <Icon name="check" size={17} strokeWidth={2.6} />
+                          <Icon name="check" size={18} strokeWidth={3} />
                           خدت
                         </button>
                       )}
-                      {/* جرعة فاتت بس لسه ينفع تتسجّل - نص مختلف عشان المريض
+                      {/* جرعة فاتت بس لسه ينفع تتسجّل - زرار ونص مختلفين عشان المريض
                           يفهم إنه بيسجّل حاجة متأخرة مش بيلغي إنها فاتت */}
+                      {d.status === 'missed' && !d.isLate && (
+                        <Stamp tone="coral" flip>
+                          فاتت
+                        </Stamp>
+                      )}
                       {d.isLate && (
                         <button
                           className="patient-secondary-take patient-secondary-take-late"
                           onClick={() => handleTake(d.id)}
                         >
-                          <Icon name="check" size={17} strokeWidth={2.6} />
+                          <Icon name="check" size={18} strokeWidth={3} />
                           خدتها
                         </button>
                       )}
-                    </div>
+                    </DoseTicket>
                   ))}
                 </div>
-              </React.Fragment>
+              </div>
             )}
           </div>
         )}
@@ -643,9 +707,7 @@ function PatientHome({
             مبنية على "حاجة واحدة كل مرة"، وموعد بعد شهرين مش حاجة النهاردة. */}
         {nextAppointment && (
           <div className="patient-appt-card">
-            <span className="patient-appt-icon" aria-hidden="true">
-              <Icon name="calendar" size={26} />
-            </span>
+            <CalendarLeaf date={parseCairoDatetime(nextAppointment.appointment_at)} size={11} />
             <div className="patient-appt-body">
               <div className="patient-appt-label">{describeApptWhen(nextAppointment.appointment_at)}</div>
               <div className="patient-appt-title">{nextAppointment.title}</div>
@@ -669,6 +731,9 @@ function PatientHome({
         {caregivers.length > 0 && (
           <React.Fragment>
             <div className="patient-caregiver-card">
+              <span className="patient-caregiver-avatar" aria-hidden="true">
+                {caregivers[0].name.trim()[0] || 'م'}
+              </span>
               <div className="patient-caregiver-info">
                 <div className="patient-caregiver-label">متابعك</div>
                 <div className="patient-caregiver-name">{caregivers[0].name}</div>
@@ -676,15 +741,11 @@ function PatientHome({
               {/* زرار الاتصال المباشر. كارت "متابعك" كان بيعرض الاسم وخلاص، فكبير
                   السن اللي حاسس بتعب كان قدامه بلاغ يبعته ويستنى - مش زرار يرن بيه
                   على ابنه. دي أبسط حاجة في الشاشة وأكترهم فايدة وقت الحاجة. */}
-              {caregivers[0].phone ? (
+              {caregivers[0].phone && (
                 <a className="patient-caregiver-call" href={`tel:${caregivers[0].phone}`}>
                   <Icon name="phone" size={22} strokeWidth={2.2} />
                   اتصل بيه
                 </a>
-              ) : (
-                <div className="patient-caregiver-avatar" aria-hidden="true">
-                  {caregivers[0].name.trim()[0] || 'م'}
-                </div>
               )}
             </div>
 
@@ -972,8 +1033,11 @@ const PATIENT_VITAL_TYPES = [
 // "كان كام المرة اللي فاتت؟" - مش جدول تاريخ كامل على شاشة كل قيمتها البساطة.
 const PATIENT_VITAL_HISTORY = 5;
 
-// بيحوّل صف قياس لنص مقروء - نفس منطق العرض في شاشة المتابع
-function formatVitalValue(vital) {
+// بيحوّل صف قياس لنص مقروء - نفس منطق العرض في شاشة المتابع.
+// اسمها formatPatientVitalValue مش formatVitalValue عمدًا: Vitals.jsx فيه دالة
+// بنفس الاسم (بمعاملين)، وكل ملفات js/ بتتدمج في نطاق واحد وقت البناء، فالتانية
+// كانت بتكتب فوق الأولى وتاب القياسات عند المتابع بيقع أول ما يبقى فيه قياس.
+function formatPatientVitalValue(vital) {
   const v = typeof vital.value_json === 'string' ? JSON.parse(vital.value_json) : vital.value_json;
   if (vital.type === 'blood_pressure') return `${v.systolic}/${v.diastolic}`;
   return String(v.value);
@@ -1122,7 +1186,7 @@ function PatientVitalsSheet({ patientId, onClose }) {
                 <div className="patient-vital-history-title">آخر قراءات {type.label}</div>
                 {history.map((v) => (
                   <div key={v.id} className="patient-vital-history-row">
-                    <span className="patient-vital-history-value">{formatVitalValue(v)}</span>
+                    <span className="patient-vital-history-value">{formatPatientVitalValue(v)}</span>
                     <span className="patient-vital-history-when">{describePastWhen(v.recorded_at)}</span>
                   </div>
                 ))}

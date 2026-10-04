@@ -40,39 +40,28 @@ function TodayView({ patientId, onOpenAdherence }) {
 
   const pending = doses.filter((d) => d.status === 'pending');
   const done = doses.filter((d) => d.status !== 'pending');
-  const taken = doses.filter((d) => d.status === 'taken').length;
-  const missed = doses.filter((d) => d.status === 'missed').length;
 
   return (
     <div className="view">
       <h2 className="view-title">جرعات النهارده</h2>
       <Banner onClose={() => setError('')}>{error}</Banner>
 
-      {doses.length > 0 && (
-        <DaySummary total={doses.length} taken={taken} missed={missed} left={pending.length} />
-      )}
+      {doses.length > 0 && <DaySummary doses={doses} />}
 
       {doses.length === 0 && <EmptyState icon="pill" text="مفيش أدوية مسجلة النهارده" />}
 
       {pending.length > 0 && (
         <div className="dose-list stagger">
           {pending.map((d) => (
-            <Card key={d.id} className="dose-card">
-              <div className="dose-info">
-                <div className="dose-time">{formatTime(d.scheduled_at)}</div>
-                <div>
-                  <div className="dose-name">{d.name}</div>
-                  {d.dosage && <div className="dose-dosage">{d.dosage}</div>}
-                </div>
-              </div>
+            <DoseTicket key={d.id} scheduledAt={d.scheduled_at} name={d.name} meta={d.dosage}>
               <Button
                 onClick={() => handleTake(d.id)}
                 aria-label={`تسجيل جرعة ${d.name} الساعة ${formatTime(d.scheduled_at)} كمتناولة`}
               >
-                <Icon name="check" size={20} strokeWidth={2.4} />
+                <Icon name="check" size={20} strokeWidth={2.6} />
                 اتاخد
               </Button>
-            </Card>
+            </DoseTicket>
           ))}
         </div>
       )}
@@ -82,18 +71,12 @@ function TodayView({ patientId, onOpenAdherence }) {
           <h3 className="view-subtitle">تم تسجيلها</h3>
           <div className="dose-list stagger">
             {done.map((d) => (
-              <Card key={d.id} className="dose-card done">
-                <div className="dose-info">
-                  <div className="dose-time">{formatTime(d.scheduled_at)}</div>
-                  <div>
-                    <div className="dose-name">{d.name}</div>
-                  </div>
-                </div>
-                <span className={`status-pill ${d.status}`}>
-                  <Icon name={d.status === 'taken' ? 'checkCircle' : 'warning'} size={17} />
+              <DoseTicket key={d.id} scheduledAt={d.scheduled_at} name={d.name} meta={d.dosage} done>
+                {/* الحالة بالختم: كلمة مكتوبة مش لون بس */}
+                <Stamp tone={d.status === 'taken' ? 'green' : 'coral'} flip={d.status !== 'taken'}>
                   {d.status === 'taken' ? 'اتاخدت' : 'فاتت'}
-                </span>
-              </Card>
+                </Stamp>
+              </DoseTicket>
             ))}
           </div>
         </React.Fragment>
@@ -121,18 +104,22 @@ function TodayView({ patientId, onOpenAdherence }) {
 }
 
 /* ============================================
-   كارت ملخّص اليوم
+   لوحة ملخّص اليوم
    ============================================
-   بيجاوب على سؤال المتابع الأول قبل ما يسأله: "خلصنا كام وفاضل كام؟".
+   بتجاوب على سؤال المتابع الأول قبل ما يسأله: "خلصنا كام وفاضل كام؟".
    قبل كده الشاشة كانت بتبدأ بقايمة كروت على طول، فالإجابة كانت محتاجة إن
    المتابع يعدّ بعينه - وده بالظبط النوع من الشغل اللي المفروض التطبيق
    يشيله عنه.
+
+   فيها نتيجة اليوم (التاريخ)، وشريط الدوا: فقاعة لكل جرعة بحالتها، والجرعة
+   اللي ميعادها جه ومحدش سجّلها بتنبض - نفس الشريط اللي بيشوفه المريض.
    ============================================ */
 
-function DaySummary({ total, taken, missed, left }) {
-  // النسبة بتتبعت للـ CSS كمتغيّر، والحلقة بترسم نفسها بـ conic-gradient
-  // (materials.css). كل حساب الرسم في CSS - هنا رقم واحد بس.
-  const pct = total > 0 ? Math.round((taken / total) * 100) : 0;
+function DaySummary({ doses }) {
+  const total = doses.length;
+  const taken = doses.filter((d) => d.status === 'taken').length;
+  const missed = doses.filter((d) => d.status === 'missed').length;
+  const left = doses.filter((d) => d.status === 'pending').length;
   const allDone = total > 0 && left === 0 && missed === 0;
 
   let meta;
@@ -140,45 +127,51 @@ function DaySummary({ total, taken, missed, left }) {
   else if (left > 0) meta = `فاضل ${left} ${left === 1 ? 'جرعة' : 'جرعات'} النهارده.`;
   else meta = 'مفيش جرعات مستنية دلوقتي.';
 
+  /* فقاعة لكل جرعة. "open" لأول جرعة معلّقة ميعادها جه (مش بدري عليها) - هي اللي
+     المفروض حد يسأل عنها دلوقتي. نفس منطق getDoseAvailability بتاع شاشة المريض. */
+  const nowDate = new Date();
+  let openAssigned = false;
+  const items = doses.map((d) => {
+    let state = d.status === 'taken' ? 'taken' : d.status === 'missed' ? 'missed' : 'locked';
+    if (state === 'locked' && !openAssigned && !getDoseAvailability(d.scheduled_at, nowDate).isEarly) {
+      state = 'open';
+      openAssigned = true;
+    }
+    return {
+      id: d.id,
+      state,
+      part: dayPartOfTime(d.scheduled_at).key,
+      label: `${d.name} ${formatTime(d.scheduled_at)} - ${
+        d.status === 'taken' ? 'اتاخدت' : d.status === 'missed' ? 'فاتت' : 'لسه'
+      }`,
+    };
+  });
+
   return (
     <div className={`day-summary${allDone ? ' is-complete' : ''}`}>
-      <div
-        className="progress-ring"
-        style={{ '--progress': pct }}
-        role="img"
-        aria-label={`${taken} من ${total} جرعات اتاخدت`}
-      >
-        <span className="progress-ring-value">
-          {taken}/{total}
-        </span>
-      </div>
+      <CalendarLeaf date={nowDate} size={14} />
 
       <div className="day-summary-body">
         <div className="day-summary-title">{allDone ? 'خلصت النهارده' : 'متابعة اليوم'}</div>
         <div className="day-summary-meta">{meta}</div>
-      </div>
+        <BlisterStrip items={items} label={`${taken} من ${total} جرعات اتاخدت`} />
 
-      {/* الأرقام أخت لكتلة النص مش جواها: كده على الشاشة الكبيرة تقدر تروح لطرف
-          الكارت التاني وتوازنه، وعلى الموبايل بتلف لسطر تحتيه (CSS بس).
-          aria-hidden لأن كل رقم فيها متقال بالفعل في نص الحلقة وفي السطر اللي
-          فوق - تكراره لقارئ الشاشة هيبقى ضوضاء مش معلومة. */}
-      <div className="day-summary-stats" aria-hidden="true">
-        <span className="day-stat tone-done">
-          <Icon name="checkCircle" size={15} />
-          <span className="day-stat-value">{taken}</span> اتاخدت
-        </span>
-        {left > 0 && (
-          <span className="day-stat tone-left">
-            <Icon name="clock" size={15} />
-            <span className="day-stat-value">{left}</span> مستنية
-          </span>
-        )}
-        {missed > 0 && (
-          <span className="day-stat tone-missed">
-            <Icon name="warning" size={15} />
-            <span className="day-stat-value">{missed}</span> فاتت
-          </span>
-        )}
+        {/* الأرقام التلاتة مكررة للشريط فوق وللجملة - aria-hidden عشان قارئ الشاشة
+            ميقراهمش مرتين (الشريط بيقرا كل جرعة بحالتها). */}
+        <div className="day-summary-stats" aria-hidden="true">
+          <div className="day-stat tone-done">
+            <span className="day-stat-value">{taken}</span>
+            اتاخدت
+          </div>
+          <div className="day-stat tone-left">
+            <span className="day-stat-value">{left}</span>
+            مستنية
+          </div>
+          <div className="day-stat tone-missed">
+            <span className="day-stat-value">{missed}</span>
+            فاتت
+          </div>
+        </div>
       </div>
     </div>
   );
