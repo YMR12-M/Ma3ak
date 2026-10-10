@@ -1321,50 +1321,50 @@
     window.location.href = '/';
   }
 
-  /* الشريط بيتحط كأول عنصر في الصفحة وفي سياق التدفق العادي (مش fixed فوق
-     التطبيق)، عشان ميغطّيش أزرار الهيدر ولا الشريط السفلي في أي شاشة. */
+  /* زرار العرض التجريبي: نفس الشكل بالظبط في كل مشاريع العرض (كبسولة عايمة
+     بنقطة صفراء + لوحة منسدلة)، عشان الزائر يلاقي نفس الحاجة في أي مشروع. */
   function mountBar() {
-    if (document.getElementById('ma3ak-demo-bar')) return;
+    if (document.getElementById('demo-bar')) return;
     var style = document.createElement('style');
     style.textContent =
-      '#ma3ak-demo-bar{position:relative;z-index:2147483000;direction:rtl;background:#1d2540;color:#f5efe3;' +
-      'font-family:inherit;font-size:12px;line-height:1.4}' +
-      '#ma3ak-demo-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 12px;' +
-      'min-height:30px}' +
-      '#ma3ak-demo-bar button{font:inherit;cursor:pointer}' +
-      '#ma3ak-demo-toggle{background:transparent;color:#f5efe3;border:1px solid rgba(245,239,227,.55);' +
-      'border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;white-space:nowrap}' +
-      '#ma3ak-demo-panel{display:none;position:absolute;top:100%;left:8px;margin-top:4px;background:#fffaf0;' +
-      'color:#1d2540;border:1px solid #d9cfba;border-radius:14px;padding:10px;width:min(260px,calc(100vw - 16px));' +
-      'box-shadow:0 8px 24px rgba(0,0,0,.28)}' +
-      '#ma3ak-demo-panel button{display:block;width:100%;margin-top:6px;padding:9px 10px;border-radius:10px;' +
-      'border:1px solid #1d2540;background:#fff;color:#1d2540;font-size:13px;font-weight:700;text-align:right}' +
-      '#ma3ak-demo-panel button.primary{background:#1d2540;color:#f5efe3}' +
-      '#ma3ak-demo-panel small{display:block;margin-top:8px;font-size:11px;opacity:.75;line-height:1.5}';
+      '#demo-bar{position:fixed;left:10px;bottom:10px;z-index:2147483000;font-family:inherit;direction:rtl;font-size:13px;line-height:1.5}' +
+      '#demo-bar *{box-sizing:border-box}' +
+      '#demo-toggle{display:flex;align-items:center;gap:6px;background:#1c1c24;color:#fff;border:1px solid rgba(255,255,255,.28);' +
+      'border-radius:999px;padding:7px 13px;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35)}' +
+      '#demo-toggle i{width:8px;height:8px;border-radius:50%;background:#f5b93a;display:inline-block}' +
+      '#demo-panel{display:none;position:absolute;left:0;bottom:calc(100% + 8px);width:min(290px,calc(100vw - 20px));' +
+      'background:#fff;color:#1c1c24;border:1px solid #d6d6dc;border-radius:14px;padding:12px;box-shadow:0 12px 32px rgba(0,0,0,.3)}' +
+      '#demo-panel p{margin:0 0 8px;font-size:12.5px;color:#454552}' +
+      '#demo-panel button{display:block;width:100%;margin-top:6px;padding:9px 11px;border-radius:10px;border:1px solid #1c1c24;' +
+      'background:#fff;color:#1c1c24;font:inherit;font-weight:700;text-align:right;cursor:pointer}' +
+      '#demo-panel button.primary{background:#1c1c24;color:#fff}' +
+      '#demo-panel small{display:block;margin-top:9px;font-size:11.5px;color:#6a6a78}' +
+      // على الموبايل في شريط تنقّل سفلي (وشريط "حصلت مشكلة؟" عند المريض): نرفع الكبسولة فوقهم
+      '@media (max-width:760px){#demo-bar{bottom:96px}}';
     document.head.appendChild(style);
 
-    var bar = document.createElement('div');
-    bar.id = 'ma3ak-demo-bar';
-    bar.innerHTML =
-      '<div id="ma3ak-demo-row">' +
-      '<span>نسخة تجريبية · بيانات وهمية على جهازك بس</span>' +
-      '<button id="ma3ak-demo-toggle" type="button" aria-expanded="false" aria-controls="ma3ak-demo-panel">خيارات</button>' +
-      '</div>' +
-      '<div id="ma3ak-demo-panel" role="dialog" aria-label="خيارات النسخة التجريبية">' +
+    var wrap = document.createElement('div');
+    wrap.id = 'demo-bar';
+    wrap.innerHTML =
+      '<div id="demo-panel" role="dialog" aria-label="خيارات النسخة التجريبية">' +
+      '<p>ده عرض لتطبيق معاك ببيانات وهمية متخزنة على جهازك بس.</p>' +
       '<button type="button" class="primary" data-act="caregiver">ادخل كمتابع (منى)</button>' +
       '<button type="button" data-act="patient">ادخل كمريض (الحاج محمد)</button>' +
       '<button type="button" data-act="alarm">جرّب منبه الجرعة دلوقتي</button>' +
       '<button type="button" data-act="reset">إعادة ضبط البيانات</button>' +
-      '<small>التنبيهات الحقيقية (والتطبيق مقفول) محتاجة سيرفر شغّال - مش متاحة في العرض ده.</small>' +
-      '</div>';
-    document.body.insertBefore(bar, document.body.firstChild);
+      '<small>أو سجّل دخول بـ 01000000001 وكلمة المرور 123456. التنبيهات الحقيقية (والتطبيق مقفول) محتاجة سيرفر شغّال - مش متاحة في العرض ده.</small>' +
+      '</div>' +
+      '<button id="demo-toggle" type="button" aria-expanded="false" aria-controls="demo-panel"><i></i><span>نسخة تجريبية</span></button>';
+    document.body.appendChild(wrap);
 
-    var toggle = document.getElementById('ma3ak-demo-toggle');
-    var panel = document.getElementById('ma3ak-demo-panel');
+    var toggle = document.getElementById('demo-toggle');
+    var panel = document.getElementById('demo-panel');
+    function setOpen(open) {
+      panel.style.display = open ? 'block' : 'none';
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
     toggle.addEventListener('click', function () {
-      var open = panel.style.display === 'block';
-      panel.style.display = open ? 'none' : 'block';
-      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      setOpen(panel.style.display !== 'block');
     });
     panel.addEventListener('click', function (e) {
       var act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
@@ -1373,6 +1373,14 @@
       else if (act === 'alarm') triggerAlarm();
       else if (act === 'reset') resetDemo();
     });
+    try {
+      if (!sessionStorage.getItem('ma3ak_demo_seen')) {
+        sessionStorage.setItem('ma3ak_demo_seen', '1');
+        setOpen(true);
+      }
+    } catch (e) {
+      /* لا شيء */
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountBar);
